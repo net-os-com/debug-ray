@@ -1,0 +1,33 @@
+/*
+ * Every visual choice lives here. The Claude Design output should only need to
+ * replace the values in this file; layout and components read them as tokens.
+ */
+:root {
+  --color-bg: #16161a;
+  --color-surface: #1d1d22;
+  --color-surface-raised: #24242b;
+  --color-border: #2e2e37;
+  --color-text: #e4e4e9;
+  --color-text-muted: #8b8b98;
+  --color-accent: #7f6df2;
+
+  --color-string: #8fd67a;
+  --color-number: #f0a45c;
+  --color-const: #6fb6f0;
+  --color-key: #d8d8e0;
+  --color-note: #c58af9;
+  --color-danger: #f47272;
+
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-size-ui: 13px;
+  --font-size-code: 12.5px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --radius: 6px;
+}

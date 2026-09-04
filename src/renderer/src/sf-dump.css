@@ -1,0 +1,67 @@
+/*
+ * Symfony's HtmlDumper markup, restyled. Its own <style> block is stripped in
+ * ui/sf-dump.ts, so these class names are all it needs from us.
+ */
+.var-dump pre.sf-dump {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-code);
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.sf-dump-str {
+  color: var(--color-string);
+}
+
+.sf-dump-num {
+  color: var(--color-number);
+}
+
+.sf-dump-const,
+.sf-dump-public {
+  color: var(--color-const);
+}
+
+.sf-dump-key,
+.sf-dump-index {
+  color: var(--color-key);
+}
+
+.sf-dump-note {
+  color: var(--color-note);
+}
+
+.sf-dump-meta,
+.sf-dump-protected,
+.sf-dump-private,
+.sf-dump-ref,
+.sf-dump-ellipsis {
+  color: var(--color-text-muted);
+}
+
+.sf-dump-compact {
+  display: none;
+}
+
+/* Our own collapse control, injected in front of every samp[data-depth]. */
+.dump-toggle {
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-text-muted);
+}
+
+.dump-toggle::before {
+  content: '▾';
+}
+
+.dump-toggle.is-collapsed::before {
+  content: '▸';
+}
+
+.dump-toggle:hover {
+  color: var(--color-accent);
+}
