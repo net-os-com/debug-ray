@@ -629,13 +629,53 @@ body {
 
 /* ── Detail panel ───────────────────────────────────────── */
 .detail {
-  flex: 0 1 420px;
-  min-width: 300px;
+  /* flex-basis comes from the resize handle; 420px is the design default. */
+  flex: 0 0 420px;
+  min-width: 320px;
+  position: relative;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--app-border);
   background: var(--app-surface);
   overflow: hidden;
+}
+
+.resize-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.resize-handle:hover::after,
+body.is-resizing .resize-handle::after {
+  background: var(--brand-primary);
+}
+
+[data-app='dark'] .resize-handle:hover::after,
+body.is-resizing [data-app='dark'] .resize-handle::after {
+  background: rgb(var(--color-brand-primary-300));
+}
+
+/* Dragging must not select the text it passes over. */
+body.is-resizing {
+  user-select: none;
+  cursor: col-resize;
 }
 
 .detail__head {

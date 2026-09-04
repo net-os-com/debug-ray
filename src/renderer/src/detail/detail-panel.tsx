@@ -5,20 +5,32 @@ import { sourceOf } from '../filter-events'
 import { kindFor } from '../kind'
 import { CloseIcon } from '../ui/icons'
 import { DetailBody } from './detail-body'
+import { ResizeHandle } from './resize-handle'
 
 type DetailPanelProps = {
   event: RayEvent
   hideVendorFrames: boolean
+  width: number
+  onResize: (width: number, containerWidth: number) => void
+  onResetWidth: () => void
   onClose: () => void
 }
 
-export function DetailPanel({ event, hideVendorFrames, onClose }: DetailPanelProps) {
+export function DetailPanel({
+  event,
+  hideVendorFrames,
+  width,
+  onResize,
+  onResetWidth,
+  onClose,
+}: DetailPanelProps) {
   const kind = kindFor(event)
 
   const style = {
     '--kind-dot': kind.dot,
     '--kind-fg-l': kind.fgLight,
     '--kind-fg-d': kind.fgDark,
+    flexBasis: `${width}px`,
   } as CSSProperties
 
   const meta = [
@@ -32,6 +44,8 @@ export function DetailPanel({ event, hideVendorFrames, onClose }: DetailPanelPro
 
   return (
     <aside className="detail" style={style}>
+      <ResizeHandle onReset={onResetWidth} onResize={onResize} width={width} />
+
       <div className="detail__head">
         <div className="detail__head-top">
           <span className="badge">{kind.label}</span>

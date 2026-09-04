@@ -5,6 +5,7 @@ import { Sidebar } from './chrome/sidebar'
 import { TitleRail } from './chrome/title-rail'
 import { Toolbar } from './chrome/toolbar'
 import { DetailPanel } from './detail/detail-panel'
+import { usePanelWidth } from './detail/use-panel-width'
 import { ALL, filterEvents, type Filters } from './filter-events'
 import { SettingsView } from './settings/settings-view'
 import { EmptyState } from './stream/empty-state'
@@ -21,6 +22,7 @@ export function App() {
   const { theme, toggle: toggleTheme } = useTheme()
   const { settings, toggle: toggleSetting } = useSettings()
   const status = useServerStatus()
+  const panel = usePanelWidth()
 
   const [view, setView] = useState<'stream' | 'settings'>('stream')
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
@@ -109,6 +111,9 @@ export function App() {
                     event={selected}
                     hideVendorFrames={settings.hideVendorFrames}
                     onClose={() => setSelectedId(null)}
+                    onResetWidth={panel.reset}
+                    onResize={panel.resize}
+                    width={panel.width}
                   />
                 ) : null}
               </div>
