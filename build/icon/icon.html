@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NetOS Debug app icon</title>
+    <style>
+      /*
+       * The 1024x1024 macOS icon grid from the "NetOS Debug App Icon" canvas:
+       * an 824px squircle inset by 100px, leaving that margin for the shadow.
+       * Every measurement here comes straight from the design.
+       */
+      :root {
+        --navy: rgb(10 45 81);
+        --ink: rgb(13 13 13);
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }
+
+      .canvas {
+        width: 1024px;
+        height: 1024px;
+        position: relative;
+      }
+
+      .squircle {
+        position: absolute;
+        left: 100px;
+        top: 100px;
+        width: 824px;
+        height: 824px;
+        border-radius: 184px;
+        background: var(--navy);
+        box-shadow:
+          0 24px 64px rgb(var(--ink) / 0.28),
+          inset 0 0 0 4px rgb(255 255 255 / 0.07);
+        overflow: hidden;
+      }
+
+      .sheen {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          120% 100% at 22% 8%,
+          rgb(255 255 255 / 0.16),
+          rgb(255 255 255 / 0) 62%
+        );
+      }
+
+      .mark {
+        position: absolute;
+        left: 150px;
+        top: 186px;
+        color: #fff;
+      }
+
+      .badge {
+        position: absolute;
+        right: 78px;
+        bottom: 78px;
+        width: 266px;
+        height: 266px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow:
+          0 0 0 26px var(--navy),
+          0 10px 28px rgb(var(--ink) / 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /*
+       * Small renders swap the two gradient bars for flat 55% fills, so the
+       * mark still reads at 32px. Chosen per size by build/icon/render.mjs.
+       */
+      body[data-variant='flat'] .bar--gradient {
+        display: none;
+      }
+
+      body[data-variant='gradient'] .bar--flat {
+        display: none;
+      }
+    </style>
+  </head>
+  <body data-variant="gradient">
+    <div class="canvas">
+      <div class="squircle">
+        <div class="sheen"></div>
+
+        <svg class="mark" viewBox="0 0 20.6 20" width="430" height="418" fill="none">
+          <path
+            class="bar--gradient"
+            d="M20.104 4.1664C20.104 1.97579 18.3308 0.199951 16.1436 0.199951C13.9563 0.199951 12.1832 1.97579 12.1832 4.1664V16.0335C12.1832 18.2241 13.9563 20 16.1436 20C18.3308 20 20.104 18.2241 20.104 16.0335V4.1664Z"
+            fill="url(#ig0)"
+          ></path>
+          <path
+            class="bar--gradient"
+            d="M0.500024 16.0336C0.500024 18.2242 2.31748 20 4.55943 20C6.80138 20 8.61884 18.2242 8.61884 16.0336L8.61884 4.16645C8.61884 1.97584 6.80138 0.200001 4.55943 0.200001C2.31748 0.200001 0.500024 1.97584 0.500024 4.16645L0.500024 16.0336Z"
+            fill="url(#ig1)"
+          ></path>
+
+          <path
+            class="bar--flat"
+            fill="currentColor"
+            fill-opacity="0.55"
+            d="M20.104 4.1664C20.104 1.97579 18.3308 0.199951 16.1436 0.199951C13.9563 0.199951 12.1832 1.97579 12.1832 4.1664V16.0335C12.1832 18.2241 13.9563 20 16.1436 20C18.3308 20 20.104 18.2241 20.104 16.0335V4.1664Z"
+          ></path>
+          <path
+            class="bar--flat"
+            fill="currentColor"
+            fill-opacity="0.55"
+            d="M0.500024 16.0336C0.500024 18.2242 2.31748 20 4.55943 20C6.80138 20 8.61884 18.2242 8.61884 16.0336L8.61884 4.16645C8.61884 1.97584 6.80138 0.200001 4.55943 0.200001C2.31748 0.200001 0.500024 1.97584 0.500024 4.16645L0.500024 16.0336Z"
+          ></path>
+
+          <path
+            fill="currentColor"
+            d="M18.6721 12.8453C20.6127 14.4597 20.4501 17.2327 18.9674 18.8163C17.4175 20.3484 14.7076 20.5266 13.1206 18.5495C11.8554 16.9812 12.0906 15.2827 11.3647 13.7398C10.8944 12.7042 10.21 11.7238 9.42227 10.908C8.61771 10.1013 7.65576 9.4067 6.64166 8.93007C5.12979 8.19477 3.47117 8.44349 1.9319 7.15559C-0.0087744 5.54119 0.153898 2.76823 1.63659 1.18459C3.1856 -0.348407 5.89545 -0.526582 7.48247 1.45049C8.74766 3.01876 8.51249 4.71726 9.23837 6.26021C9.70872 7.29577 10.3922 8.27617 11.1808 9.09196C11.9854 9.89871 12.9473 10.5933 13.9614 11.0699C15.4733 11.8052 17.1319 11.5574 18.6712 12.8444Z"
+          ></path>
+
+          <defs>
+            <linearGradient
+              id="ig0"
+              x1="16.144"
+              y1="16.3802"
+              x2="16.144"
+              y2="2.10077"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="currentColor" stop-opacity="0"></stop>
+              <stop stop-color="currentColor" offset="1"></stop>
+            </linearGradient>
+            <linearGradient
+              id="ig1"
+              x1="4.55897"
+              y1="3.81979"
+              x2="4.55897"
+              y2="18.0983"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="currentColor" stop-opacity="0"></stop>
+              <stop stop-color="currentColor" offset="1"></stop>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div class="badge">
+          <svg
+            width="152"
+            height="152"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgb(10 45 81)"
+            stroke-width="2.1"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m6.5 8.5 3.6 3.5-3.6 3.5"></path>
+            <path d="M13.4 15.5h4.1"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { ServerStatus } from '../shared/ray-event'
+import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
@@ -23,6 +24,7 @@ function createWindow(): BrowserWindow {
     show: false,
     title: 'NetOS Debug',
     backgroundColor: '#0a2d51',
+    icon: windowIcon(),
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -51,6 +53,8 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  applyDockIcon()
+
   mainWindow = createWindow()
 
   ipcMain.handle('ray:status', () => status)

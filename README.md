@@ -41,6 +41,27 @@ The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
   not block the PHP process.
 - `GET /windows` and `GET /theme` return empty stubs.
 
+## App icon
+
+`resources/icon.icns` and `resources/icon.png` are generated from the
+"NetOS Debug App Icon" canvas:
+
+```bash
+npm run icon
+```
+
+`build/icon/icon.html` is the 1024x1024 source (824px squircle inset by 100px,
+leaving that margin for the baked shadow, per Apple's icon grid).
+`build/icon/render.mjs` renders it in an offscreen Electron window and builds the
+iconset with `sips` and `iconutil`, so what ships is exactly the CSS rendering.
+
+Following the canvas' own note, the two mark bars use the gradient fills at 256px
+and up, and flat 55% fills at 128px and below so the mark still reads at 32px.
+
+The dock icon is set at runtime because an unpackaged macOS app otherwise shows
+Electron's own. A packaged build takes the icon from the bundle instead — point
+your packager at `resources/icon.icns` (electron-builder: `mac.icon`).
+
 ## How ray concepts map to the UI
 
 - **Sources** are `origin.hostname`, so the host and each container appear
