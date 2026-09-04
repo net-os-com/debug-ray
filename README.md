@@ -41,6 +41,17 @@ The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
   not block the PHP process.
 - `GET /windows` and `GET /theme` return empty stubs.
 
+## App name
+
+`productName` in `package.json` plus `app.setName()` at load time give the menu
+bar, the About panel and the window title "NetOS Debug".
+
+macOS still reports the *process* as "Electron" — in the dock tooltip, the
+Force Quit list and Activity Monitor. That name is `CFBundleName` inside the
+vendored `node_modules/electron/dist/Electron.app`, so only a packaged build
+fixes it. Add a packager (electron-builder reads `productName` and `mac.icon`)
+if that matters.
+
 ## App icon
 
 `resources/icon.icns` and `resources/icon.png` are generated from the

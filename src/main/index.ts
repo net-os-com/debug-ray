@@ -6,6 +6,10 @@ import { Clients } from './clients'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
 
+// Unpackaged, Electron names the app after its own binary; the default menu is
+// built from app.name on ready, so this has to happen at load time.
+app.setName('NetOS Debug')
+
 // 0.0.0.0 so a Laravel container can reach the app over host.docker.internal.
 const HOST = process.env.RAY_HOST ?? '0.0.0.0'
 const PORT = Number(process.env.RAY_PORT ?? 23517)
@@ -53,6 +57,11 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  app.setAboutPanelOptions({
+    applicationName: app.getName(),
+    applicationVersion: app.getVersion(),
+  })
+
   applyDockIcon()
 
   mainWindow = createWindow()
