@@ -35,3 +35,11 @@ export type ServerStatus = {
   port: number
   error: string | null
 }
+
+/** A sender we have seen post payloads, for the settings view. */
+export type RayClient = {
+  id: string
+  label: string
+  address: string
+  lastSeenAt: number
+}

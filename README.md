@@ -1,8 +1,9 @@
 # NetOS Ray
 
-A minimal Electron receiver for [spatie/ray](https://github.com/spatie/ray) payloads.
-It speaks the same HTTP protocol the PHP client expects and renders everything it
-receives — including Symfony `HtmlDumper` dumps — in one chronological stream.
+An Electron receiver for [spatie/ray](https://github.com/spatie/ray) payloads,
+built to the "NetOS Debug Console" Claude Design canvas. It speaks the HTTP
+protocol the PHP client expects and renders what it receives — including
+Symfony `HtmlDumper` dumps — as a filterable stream with a detail panel.
 
 ## Run
 
@@ -40,19 +41,37 @@ The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
   not block the PHP process.
 - `GET /windows` and `GET /theme` return empty stubs.
 
-## Scope
+## How ray concepts map to the UI
 
-Deliberately simple: one flat stream, no screens, no per-payload colours, no
-filtering. `ray()->clearAll()` clears the list; every other payload type renders,
-falling back to raw JSON for types without a dedicated view
-(`src/renderer/src/payload-view.tsx`).
+- **Sources** are `origin.hostname`, so the host and each container appear
+  separately. The rail shows `meta.project_name`.
+- **Types** are the eight kinds from the design, derived from the payload type.
+  A `log` payload counts as `dump` when its value is a var-dump.
+- **Labels and colours** (`ray()->label()`, `ray()->green()`) arrive as their own
+  payloads reusing the request uuid. Ray attaches them to the entry rather than
+  listing them, so they become the row's label pill and stripe colour.
+- **Connected clients** in Settings are derived from who has posted recently;
+  ray has no handshake.
+- `ray()->clearAll()` clears the stream. Unknown payload types still show up,
+  as raw JSON.
 
-All visual choices live in `src/renderer/src/tokens.css`.
+**Pause buffers rather than drops.** The canvas simply skips events while
+paused; silently losing payloads in a debug tool is worse than holding them, so
+incoming events queue up and the Resume button shows the count.
+
+## Not built
+
+- Grouping by request (`uuid`), the canvas' "Group by request" toggle.
+- "Open in editor" and "Bookmark" in the detail panel.
+- Screens (`ray()->newScreen()`) — everything lands in one stream.
+- Host Grotesk is not bundled; the font stack falls back to Inter and system-ui.
+  Add the `.otf` files and `@font-face` rules in `tokens.css` for the real face.
 
 ## Two things to know
 
 - The receiver binds `0.0.0.0` so Docker can reach it, which means anything on
   your network can post to it. Payload HTML is rendered as-is, the same way Ray
-  itself does. Keep it off untrusted networks.
+  itself does. Keep it off untrusted networks; `RAY_HOST=127.0.0.1` locks it
+  down but then containers can no longer reach it.
 - `ray()->trace()` needs a booted Laravel app (`base_path()`); it works from the
   app, not from a bare `php -r` script.

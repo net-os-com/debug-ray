@@ -1,33 +1,159 @@
 /*
- * Every visual choice lives here. The Claude Design output should only need to
- * replace the values in this file; layout and components read them as tokens.
+ * NetOS design system tokens, ported from the Claude Design project
+ * "NetOS Debug Console" (_ds/netos-design-system/colors_and_type.css).
+ *
+ * Host Grotesk is not bundled; the stack falls back to Inter and system-ui
+ * when it is not installed. Drop the .otf files next to this file and add
+ * @font-face rules to get the real face.
  */
 :root {
-  --color-bg: #16161a;
-  --color-surface: #1d1d22;
-  --color-surface-raised: #24242b;
-  --color-border: #2e2e37;
-  --color-text: #e4e4e9;
-  --color-text-muted: #8b8b98;
-  --color-accent: #7f6df2;
+  /* Brand — single ramp ("NetOS Navy", 600 = #0A2D51) */
+  --color-brand-primary-980: 1 6 20;
+  --color-brand-primary-950: 1 8 20;
+  --color-brand-primary-900: 2 17 36;
+  --color-brand-primary-800: 4 26 50;
+  --color-brand-primary-700: 7 36 67;
+  --color-brand-primary-600: 10 45 81;
+  --color-brand-primary-500: 23 77 132;
+  --color-brand-primary-400: 36 108 183;
+  --color-brand-primary-300: 50 144 241;
+  --color-brand-primary-200: 139 181 248;
+  --color-brand-primary-150: 168 200 250;
+  --color-brand-primary-100: 224 239 254;
+  --color-brand-primary-50: 245 250 255;
+  --color-brand-primary-inverted: 255 255 255;
+  --color-brand-primary-inverted-subtle: 214 214 214;
 
-  --color-string: #8fd67a;
-  --color-number: #f0a45c;
-  --color-const: #6fb6f0;
-  --color-key: #d8d8e0;
-  --color-note: #c58af9;
-  --color-danger: #f47272;
+  /* Neutrals */
+  --color-black: 0 0 0;
+  --color-white: 255 255 255;
+  --color-gray-950: 13 13 13;
+  --color-gray-900: 26 26 26;
+  --color-gray-850: 38 38 38;
+  --color-gray-800: 51 51 51;
+  --color-gray-750: 64 64 64;
+  --color-gray-700: 77 77 77;
+  --color-gray-650: 89 89 89;
+  --color-gray-600: 102 102 102;
+  --color-gray-550: 115 115 115;
+  --color-gray-500: 128 128 128;
+  --color-gray-450: 140 140 140;
+  --color-gray-400: 153 153 153;
+  --color-gray-350: 166 166 166;
+  --color-gray-300: 178 178 178;
+  --color-gray-250: 191 191 191;
+  --color-gray-200: 204 204 204;
+  --color-gray-150: 217 217 217;
+  --color-gray-100: 229 229 229;
+  --color-gray-50: 242 242 242;
+  --color-gray-20: 250 250 250;
+  --color-gray-10: 252 252 252;
 
-  --font-ui:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-  --font-size-ui: 13px;
-  --font-size-code: 12.5px;
+  /* Status ramps (trimmed to the steps this app uses) */
+  --color-green-700: 4 120 87;
+  --color-green-600: 5 150 105;
+  --color-green-300: 110 231 183;
+  --color-green-200: 167 243 208;
+  --color-green-50: 236 253 245;
+  --color-yellow-700: 180 83 9;
+  --color-yellow-600: 217 119 6;
+  --color-yellow-300: 252 211 77;
+  --color-yellow-50: 255 251 235;
+  --color-red-800: 153 27 27;
+  --color-red-700: 185 28 28;
+  --color-red-600: 220 38 38;
+  --color-red-300: 252 165 165;
+  --color-red-50: 254 242 242;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
+  /* Brand semantic aliases */
+  --brand-primary: rgb(var(--color-brand-primary-600));
+  --brand-primary-hover: rgb(var(--color-brand-primary-700));
+  --brand-primary-focus: rgb(var(--color-brand-primary-800));
+  --brand-primary-inverted-subtle: rgb(var(--color-brand-primary-inverted-subtle));
 
-  --radius: 6px;
+  /* Status semantic aliases */
+  --status-error: rgb(var(--color-red-300));
+  --status-error-subtle: rgb(var(--color-red-50));
+
+  /* Form field borders */
+  --border-form-field: rgb(var(--color-gray-150));
+  --border-form-field-active: rgb(var(--color-gray-400));
+
+  /* Type */
+  --font-display: 'Host Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Host Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+
+  --lh-tight: 1.1;
+  --lh-heading: 1.2;
+  --lh-body: 1.5;
+
+  /* Radii */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 99rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-focus: 0 0 6px 0.2px rgb(var(--color-brand-primary-200));
+}
+
+/* App surfaces, straight from the canvas' own [data-app] blocks. */
+[data-app] {
+  --app-canvas: rgb(var(--color-gray-50));
+  --app-surface: rgb(var(--color-white));
+  --app-surface-2: rgb(var(--color-gray-20));
+  --app-surface-3: rgb(var(--color-gray-50));
+  --app-border: rgb(var(--color-gray-150));
+  --app-border-soft: rgb(var(--color-gray-100));
+  --t1: rgb(var(--color-gray-950));
+  --t2: rgb(var(--color-gray-750));
+  --t3: rgb(var(--color-gray-550));
+  --app-rail: rgb(var(--color-brand-primary-600));
+  --app-sel: rgb(var(--color-brand-primary-50));
+
+  /* Dump syntax colours, keyed to the light ramp. */
+  --dump-string: rgb(var(--color-green-700));
+  --dump-number: rgb(var(--color-yellow-700));
+  --dump-const: rgb(var(--color-brand-primary-400));
+  --dump-note: rgb(var(--color-brand-primary-500));
+}
+
+[data-app='dark'] {
+  --app-canvas: rgb(var(--color-gray-950));
+  --app-surface: rgb(var(--color-gray-900));
+  --app-surface-2: rgb(var(--color-gray-850));
+  --app-surface-3: rgb(var(--color-gray-800));
+  --app-border: rgb(var(--color-gray-800));
+  --app-border-soft: rgb(var(--color-gray-850));
+  --t1: rgb(var(--color-white));
+  --t2: rgb(var(--color-gray-250));
+  --t3: rgb(var(--color-gray-450));
+  --app-rail: rgb(var(--color-brand-primary-900));
+  --app-sel: rgb(var(--color-brand-primary-900));
+
+  --dump-string: rgb(var(--color-green-300));
+  --dump-number: rgb(var(--color-yellow-300));
+  --dump-const: rgb(var(--color-brand-primary-200));
+  --dump-note: rgb(var(--color-brand-primary-200));
+}
+
+@keyframes netos-pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.65);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.65);
+  }
 }

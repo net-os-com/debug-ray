@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { ServerStatus } from '../shared/ray-event'
+import { Clients } from './clients'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
 
@@ -11,13 +12,17 @@ const PORT = Number(process.env.RAY_PORT ?? 23517)
 let mainWindow: BrowserWindow | null = null
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
+const clients = new Clients()
+
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
-    width: 1100,
-    height: 780,
+    width: 1440,
+    height: 900,
+    minWidth: 900,
+    minHeight: 600,
     show: false,
-    title: 'NetOS Ray',
-    backgroundColor: '#16161a',
+    title: 'NetOS Debug',
+    backgroundColor: '#0a2d51',
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -27,7 +32,7 @@ function createWindow(): BrowserWindow {
 
   window.on('ready-to-show', () => window.show())
 
-  // Dumps can contain links; open them in the real browser, not in the app.
+  // Dumps and mailables can contain links; open them in the real browser.
   window.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
 
@@ -49,11 +54,24 @@ app.whenReady().then(() => {
   mainWindow = createWindow()
 
   ipcMain.handle('ray:status', () => status)
+  ipcMain.handle('ray:clients', () => clients.list())
+
+  ipcMain.on('ray:copy', (_event, text: string) => {
+    clipboard.writeText(text)
+  })
+
+  // Backs the "Notify on errors" setting; the renderer decides when to ask.
+  ipcMain.on('ray:attention', () => {
+    mainWindow?.show()
+    mainWindow?.flashFrame(true)
+  })
 
   const server = createRayServer({
     host: HOST,
     port: PORT,
-    onRequest: (request) => {
+    onRequest: (request, address) => {
+      clients.record(request, address)
+
       for (const event of toRayEvents(request)) {
         mainWindow?.webContents.send('ray:event', event)
       }
@@ -76,6 +94,8 @@ app.whenReady().then(() => {
     }
   })
 })
+
+app.on('browser-window-focus', () => mainWindow?.flashFrame(false))
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

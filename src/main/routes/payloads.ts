@@ -3,7 +3,7 @@ import type { RayRequest } from '../../shared/ray-event'
 import { readBody } from '../read-body'
 import { respondJson } from '../respond-json'
 
-export type PayloadsHandler = (request: RayRequest) => void
+export type PayloadsHandler = (request: RayRequest, address: string) => void
 
 /** Receives the JSON body the PHP client POSTs to `/`. */
 export async function payloads(
@@ -22,7 +22,7 @@ export async function payloads(
   }
 
   try {
-    onRequest(JSON.parse(body) as RayRequest)
+    onRequest(JSON.parse(body) as RayRequest, req.socket.remoteAddress ?? 'unknown')
   } catch {
     respondJson(res, 400, { message: 'Body is not valid JSON' })
 

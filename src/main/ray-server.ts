@@ -10,7 +10,7 @@ import { windows } from './routes/windows'
 export type RayServerOptions = {
   host: string
   port: number
-  onRequest: (request: RayRequest) => void
+  onRequest: (request: RayRequest, address: string) => void
 }
 
 /**

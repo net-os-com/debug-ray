@@ -1,38 +1,38 @@
 /*
- * Symfony's HtmlDumper markup, restyled. Its own <style> block is stripped in
- * ui/sf-dump.ts, so these class names are all it needs from us.
+ * Symfony's HtmlDumper markup, restyled onto the NetOS tokens. Its own <style>
+ * block is stripped in ui/sf-dump.ts, so these class names are all it needs.
  */
 .var-dump pre.sf-dump {
   margin: 0;
   padding: 0;
   background: none;
-  color: var(--color-text);
+  color: var(--t1);
   font-family: var(--font-mono);
-  font-size: var(--font-size-code);
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.7;
   white-space: pre;
 }
 
 .sf-dump-str {
-  color: var(--color-string);
+  color: var(--dump-string);
 }
 
 .sf-dump-num {
-  color: var(--color-number);
+  color: var(--dump-number);
 }
 
 .sf-dump-const,
 .sf-dump-public {
-  color: var(--color-const);
+  color: var(--dump-const);
 }
 
 .sf-dump-key,
 .sf-dump-index {
-  color: var(--color-key);
+  color: var(--t1);
 }
 
 .sf-dump-note {
-  color: var(--color-note);
+  color: var(--dump-note);
 }
 
 .sf-dump-meta,
@@ -40,7 +40,7 @@
 .sf-dump-private,
 .sf-dump-ref,
 .sf-dump-ellipsis {
-  color: var(--color-text-muted);
+  color: var(--t3);
 }
 
 .sf-dump-compact {
@@ -51,7 +51,7 @@
 .dump-toggle {
   cursor: pointer;
   user-select: none;
-  color: var(--color-text-muted);
+  color: var(--t3);
 }
 
 .dump-toggle::before {
@@ -63,5 +63,9 @@
 }
 
 .dump-toggle:hover {
-  color: var(--color-accent);
+  color: var(--brand-primary);
+}
+
+[data-app='dark'] .dump-toggle:hover {
+  color: rgb(var(--color-brand-primary-300));
 }

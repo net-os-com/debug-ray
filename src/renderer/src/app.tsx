@@ -1,49 +1,131 @@
-import { useEffect, useRef } from 'react'
-import { EventRow } from './event-row'
+import { useCallback, useMemo, useState } from 'react'
+import type { RayEvent } from '../../shared/ray-event'
+import { buildKindOptions, buildLabelOptions, buildSourceOptions } from './build-filters'
+import { Sidebar } from './chrome/sidebar'
+import { TitleRail } from './chrome/title-rail'
+import { Toolbar } from './chrome/toolbar'
+import { DetailPanel } from './detail/detail-panel'
+import { ALL, filterEvents, type Filters } from './filter-events'
+import { SettingsView } from './settings/settings-view'
+import { EmptyState } from './stream/empty-state'
+import { EventStream } from './stream/event-stream'
+import { NoResults } from './stream/no-results'
 import { useRayEvents } from './use-ray-events'
 import { useServerStatus } from './use-server-status'
+import { useSettings } from './use-settings'
+import { useTheme } from './use-theme'
+
+const NO_FILTERS: Filters = { source: ALL, kind: ALL, label: ALL, query: '' }
 
 export function App() {
-  const { events, clear } = useRayEvents()
+  const { theme, toggle: toggleTheme } = useTheme()
+  const { settings, toggle: toggleSetting } = useSettings()
   const status = useServerStatus()
-  const bottom = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end' })
-  }, [events.length])
+  const [view, setView] = useState<'stream' | 'settings'>('stream')
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [paused, setPaused] = useState(false)
+
+  const onEvent = useCallback(
+    (event: RayEvent) => {
+      if (settings.notifyOnError && event.type === 'exception') {
+        window.ray.requestAttention()
+      }
+    },
+    [settings.notifyOnError],
+  )
+
+  const { events, pendingCount, labels, colors, clear } = useRayEvents({ paused, onEvent })
+
+  const shown = useMemo(() => filterEvents(events, filters, labels), [events, filters, labels])
+  const selected = shown.find((event) => event.id === selectedId) ?? null
+
+  const sources = useMemo(() => buildSourceOptions(events), [events])
+  const kinds = useMemo(() => buildKindOptions(events), [events])
+  const labelOptions = useMemo(() => buildLabelOptions(events, labels, colors), [events, labels, colors])
+
+  const target = status ? `${status.host}:${status.port}` : 'starting…'
+  const project = firstProject(events)
 
   return (
-    <div className="app">
-      <header className="app__bar">
-        <span className="app__title">NetOS Ray</span>
-        <span className="app__status">
-          {status === null
-            ? 'starting…'
-            : status.error
-              ? `error: ${status.error}`
-              : status.listening
-                ? `listening on ${status.host}:${status.port}`
-                : 'not listening'}
-        </span>
-        <span className="app__count">{events.length} payloads</span>
-        <button className="app__clear" onClick={clear} type="button">
-          Clear
-        </button>
-      </header>
+    <div className="app" data-app={theme}>
+      <TitleRail
+        onOpenSettings={() => setView('settings')}
+        onToggleTheme={toggleTheme}
+        subtitle={project ? `${project} · ${target}` : target}
+        theme={theme}
+      />
 
-      {events.length === 0 ? (
-        <p className="app__empty">
-          Waiting for payloads. Send one with <code>ray('hello')</code>.
-        </p>
-      ) : (
-        <ol className="app__events">
-          {events.map((event) => (
-            <EventRow event={event} key={event.id} />
-          ))}
-        </ol>
-      )}
+      <div className="app__main">
+        <Sidebar
+          active={filters}
+          kinds={kinds}
+          labels={labelOptions}
+          onSelect={(group, key) => setFilters((current) => ({ ...current, [group]: key }))}
+          sources={sources}
+          total={events.length}
+        />
 
-      <div ref={bottom} />
+        <section className="app__content">
+          {view === 'settings' ? (
+            <SettingsView
+              onClose={() => setView('stream')}
+              onToggle={toggleSetting}
+              settings={settings}
+              status={status}
+            />
+          ) : (
+            <>
+              <Toolbar
+                listening={status?.listening ?? false}
+                onClear={clear}
+                onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
+                onTogglePause={() => setPaused((current) => !current)}
+                paused={paused}
+                pendingCount={pendingCount}
+                query={filters.query}
+                summary={`${shown.length} of ${events.length} events`}
+              />
+
+              <div className="app__stream">
+                {events.length === 0 ? (
+                  <EmptyState target={target} />
+                ) : shown.length === 0 ? (
+                  <NoResults onReset={() => setFilters(NO_FILTERS)} query={filters.query} />
+                ) : (
+                  <EventStream
+                    autoscroll={settings.autoscroll && !paused}
+                    colors={colors}
+                    events={shown}
+                    labels={labels}
+                    onSelect={setSelectedId}
+                    selectedId={selectedId}
+                  />
+                )}
+
+                {selected ? (
+                  <DetailPanel
+                    event={selected}
+                    hideVendorFrames={settings.hideVendorFrames}
+                    onClose={() => setSelectedId(null)}
+                  />
+                ) : null}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   )
+}
+
+function firstProject(events: RayEvent[]): string | null {
+  for (const event of events) {
+    if (typeof event.meta.project_name === 'string' && event.meta.project_name) {
+      return event.meta.project_name
+    }
+  }
+
+  return null
 }
