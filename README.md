@@ -41,6 +41,31 @@ The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
   not block the PHP process.
 - `GET /windows` and `GET /theme` return empty stubs.
 
+## Build a DMG
+
+```bash
+npm run dist
+```
+
+Writes `dist/NetOS Debug-<version>-arm64.dmg` (arm64, unsigned — see
+`electron-builder.yml`). `dist/` is gitignored; the DMG belongs on a GitHub
+release, not in the repo.
+
+The packaged bundle carries `CFBundleName = NetOS Debug`, so the process name is
+right there too.
+
+### Opening a downloaded build
+
+The build is unsigned, and macOS quarantines anything downloaded from a browser.
+After dragging the app to Applications:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/NetOS Debug.app"
+```
+
+Signing and notarising with a Developer ID removes that step; set `mac.identity`
+in `electron-builder.yml` and add the notarize credentials.
+
 ## App name
 
 `productName` in `package.json` plus `app.setName()` at load time give the menu

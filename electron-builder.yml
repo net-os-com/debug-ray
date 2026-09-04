@@ -1,0 +1,25 @@
+appId: com.net-os.debug
+productName: NetOS Debug
+
+directories:
+  output: dist
+
+# out/** is the electron-vite build. resources/ has to come along because
+# src/main/app-icon.ts reads resources/icon.png at runtime, which resolves
+# inside app.asar once packaged.
+files:
+  - out/**
+  - resources/icon.png
+
+mac:
+  target:
+    - target: dmg
+      arch: arm64
+  icon: resources/icon.icns
+  category: public.app-category.developer-tools
+  # Unsigned: an internal tool, so no Developer ID. Gatekeeper asks for
+  # right-click -> Open the first time on another Mac.
+  identity: null
+
+dmg:
+  title: NetOS Debug

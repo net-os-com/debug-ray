@@ -3,6 +3,7 @@
   "productName": "NetOS Debug",
   "version": "0.1.0",
   "description": "Debug viewer for spatie/ray payloads",
+  "author": "NetOS",
   "main": "./out/main/index.js",
   "private": true,
   "type": "module",
@@ -11,7 +12,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "icon": "electron build/icon/render.mjs"
+    "icon": "electron build/icon/render.mjs",
+    "dist": "electron-vite build && electron-builder --mac --arm64"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "typescript": "^7.0.2",
     "vite": "^7.3.6"
