@@ -1,26 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
+import { readPreference, writePreference } from './preferences'
 
 export type Theme = 'light' | 'dark'
 
-const KEY = 'netos-ray.theme'
-
-function stored(): Theme {
-  try {
-    return localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light'
-  } catch {
-    return 'light'
-  }
-}
+const KEY = 'theme'
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(stored)
+  const [theme, setTheme] = useState<Theme>(() =>
+    readPreference<Theme>(KEY, 'light') === 'dark' ? 'dark' : 'light',
+  )
 
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, theme)
-    } catch {
-      // A blocked storage should never break the app.
-    }
+    writePreference(KEY, theme)
   }, [theme])
 
   const toggle = useCallback(() => {

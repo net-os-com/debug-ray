@@ -48,6 +48,18 @@ const api = {
     ipcRenderer.send('ray:attention')
   },
 
+  setAlwaysOnTop(onTop: boolean): void {
+    ipcRenderer.send('ray:always-on-top', onTop)
+  },
+
+  readPreferences(): Record<string, unknown> {
+    return ipcRenderer.sendSync('ray:prefs:read') as Record<string, unknown>
+  },
+
+  writePreferences(patch: Record<string, unknown>): void {
+    ipcRenderer.send('ray:prefs:write', patch)
+  },
+
   // navigator.clipboard is unavailable on the file:// origin the packaged
   // renderer runs from, and Electron's own clipboard module is main-process
   // only, so copying goes over IPC.

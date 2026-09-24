@@ -11,6 +11,7 @@ import { SettingsView } from './settings/settings-view'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
 import { NoResults } from './stream/no-results'
+import { useAlwaysOnTop } from './use-always-on-top'
 import { useRayEvents } from './use-ray-events'
 import { useServerStatus } from './use-server-status'
 import { useSettings } from './use-settings'
@@ -23,6 +24,8 @@ export function App() {
   const { settings, toggle: toggleSetting } = useSettings()
   const status = useServerStatus()
   const panel = usePanelWidth()
+
+  useAlwaysOnTop(settings.alwaysOnTop)
 
   const [view, setView] = useState<'stream' | 'settings'>('stream')
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)

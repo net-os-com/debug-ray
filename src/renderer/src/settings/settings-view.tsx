@@ -16,6 +16,11 @@ const DEFS: { key: keyof Settings; label: string; hint: string }[] = [
     hint: 'Skip framework and vendor frames in stack traces.',
   },
   {
+    key: 'alwaysOnTop',
+    label: 'Keep on top',
+    hint: 'Float the window above other applications.',
+  },
+  {
     key: 'notifyOnError',
     label: 'Notify on errors',
     hint: 'Bring the window forward when an exception arrives.',

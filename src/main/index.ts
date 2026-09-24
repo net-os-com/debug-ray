@@ -5,6 +5,7 @@ import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
 import { EventLog } from './event-log'
 import { McpPresence } from './mcp-status'
+import { Preferences } from './preferences'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
 
@@ -22,6 +23,7 @@ let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: nu
 const clients = new Clients()
 const log = new EventLog()
 const presence = new McpPresence()
+let preferences: Preferences
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -72,6 +74,8 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  preferences = new Preferences()
+
   app.setAboutPanelOptions({
     applicationName: app.getName(),
     applicationVersion: app.getVersion(),
@@ -84,6 +88,20 @@ app.whenReady().then(() => {
   ipcMain.handle('ray:status', () => status)
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
+
+  ipcMain.on('ray:always-on-top', (_event, onTop: boolean) => {
+    mainWindow?.setAlwaysOnTop(onTop)
+  })
+
+  // Synchronous so the renderer can paint with the stored theme straight away
+  // instead of flashing the default first.
+  ipcMain.on('ray:prefs:read', (event) => {
+    event.returnValue = preferences.all()
+  })
+
+  ipcMain.on('ray:prefs:write', (_event, patch: Record<string, unknown>) => {
+    preferences.merge(patch)
+  })
 
   ipcMain.on('ray:copy', (_event, text: string) => {
     clipboard.writeText(text)
@@ -135,6 +153,8 @@ app.whenReady().then(() => {
 })
 
 app.on('browser-window-focus', () => mainWindow?.flashFrame(false))
+
+app.on('before-quit', () => preferences?.flush())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

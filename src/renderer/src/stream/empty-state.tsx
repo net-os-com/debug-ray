@@ -1,6 +1,7 @@
 const SNIPPET = `ray('Dashboard mounted');
 ray($user)->label('auth');
-ray()->measure();`
+ray()->measure();
+ray()->confetti();`
 
 export function EmptyState({ target }: { target: string }) {
   return (

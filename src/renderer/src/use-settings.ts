@@ -1,38 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
+import { readPreference, writePreference } from './preferences'
 
 export type Settings = {
   autoscroll: boolean
   hideVendorFrames: boolean
   notifyOnError: boolean
+  alwaysOnTop: boolean
 }
 
 const DEFAULTS: Settings = {
   autoscroll: true,
   hideVendorFrames: true,
   notifyOnError: false,
+  alwaysOnTop: false,
 }
 
-const KEY = 'netos-ray.settings'
-
-function stored(): Settings {
-  try {
-    const raw = localStorage.getItem(KEY)
-
-    return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) } : DEFAULTS
-  } catch {
-    return DEFAULTS
-  }
-}
+const KEY = 'settings'
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(stored)
+  // Merged with the defaults so a setting added in a later version appears
+  // rather than arriving undefined.
+  const [settings, setSettings] = useState<Settings>(() => ({
+    ...DEFAULTS,
+    ...readPreference<Partial<Settings>>(KEY, {}),
+  }))
 
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(settings))
-    } catch {
-      // A blocked storage should never break the app.
-    }
+    writePreference(KEY, settings)
   }, [settings])
 
   const toggle = useCallback((key: keyof Settings) => {
