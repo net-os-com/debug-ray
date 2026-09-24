@@ -1,15 +1,25 @@
 import { useFullScreen } from '../use-full-screen'
 import type { Theme } from '../use-theme'
 import { GearIcon, MoonIcon } from '../ui/icons'
+import { ViewNav, type View } from './view-nav'
 
 type TitleRailProps = {
   subtitle: string
   theme: Theme
+  view: View
+  onSelectView: (view: View) => void
   onToggleTheme: () => void
   onOpenSettings: () => void
 }
 
-export function TitleRail({ subtitle, theme, onToggleTheme, onOpenSettings }: TitleRailProps) {
+export function TitleRail({
+  subtitle,
+  theme,
+  view,
+  onSelectView,
+  onToggleTheme,
+  onOpenSettings,
+}: TitleRailProps) {
   const fullScreen = useFullScreen()
 
   return (
@@ -17,8 +27,12 @@ export function TitleRail({ subtitle, theme, onToggleTheme, onOpenSettings }: Ti
       <div className="rail__brand">
         <div className="rail__mark">N</div>
         <span className="rail__name">NetOS Debug</span>
-        <span className="rail__subtitle">{subtitle}</span>
       </div>
+
+      <ViewNav onSelect={onSelectView} view={view} />
+
+      <span className="rail__subtitle">{subtitle}</span>
+
       <div className="rail__actions">
         <button className="rail__theme" onClick={onToggleTheme} type="button">
           <MoonIcon />

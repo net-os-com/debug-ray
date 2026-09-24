@@ -20,6 +20,7 @@ export function useRayEvents({ paused, onEvent }: Options) {
   const [events, setEvents] = useState<RayEvent[]>([])
   const [pending, setPending] = useState<RayEvent[]>([])
   const [labels, setLabels] = useState<Annotations>({})
+  const [confettiAt, setConfettiAt] = useState(0)
   const [colors, setColors] = useState<Annotations>({})
 
   const pausedRef = useRef(paused)
@@ -41,6 +42,12 @@ export function useRayEvents({ paused, onEvent }: Options) {
         if (event.type === 'clear_all') {
           setEvents([])
           setPending([])
+
+          return
+        }
+
+        if (event.type === 'confetti') {
+          setConfettiAt(Date.now())
 
           return
         }
@@ -91,5 +98,5 @@ export function useRayEvents({ paused, onEvent }: Options) {
     setPending([])
   }, [])
 
-  return { events, pendingCount: pending.length, labels, colors, clear }
+  return { events, pendingCount: pending.length, labels, colors, confettiAt, clear }
 }

@@ -3,7 +3,7 @@ import type { RayEvent } from '../shared/ray-event'
 /** Matches the renderer's buffer, so both show the same history. */
 const CAPACITY = 500
 
-const ANNOTATIONS = new Set(['label', 'color'])
+const ANNOTATIONS = new Set(['label', 'color', 'confetti'])
 
 /**
  * The main process keeps the authoritative buffer. The renderer mirrors it for

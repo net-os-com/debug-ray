@@ -4,9 +4,11 @@ import { buildKindOptions, buildLabelOptions, buildSourceOptions } from './build
 import { Sidebar } from './chrome/sidebar'
 import { TitleRail } from './chrome/title-rail'
 import { Toolbar } from './chrome/toolbar'
+import type { View } from './chrome/view-nav'
 import { DetailPanel } from './detail/detail-panel'
 import { usePanelWidth } from './detail/use-panel-width'
 import { ALL, filterEvents, type Filters } from './filter-events'
+import { RequestsView } from './requests/requests-view'
 import { SettingsView } from './settings/settings-view'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
@@ -27,7 +29,7 @@ export function App() {
 
   useAlwaysOnTop(settings.alwaysOnTop)
 
-  const [view, setView] = useState<'stream' | 'settings'>('stream')
+  const [view, setView] = useState<View>('stream')
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
@@ -57,77 +59,86 @@ export function App() {
     <div className="app" data-app={theme}>
       <TitleRail
         onOpenSettings={() => setView('settings')}
+        onSelectView={setView}
         onToggleTheme={toggleTheme}
         subtitle={project ? `${project} · ${target}` : target}
         theme={theme}
+        view={view}
       />
 
       <div className="app__main">
-        <Sidebar
-          active={filters}
-          kinds={kinds}
-          labels={labelOptions}
-          onOpenSettings={() => setView('settings')}
-          onSelect={(group, key) => {
-            setFilters((current) => ({ ...current, [group]: key }))
-            // Filtering is about the stream, so picking one leaves settings.
-            setView('stream')
-          }}
-          sources={sources}
-          total={events.length}
-        />
 
-        <section className="app__content">
-          {view === 'settings' ? (
-            <SettingsView
-              onClose={() => setView('stream')}
-              onToggle={toggleSetting}
-              settings={settings}
-              status={status}
+        {view === 'requests' ? (
+          <RequestsView />
+        ) : (
+          <>
+            <Sidebar
+              active={filters}
+              kinds={kinds}
+              labels={labelOptions}
+              onOpenSettings={() => setView('settings')}
+              onSelect={(group, key) => {
+                setFilters((current) => ({ ...current, [group]: key }))
+                // Filtering is about the stream, so picking one leaves settings.
+                setView('stream')
+              }}
+              sources={sources}
+              total={events.length}
             />
-          ) : (
-            <>
-              <Toolbar
-                listening={status?.listening ?? false}
-                onClear={clear}
-                onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
-                onTogglePause={() => setPaused((current) => !current)}
-                paused={paused}
-                pendingCount={pendingCount}
-                query={filters.query}
-                summary={`${shown.length} of ${events.length} events`}
-              />
 
-              <div className="app__stream">
-                {events.length === 0 ? (
-                  <EmptyState target={target} />
-                ) : shown.length === 0 ? (
-                  <NoResults onReset={() => setFilters(NO_FILTERS)} query={filters.query} />
-                ) : (
-                  <EventStream
-                    autoscroll={settings.autoscroll && !paused}
-                    colors={colors}
-                    events={shown}
-                    labels={labels}
-                    onSelect={setSelectedId}
-                    selectedId={selectedId}
+            <section className="app__content">
+              {view === 'settings' ? (
+                <SettingsView
+                  onClose={() => setView('stream')}
+                  onToggle={toggleSetting}
+                  settings={settings}
+                  status={status}
+                />
+              ) : (
+                <>
+                  <Toolbar
+                    listening={status?.listening ?? false}
+                    onClear={clear}
+                    onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
+                    onTogglePause={() => setPaused((current) => !current)}
+                    paused={paused}
+                    pendingCount={pendingCount}
+                    query={filters.query}
+                    summary={`${shown.length} of ${events.length} events`}
                   />
-                )}
 
-                {selected ? (
-                  <DetailPanel
-                    event={selected}
-                    hideVendorFrames={settings.hideVendorFrames}
-                    onClose={() => setSelectedId(null)}
-                    onResetWidth={panel.reset}
-                    onResize={panel.resize}
-                    width={panel.width}
-                  />
-                ) : null}
-              </div>
-            </>
-          )}
-        </section>
+                  <div className="app__stream">
+                    {events.length === 0 ? (
+                      <EmptyState target={target} />
+                    ) : shown.length === 0 ? (
+                      <NoResults onReset={() => setFilters(NO_FILTERS)} query={filters.query} />
+                    ) : (
+                      <EventStream
+                        autoscroll={settings.autoscroll && !paused}
+                        colors={colors}
+                        events={shown}
+                        labels={labels}
+                        onSelect={setSelectedId}
+                        selectedId={selectedId}
+                      />
+                    )}
+
+                    {selected ? (
+                      <DetailPanel
+                        event={selected}
+                        hideVendorFrames={settings.hideVendorFrames}
+                        onClose={() => setSelectedId(null)}
+                        onResetWidth={panel.reset}
+                        onResize={panel.resize}
+                        width={panel.width}
+                      />
+                    ) : null}
+                  </div>
+              </>
+            )}
+          </section>
+          </>
+        )}
       </div>
     </div>
   )

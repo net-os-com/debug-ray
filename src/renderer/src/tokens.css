@@ -122,6 +122,20 @@
   --dump-number: rgb(var(--color-yellow-700));
   --dump-const: rgb(var(--color-brand-primary-400));
   --dump-note: rgb(var(--color-brand-primary-500));
+
+  /* Requests view, from the "NetOS Debug Requests" canvas. */
+  --app-accent-fg: rgb(var(--color-brand-primary-600));
+  --sql-kw: rgb(var(--color-brand-primary-500));
+  --sql-str: rgb(4 120 87);
+  --sql-num: rgb(180 83 9);
+  --warn-bg: rgb(254 252 232);
+  --warn-fg: rgb(161 98 7);
+  --warn-line: rgb(234 179 8);
+  --err-bg: rgb(254 242 242);
+  --err-fg: rgb(185 28 28);
+  --ok-fg: rgb(4 120 87);
+  --btn-primary-bg: var(--brand-primary);
+  --btn-primary-fg: #fff;
 }
 
 [data-app='dark'] {
@@ -141,6 +155,20 @@
   --dump-number: rgb(var(--color-yellow-300));
   --dump-const: rgb(var(--color-brand-primary-200));
   --dump-note: rgb(var(--color-brand-primary-200));
+
+  --app-accent-fg: rgb(255 255 255);
+  --sql-kw: rgb(139 181 248);
+  --sql-str: rgb(110 231 183);
+  --sql-num: rgb(252 211 77);
+  --warn-bg: rgb(66 50 8);
+  --warn-fg: rgb(252 211 77);
+  --warn-line: rgb(202 138 4);
+  --err-bg: rgb(69 18 18);
+  --err-fg: rgb(252 165 165);
+  --ok-fg: rgb(110 231 183);
+  /* The primary button inverts in dark: white ground, navy label. */
+  --btn-primary-bg: #fff;
+  --btn-primary-fg: rgb(var(--color-brand-primary-600));
 }
 
 @keyframes netos-pulse {
