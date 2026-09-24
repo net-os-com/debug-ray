@@ -141,6 +141,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r1',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/api/activities/upcoming',
     status: 200,
     startedAt: at(6),
@@ -155,6 +156,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r2',
     method: 'POST',
+    host: 'anwb.test',
     uri: '/api/invites/4412/accept',
     status: 422,
     startedAt: at(13),
@@ -180,6 +182,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r3',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/dashboard',
     status: 200,
     startedAt: at(26),
@@ -204,6 +207,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r4',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/api/office/occupancy',
     status: 200,
     startedAt: at(44),
@@ -227,6 +231,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r5',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/activities/1042',
     status: 200,
     startedAt: at(62),
@@ -247,6 +252,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r6',
     method: 'PUT',
+    host: 'anwb.test',
     uri: '/api/profile',
     status: 200,
     startedAt: at(81),
@@ -270,6 +276,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r7',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/api/invites',
     status: 500,
     startedAt: at(97),
@@ -297,6 +304,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r8',
     method: 'DELETE',
+    host: 'anwb.test',
     uri: '/api/activities/1039/rsvp',
     status: 204,
     startedAt: at(126),
@@ -320,6 +328,7 @@ export const REQUESTS: HttpRequest[] = [
   {
     id: 'r9',
     method: 'GET',
+    host: 'anwb.test',
     uri: '/login',
     status: 302,
     startedAt: at(150),

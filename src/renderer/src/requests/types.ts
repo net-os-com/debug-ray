@@ -6,6 +6,8 @@
 export type HttpRequest = {
   id: string
   method: string
+  /** Host the request hit, so a cURL command can be rebuilt. */
+  host: string
   uri: string
   status: number
   /** Epoch milliseconds at which the request started. */
@@ -44,6 +46,9 @@ export type RequestFilter = 'all' | 'errors' | 'slow' | 'n1'
 /** The canvas calls a request slow at this point. */
 export const SLOW_REQUEST_MS = 200
 
+/** And a query, matching the canvas' default threshold. */
+export const SLOW_QUERY_MS = 100
+
 /** Queries repeated with different bindings from one source are the N+1 signal. */
 export function duplicateQueries(request: HttpRequest): Query[] {
   const counts = new Map<string, number>()
@@ -59,4 +64,26 @@ export function duplicateQueries(request: HttpRequest): Query[] {
 
 export function hasNPlusOne(request: HttpRequest): boolean {
   return duplicateQueries(request).length > 0
+}
+
+/** How often this exact statement repeats from this exact source. */
+export function repeatCount(request: HttpRequest, query: Query): number {
+  return request.queries.filter(
+    (other) => other.sql === query.sql && other.source === query.source,
+  ).length
+}
+
+/** The worst repeated statement, which is what the N+1 warning is about. */
+export function worstRepeat(request: HttpRequest): { query: Query; count: number } | null {
+  let worst: { query: Query; count: number } | null = null
+
+  for (const query of request.queries) {
+    const count = repeatCount(request, query)
+
+    if (count > 1 && (worst === null || count > worst.count)) {
+      worst = { query, count }
+    }
+  }
+
+  return worst
 }
