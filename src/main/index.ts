@@ -4,6 +4,7 @@ import type { ServerStatus } from '../shared/ray-event'
 import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
 import { EventLog } from './event-log'
+import { McpPresence } from './mcp-status'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
 
@@ -20,6 +21,7 @@ let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: nu
 
 const clients = new Clients()
 const log = new EventLog()
+const presence = new McpPresence()
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -70,6 +72,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('ray:status', () => status)
   ipcMain.handle('ray:clients', () => clients.list())
+  ipcMain.handle('ray:mcp', () => presence.status())
 
   ipcMain.on('ray:copy', (_event, text: string) => {
     clipboard.writeText(text)
@@ -85,6 +88,7 @@ app.whenReady().then(() => {
     host: HOST,
     port: PORT,
     log,
+    presence,
     onRequest: (request, address) => {
       clients.record(request, address)
 

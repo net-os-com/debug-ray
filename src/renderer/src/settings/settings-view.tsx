@@ -1,6 +1,7 @@
 import type { ServerStatus } from '../../../shared/ray-event'
 import type { Settings } from '../use-settings'
 import { ClientsCard } from './clients-card'
+import { McpCard } from './mcp-card'
 import { SettingsToggle } from './settings-toggle'
 
 const DEFS: { key: keyof Settings; label: string; hint: string }[] = [
@@ -64,6 +65,8 @@ export function SettingsView({ settings, status, onToggle, onClose }: SettingsVi
             </div>
           </div>
         </div>
+
+        <McpCard />
 
         <ClientsCard />
       </div>

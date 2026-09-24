@@ -53,9 +53,17 @@ throwable, the application frames, and the source lines around the failing one.
 `mcp/server.mjs` lets a Claude Code session pull payloads itself, so you can ask
 about the last exception without leaving the conversation:
 
+The Settings view carries the exact command with this checkout's path, a copy
+button, and whether a session is currently attached:
+
 ```bash
 claude mcp add netos-ray -- node /absolute/path/to/NetOS-ray/mcp/server.mjs
 ```
+
+Nothing about a stdio MCP server is observable from the app — Claude Code spawns
+it, not us — so the server posts a heartbeat to the receiver every 10 seconds and
+"connected" means one arrived in the last 30. Expect the status to lag a session
+ending by up to half a minute.
 
 Tools: `list_ray_events` (newest first, optional type filter), `get_last_exception`
 (trace plus the code around the failing line), `get_ray_event` (one payload by id).

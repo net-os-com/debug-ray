@@ -1028,10 +1028,89 @@ body.is-resizing {
   padding: 4px 16px;
 }
 
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .card__title {
   font-family: var(--font-display);
   font-weight: var(--fw-medium);
   font-size: 14px;
+}
+
+.card__body {
+  font-size: 12.5px;
+  color: var(--t3);
+  line-height: var(--lh-body);
+  margin-top: 6px;
+}
+
+.card__note {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: var(--lh-body);
+  margin-top: 8px;
+}
+
+.card__note code {
+  font-family: var(--font-mono);
+  color: var(--t2);
+}
+
+.mcp-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+.mcp-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--app-border);
+}
+
+.mcp-status--on {
+  color: var(--t2);
+}
+
+.mcp-status--on .mcp-status__dot {
+  background: rgb(var(--color-green-600));
+  animation: netos-pulse 1.6s ease-in-out infinite;
+}
+
+.mcp-command {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border-soft);
+}
+
+.mcp-command code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+}
+
+.mcp-command .button {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12.5px;
 }
 
 .card__empty {

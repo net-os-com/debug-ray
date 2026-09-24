@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { RayClient, RayEvent, ServerStatus } from '../shared/ray-event'
+import type { McpStatus, RayClient, RayEvent, ServerStatus } from '../shared/ray-event'
 
 const api = {
   onEvent(listener: (event: RayEvent) => void): () => void {
@@ -28,6 +28,10 @@ const api = {
 
   getClients(): Promise<RayClient[]> {
     return ipcRenderer.invoke('ray:clients')
+  },
+
+  getMcpStatus(): Promise<McpStatus> {
+    return ipcRenderer.invoke('ray:mcp')
   },
 
   requestAttention(): void {

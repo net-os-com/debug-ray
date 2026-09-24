@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http'
 import type { RayRequest } from '../shared/ray-event'
 import { api } from './routes/api'
 import type { EventLog } from './event-log'
+import type { McpPresence } from './mcp-status'
 import { availabilityCheck } from './routes/availability-check'
 import { locks } from './routes/locks'
 import { payloads } from './routes/payloads'
@@ -13,6 +14,7 @@ export type RayServerOptions = {
   host: string
   port: number
   log: EventLog
+  presence: McpPresence
   onRequest: (request: RayRequest, address: string) => void
 }
 
@@ -20,7 +22,7 @@ export type RayServerOptions = {
  * Speaks the handful of endpoints spatie/ray's PHP client expects. See
  * vendor/spatie/ray/src/Client.php for the calls it makes.
  */
-export function createRayServer({ host, port, log, onRequest }: RayServerOptions): Server {
+export function createRayServer({ host, port, log, presence, onRequest }: RayServerOptions): Server {
   const server = createServer((req, res) => {
     const path = (req.url ?? '/').split('?')[0]
 
@@ -37,7 +39,7 @@ export function createRayServer({ host, port, log, onRequest }: RayServerOptions
     }
 
     if (path.startsWith('/api/')) {
-      api(req, res, log)
+      api(req, res, log, presence)
 
       return
     }

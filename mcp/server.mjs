@@ -144,6 +144,21 @@ function describeException(event) {
 
 const text = (value) => ({ content: [{ type: 'text', text: value }] })
 
+/*
+ * Claude Code spawns this process over stdio, so the app has no way to observe
+ * it. Announcing ourselves is what turns "connected" in the settings view into
+ * a real signal rather than a guess.
+ */
+const HEARTBEAT_MS = 10_000
+
+async function heartbeat() {
+  try {
+    await fetch(`${BASE}/api/mcp/heartbeat`, { method: 'POST' })
+  } catch {
+    // The receiver may not be running yet; stay quiet and try again later.
+  }
+}
+
 function createServer() {
   const server = new McpServer({ name: 'netos-ray', version: '0.1.0' })
 
@@ -214,4 +229,7 @@ function createServer() {
 }
 
 void serveStdio(createServer)
+
+void heartbeat()
+setInterval(heartbeat, HEARTBEAT_MS).unref()
 console.error(`netos-ray MCP server running on stdio, reading from ${BASE}`)

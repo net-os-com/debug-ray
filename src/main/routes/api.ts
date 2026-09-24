@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { EventLog } from '../event-log'
+import type { McpPresence } from '../mcp-status'
 import { respondJson } from '../respond-json'
 
 const DEFAULT_LIMIT = 20
@@ -15,7 +16,12 @@ function isLoopback(address: string | undefined): boolean {
 }
 
 /** Read-only endpoints behind the MCP server. */
-export function api(req: IncomingMessage, res: ServerResponse, log: EventLog): void {
+export function api(
+  req: IncomingMessage,
+  res: ServerResponse,
+  log: EventLog,
+  presence: McpPresence,
+): void {
   if (!isLoopback(req.socket.remoteAddress)) {
     respondJson(res, 403, { message: 'The API is only available from this machine' })
 
@@ -24,6 +30,13 @@ export function api(req: IncomingMessage, res: ServerResponse, log: EventLog): v
 
   const url = new URL(req.url ?? '/', 'http://localhost')
   const path = url.pathname
+
+  if (path === '/api/mcp/heartbeat') {
+    presence.record()
+    respondJson(res, 200, { ok: true })
+
+    return
+  }
 
   if (path === '/api/events') {
     const limit = Math.min(Number(url.searchParams.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT)

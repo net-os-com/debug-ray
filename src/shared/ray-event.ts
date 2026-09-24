@@ -43,3 +43,11 @@ export type RayClient = {
   address: string
   lastSeenAt: number
 }
+
+/** Whether a Claude Code MCP session is currently talking to the receiver. */
+export type McpStatus = {
+  connected: boolean
+  lastSeenAt: number | null
+  /** Absolute path to mcp/server.mjs, or null when it is not on disk. */
+  serverPath: string | null
+}
