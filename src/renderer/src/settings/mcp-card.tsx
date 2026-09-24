@@ -1,32 +1,11 @@
-import { useEffect, useState } from 'react'
 import type { McpStatus } from '../../../shared/ray-event'
 import { CopyButton } from '../ui/copy-button'
+import { useMcpStatus } from '../use-mcp-status'
 
 const TOOLS = 'list_ray_events · get_last_exception · get_ray_event'
 
 export function McpCard() {
-  const [status, setStatus] = useState<McpStatus | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    const load = (): void => {
-      void window.ray.getMcpStatus().then((next) => {
-        if (!cancelled) {
-          setStatus(next)
-        }
-      })
-    }
-
-    load()
-
-    const timer = setInterval(load, 3000)
-
-    return () => {
-      cancelled = true
-      clearInterval(timer)
-    }
-  }, [])
+  const status = useMcpStatus()
 
   const command = status?.serverPath
     ? `claude mcp add netos-ray -- node ${status.serverPath}`

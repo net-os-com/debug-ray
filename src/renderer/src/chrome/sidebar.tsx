@@ -1,6 +1,7 @@
 import { BufferCard } from './buffer-card'
 import { FilterGroup, type FilterOption } from './filter-group'
 import { LabelFilter } from './label-filter'
+import { McpIndicator } from './mcp-indicator'
 
 type SidebarProps = {
   sources: FilterOption[]
@@ -8,10 +9,19 @@ type SidebarProps = {
   labels: FilterOption[]
   active: { source: string; kind: string; label: string }
   onSelect: (group: 'source' | 'kind' | 'label', key: string) => void
+  onOpenSettings: () => void
   total: number
 }
 
-export function Sidebar({ sources, kinds, labels, active, onSelect, total }: SidebarProps) {
+export function Sidebar({
+  sources,
+  kinds,
+  labels,
+  active,
+  onSelect,
+  onOpenSettings,
+  total,
+}: SidebarProps) {
   return (
     <aside className="sidebar">
       <FilterGroup
@@ -32,6 +42,8 @@ export function Sidebar({ sources, kinds, labels, active, onSelect, total }: Sid
         options={labels}
       />
       <BufferCard count={total} />
+
+      <McpIndicator onOpenSettings={onOpenSettings} />
     </aside>
   )
 }

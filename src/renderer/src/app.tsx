@@ -64,7 +64,12 @@ export function App() {
           active={filters}
           kinds={kinds}
           labels={labelOptions}
-          onSelect={(group, key) => setFilters((current) => ({ ...current, [group]: key }))}
+          onOpenSettings={() => setView('settings')}
+          onSelect={(group, key) => {
+            setFilters((current) => ({ ...current, [group]: key }))
+            // Filtering is about the stream, so picking one leaves settings.
+            setView('stream')
+          }}
           sources={sources}
           total={events.length}
         />
