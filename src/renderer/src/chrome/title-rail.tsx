@@ -1,3 +1,4 @@
+import { useFullScreen } from '../use-full-screen'
 import type { Theme } from '../use-theme'
 import { GearIcon, MoonIcon } from '../ui/icons'
 
@@ -9,8 +10,10 @@ type TitleRailProps = {
 }
 
 export function TitleRail({ subtitle, theme, onToggleTheme, onOpenSettings }: TitleRailProps) {
+  const fullScreen = useFullScreen()
+
   return (
-    <div className="rail">
+    <div className={fullScreen ? 'rail rail--full-screen' : 'rail'}>
       <div className="rail__brand">
         <div className="rail__mark">N</div>
         <span className="rail__name">NetOS Debug</span>

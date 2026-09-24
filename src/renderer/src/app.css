@@ -55,9 +55,21 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px 0 16px;
+  /* Left gutter clears the traffic lights that float over the rail. */
+  padding: 0 12px 0 84px;
   background: var(--app-rail);
   color: #fff;
+  -webkit-app-region: drag;
+}
+
+.rail--full-screen {
+  padding-left: 16px;
+}
+
+/* Controls have to opt out, or the drag region swallows their clicks. */
+.rail__theme,
+.rail__icon-button {
+  -webkit-app-region: no-drag;
 }
 
 .rail__brand {
@@ -257,6 +269,7 @@ body {
 
 .buffer-card {
   margin-top: auto;
+  margin-bottom: -10px;
   padding: 12px;
   border-radius: var(--radius-xl);
   background: var(--app-surface);
@@ -330,7 +343,7 @@ body {
 
 /* The buffer card owns the gap above; the indicator sits right under it. */
 .sidebar .buffer-card {
-  margin-bottom: 0;
+  margin-bottom: -20px;
 }
 
 /* ── Toolbar ────────────────────────────────────────────── */

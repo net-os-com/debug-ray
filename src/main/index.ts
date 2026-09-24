@@ -33,6 +33,9 @@ function createWindow(): BrowserWindow {
     title: 'NetOS Debug',
     backgroundColor: '#0a2d51',
     icon: windowIcon(),
+    // The brand rail is the title bar; macOS keeps its buttons floating over it.
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 18, y: 17 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true,
@@ -41,6 +44,14 @@ function createWindow(): BrowserWindow {
   })
 
   window.on('ready-to-show', () => window.show())
+
+  // Full screen hides the traffic lights, so the rail reclaims their gutter.
+  const reportFullScreen = (fullScreen: boolean): void => {
+    window.webContents.send('ray:fullscreen', fullScreen)
+  }
+
+  window.on('enter-full-screen', () => reportFullScreen(true))
+  window.on('leave-full-screen', () => reportFullScreen(false))
 
   // Dumps and mailables can contain links; open them in the real browser.
   window.webContents.setWindowOpenHandler(({ url }) => {

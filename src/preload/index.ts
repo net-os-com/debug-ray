@@ -34,6 +34,16 @@ const api = {
     return ipcRenderer.invoke('ray:mcp')
   },
 
+  onFullScreen(listener: (fullScreen: boolean) => void): () => void {
+    const handler = (_: unknown, fullScreen: boolean): void => listener(fullScreen)
+
+    ipcRenderer.on('ray:fullscreen', handler)
+
+    return () => {
+      ipcRenderer.off('ray:fullscreen', handler)
+    }
+  },
+
   requestAttention(): void {
     ipcRenderer.send('ray:attention')
   },
