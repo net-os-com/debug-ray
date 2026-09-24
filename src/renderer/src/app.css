@@ -400,6 +400,15 @@ body {
   font-size: 11px;
 }
 
+.button--confirmed {
+  border-color: rgb(var(--color-green-600));
+  color: rgb(var(--color-green-700));
+}
+
+[data-app='dark'] .button--confirmed {
+  color: rgb(var(--color-green-300));
+}
+
 .button--primary {
   border: 0;
   background: var(--brand-primary);

@@ -4,6 +4,8 @@ import { eventTitle } from '../event-title'
 import { sourceOf } from '../filter-events'
 import { kindFor } from '../kind'
 import { CloseIcon } from '../ui/icons'
+import { CopyButton } from './copy-button'
+import { copyText } from './copy-text'
 import { DetailBody } from './detail-body'
 import { ResizeHandle } from './resize-handle'
 
@@ -68,13 +70,7 @@ export function DetailPanel({
         <DetailBody event={event} hideVendorFrames={hideVendorFrames} />
 
         <div className="detail__actions">
-          <button
-            className="button"
-            onClick={() => window.ray.copy(JSON.stringify(event.content, null, 2))}
-            type="button"
-          >
-            Copy payload
-          </button>
+          <CopyButton text={copyText(event)} />
         </div>
       </div>
     </aside>
