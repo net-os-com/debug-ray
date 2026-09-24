@@ -13,7 +13,7 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "icon": "electron build/icon/render.mjs",
-    "dist": "electron-vite build && electron-builder --mac --arm64"
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64"
   },
   "dependencies": {
     "react": "^19.2.8",

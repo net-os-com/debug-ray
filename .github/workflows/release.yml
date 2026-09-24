@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    # macos-14 and later are Apple Silicon, which is what we build for.
+    runs-on: macos-latest
+
+    env:
+      # Signing is optional: without a Developer ID certificate in the secrets
+      # the job still produces an (unsigned) build rather than failing.
+      HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Import the Developer ID certificate
+        if: env.HAS_SIGNING == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          CERT="$RUNNER_TEMP/certificate.p12"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT"
+          security import "$CERT" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          rm "$CERT"
+
+          # Lets codesign use the key without an interactive prompt.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+
+          security list-keychain -d user -s "$KEYCHAIN" login.keychain
+
+          echo "Identities available to codesign:"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Build (signed and notarised)
+        if: env.HAS_SIGNING == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'true'
+        run: |
+          npx electron-vite build
+          npx electron-builder --mac --arm64 \
+            --config.mac.notarize=true \
+            --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
+
+      - name: Build (unsigned)
+        if: env.HAS_SIGNING != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          echo "::warning::No MACOS_CERTIFICATE secret; building unsigned. Downloads will need 'xattr -dr com.apple.quarantine'."
+          npx electron-vite build
+          npx electron-builder --mac --arm64 \
+            --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
+
+      - name: Verify the signature
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          APP="dist/mac-arm64/NetOS Debug.app"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "--- Gatekeeper assessment ---"
+          spctl --assess --type execute --verbose=4 "$APP"
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: netos-debug-arm64
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 7

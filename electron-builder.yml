@@ -15,11 +15,24 @@ mac:
   target:
     - target: dmg
       arch: arm64
+    # The zip is a plain archive of the .app, for anyone who would rather not
+    # mount a disk image.
+    - target: zip
+      arch: arm64
   icon: resources/icon.icns
   category: public.app-category.developer-tools
-  # Unsigned: an internal tool, so no Developer ID. Gatekeeper asks for
-  # right-click -> Open the first time on another Mac.
-  identity: null
+  # Required for notarisation. Signing itself is driven by the environment:
+  # CI supplies a Developer ID certificate, local builds set
+  # CSC_IDENTITY_AUTO_DISCOVERY=false and stay unsigned.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
 
 dmg:
   title: NetOS Debug
+
+publish:
+  provider: github
+  owner: net-os-com
+  repo: debug-ray

@@ -74,30 +74,63 @@ containers can reach it, and without that check everything your app dumps would
 be readable from the network. Docker Desktop proxies container traffic through the
 host, so a container still counts as local; another machine gets a 403.
 
-## Build a DMG
+## Releasing
+
+`.github/workflows/release.yml` builds on macOS, signs and notarises when the
+secrets are present, and attaches the DMG and zip to a GitHub release.
 
 ```bash
-npm run dist
+npm version minor        # tags v0.2.0
+git push --follow-tags   # the tag triggers the release
 ```
 
-Writes `dist/NetOS Debug-<version>-arm64.dmg` (arm64, unsigned — see
-`electron-builder.yml`). `dist/` is gitignored; the DMG belongs on a GitHub
-release, not in the repo.
+Running the workflow by hand (`workflow_dispatch`) builds the same artefacts but
+uploads them to the run instead of publishing a release — useful for testing the
+pipeline. Note that this repository is private, so macOS runner minutes bill at
+ten times the Linux rate.
 
-The packaged bundle carries `CFBundleName = NetOS Debug`, so the process name is
-right there too.
+Locally, `npm run dist` builds unsigned into `dist/` (it sets
+`CSC_IDENTITY_AUTO_DISCOVERY=false`). `dist/` is gitignored.
+
+### Signing
+
+Until the secrets below exist the workflow still runs, but it warns and produces
+an unsigned build. Signing needs a **Developer ID Application** certificate —
+not the Apple Development or Apple Distribution certificates, which are for
+devices and the App Store.
+
+1. In the Apple Developer portal, under Certificates, create a
+   **Developer ID Application** certificate and install it. Creating one
+   generally requires the Account Holder role.
+2. In Keychain Access, export it including its private key as a `.p12`.
+3. Create an app-specific password at appleid.apple.com for notarisation.
+4. Add the secrets (each command prompts for the value, except the team id):
+
+```bash
+base64 -i developer-id.p12 | gh secret set MACOS_CERTIFICATE --repo net-os-com/debug-ray
+gh secret set MACOS_CERTIFICATE_PASSWORD --repo net-os-com/debug-ray
+gh secret set KEYCHAIN_PASSWORD --repo net-os-com/debug-ray
+gh secret set APPLE_ID --repo net-os-com/debug-ray
+gh secret set APPLE_APP_SPECIFIC_PASSWORD --repo net-os-com/debug-ray
+gh secret set APPLE_TEAM_ID --repo net-os-com/debug-ray --body P8D7SFY2ZW
+```
+
+`KEYCHAIN_PASSWORD` is only used for the throwaway keychain on the runner, so
+any random string will do. The workflow prints the identities it found and runs
+`codesign --verify` plus `spctl --assess` afterwards, so a misconfigured
+certificate fails the build rather than shipping something broken.
+
+`build/entitlements.mac.plist` carries the three exemptions Electron needs under
+the hardened runtime, which notarisation requires.
 
 ### Opening a downloaded build
 
-The build is unsigned, and macOS quarantines anything downloaded from a browser.
-After dragging the app to Applications:
+A signed and notarised build opens normally. An unsigned one is quarantined by
+macOS and reports itself as damaged; after dragging it to Applications:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/NetOS Debug.app"
 ```
-
-Signing and notarising with a Developer ID removes that step; set `mac.identity`
-in `electron-builder.yml` and add the notarize credentials.
 
 ## App name
 
