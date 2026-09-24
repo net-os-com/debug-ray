@@ -85,6 +85,17 @@ the first thing worth covering.
   `filesort` in extra.
 - The backtrace, application frames highlighted over vendor frames.
 
+## Built
+
+All five phases are in. Two departures from the canvas worth recording:
+
+- The canvas invents an EXPLAIN row when a query has none. This shows "No
+  EXPLAIN was captured for this query." instead — fabricated query plans are
+  worse than an absent one.
+- Duplicates, the N+1 message and the badge counts are derived from the query
+  list rather than carried as flags, so a collector will not have to compute
+  them.
+
 ## Fitting the existing app
 
 The stream keeps its own sidebar; Requests brings a different one. The switch

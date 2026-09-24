@@ -1,3 +1,4 @@
+import { QueryDetail } from './query-detail'
 import { tokenize } from './sql-tokens'
 import { SLOW_QUERY_MS, type HttpRequest, type Query } from './types'
 
@@ -77,6 +78,8 @@ export function QueryRow({
           </div>
         </div>
       </div>
+
+      {open ? <QueryDetail query={query} /> : null}
     </div>
   )
 }

@@ -15,8 +15,9 @@ const HOST_SQL = 'select * from `users` where `users`.`id` = ? limit 1'
 function trace(source: string): QueryFrame[] {
   const file = source.split(':')[0]
 
+  // No invented namespace: the class name is all the file honestly tells us.
   return [
-    { callable: `App\\Http\\Resources\\${file.replace('.php', '')}::toArray()`, file: source, application: true },
+    { callable: `${file.replace('.php', '')}::handle()`, file: source, application: true },
     {
       callable: 'App\\Http\\Controllers\\ActivityController::upcoming()',
       file: 'ActivityController.php:37',
