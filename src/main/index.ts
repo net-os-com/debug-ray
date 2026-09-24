@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { ServerStatus } from '../shared/ray-event'
 import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
+import { EventLog } from './event-log'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
 
@@ -18,6 +19,7 @@ let mainWindow: BrowserWindow | null = null
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
 const clients = new Clients()
+const log = new EventLog()
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -82,10 +84,19 @@ app.whenReady().then(() => {
   const server = createRayServer({
     host: HOST,
     port: PORT,
+    log,
     onRequest: (request, address) => {
       clients.record(request, address)
 
-      for (const event of toRayEvents(request)) {
+      const events = toRayEvents(request)
+
+      if (events.some((event) => event.type === 'clear_all')) {
+        log.clear()
+      }
+
+      log.record(events)
+
+      for (const event of events) {
         mainWindow?.webContents.send('ray:event', event)
       }
     },

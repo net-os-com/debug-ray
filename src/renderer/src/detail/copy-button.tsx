@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from 'react'
  * Copying is invisible without feedback, which reads as a dead button, so the
  * label confirms it for a moment.
  */
-export function CopyButton({ text }: { text: string }) {
+type CopyButtonProps = {
+  text: string
+  label: string
+}
+
+export function CopyButton({ text, label }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -29,7 +34,7 @@ export function CopyButton({ text }: { text: string }) {
 
   return (
     <button className={copied ? 'button button--confirmed' : 'button'} onClick={copy} type="button">
-      {copied ? 'Copied' : 'Copy payload'}
+      {copied ? 'Copied' : label}
     </button>
   )
 }

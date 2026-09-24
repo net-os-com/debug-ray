@@ -4,6 +4,7 @@ import { eventTitle } from '../event-title'
 import { sourceOf } from '../filter-events'
 import { kindFor } from '../kind'
 import { CloseIcon } from '../ui/icons'
+import { claudePrompt } from './claude-prompt'
 import { CopyButton } from './copy-button'
 import { copyText } from './copy-text'
 import { DetailBody } from './detail-body'
@@ -70,7 +71,8 @@ export function DetailPanel({
         <DetailBody event={event} hideVendorFrames={hideVendorFrames} />
 
         <div className="detail__actions">
-          <CopyButton text={copyText(event)} />
+          <CopyButton label="Copy payload" text={copyText(event)} />
+          <CopyButton label="Copy as Claude prompt" text={claudePrompt(event)} />
         </div>
       </div>
     </aside>

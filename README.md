@@ -41,6 +41,31 @@ The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
   not block the PHP process.
 - `GET /windows` and `GET /theme` return empty stubs.
 
+## Handing a payload to Claude Code
+
+The detail panel has two copy buttons. **Copy payload** puts the readable value
+on the clipboard (ray ships a plain-text rendering in `meta[0].clipboard_data`).
+**Copy as Claude prompt** wraps it into a prompt: for an exception that means the
+throwable, the application frames, and the source lines around the failing one.
+
+### MCP server
+
+`mcp/server.mjs` lets a Claude Code session pull payloads itself, so you can ask
+about the last exception without leaving the conversation:
+
+```bash
+claude mcp add netos-ray -- node /absolute/path/to/NetOS-ray/mcp/server.mjs
+```
+
+Tools: `list_ray_events` (newest first, optional type filter), `get_last_exception`
+(trace plus the code around the failing line), `get_ray_event` (one payload by id).
+
+It reads from `http://127.0.0.1:23517/api/…`, served by the receiver itself. Those
+read endpoints answer **only to this machine** — the receiver binds `0.0.0.0` so
+containers can reach it, and without that check everything your app dumps would
+be readable from the network. Docker Desktop proxies container traffic through the
+host, so a container still counts as local; another machine gets a 403.
+
 ## Build a DMG
 
 ```bash
