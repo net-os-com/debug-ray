@@ -7,9 +7,13 @@ const TOOLS = 'list_ray_events · get_last_exception · get_ray_event'
 export function McpCard() {
   const status = useMcpStatus()
 
-  const command = status?.serverPath
-    ? `claude mcp add netos-ray -- node ${status.serverPath}`
-    : null
+  // The packaged app does not ship the MCP server, so there is no absolute
+  // path to offer — but the command is still the thing you came here for, and
+  // it reads the same from a checkout.
+  const command =
+    status === null
+      ? null
+      : `claude mcp add netos-ray -- node ${status.serverPath ?? 'mcp/server.mjs'}`
 
   return (
     <div className="card">
@@ -32,18 +36,25 @@ export function McpCard() {
             <code>{command}</code>
             <CopyButton label="Copy" text={command} />
           </div>
-          <div className="card__note">Run it once, then restart your Claude Code session.</div>
+          <div className="card__note">{note(status)}</div>
         </>
-      ) : (
-        <div className="card__note">
-          The MCP server ships with the source checkout, not with the packaged app. Clone the
-          repository and run <code>claude mcp add netos-ray -- node mcp/server.mjs</code> from it.
-        </div>
-      )}
+      ) : null}
 
       <div className="card__note">Tools: {TOOLS}</div>
     </div>
   )
+}
+
+function note(status: McpStatus | null): string {
+  if (status?.connected) {
+    return 'Already set up. Re-run it only if you move the checkout.'
+  }
+
+  if (status?.serverPath) {
+    return 'Run it once, then restart your Claude Code session.'
+  }
+
+  return 'Run it from a checkout of the repository — the packaged app does not ship the MCP server — then restart your Claude Code session.'
 }
 
 function statusLabel(status: McpStatus | null): string {
