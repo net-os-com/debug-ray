@@ -76,24 +76,39 @@ so debugbar substitutes bindings via `Grammar::substituteBindingsIntoRawSql()`.
 3. **`status` is not on the debugbar payload.** `__meta` has no response status.
    We read it from the response in the middleware and pass it through ourselves.
 
-## Config we must set
+## Config: already published, but stale
 
-Debugbar's own defaults are mostly right, but four keys matter and one is wrong
-for us. `config/debugbar.php` is not published in the monorepo yet, so this
-starts with `php artisan vendor:publish --tag=debugbar-config`.
+`laravel/server/config/debugbar.php` is **already committed** — it has been in
+the repo since `af2826c37` (RE ND-2790), from an earlier round with debugbar.
+That is why `collectors.route` is already `true`.
 
-| Key | Package default | We need | Why |
+It was written for debugbar v3, though. Its `options.db` block still has
+`hints`, `show_copy` and an array-shaped `explain`, and it is missing the v4
+keys `exclude_paths`, `backtrace_editor_links`, `show_query_result`,
+`only_slow_queries`, `memory_usage`, `soft_limit` and `hard_limit`. Nothing
+breaks — the collector providers read every one of those with an inline
+`?? default` — but the file no longer documents what is actually in effect.
+
+So phase 3 is a re-publish and merge, not a fresh publish:
+
+```
+php artisan vendor:publish --tag=debugbar-config --force
+```
+
+then re-apply what we want on top:
+
+| Key | State today | We need | Why |
 |---|---|---|---|
-| `collectors.route` | `false` | `true` | route name, action and middleware |
-| `options.db.backtrace` | `true` | keep | `Query.trace` |
+| `collectors.route` | `true` | keep | route name, action and middleware |
 | `options.db.with_params` | `true` | keep | `Query.sql` + `Query.bindings` |
+| `options.db.backtrace` | `true` | keep | `Query.trace` |
 | `options.db.timeline` | `false` | `true` | puts queries on the shared timeline |
-| `options.db.soft_limit` | `100` | keep | past 100 queries, params/backtrace are dropped |
-| `options.db.hard_limit` | `500` | keep | past 500, queries are ignored entirely |
+| `options.db.soft_limit` | missing (100) | make explicit | past 100 queries, params/backtrace are dropped |
+| `options.db.hard_limit` | missing (500) | make explicit | past 500, queries are ignored entirely |
 
 `options.db.only_slow_queries` defaults to `true` but is inert while
-`slow_threshold` is `false` — `DatabaseCollectorProvider` collects everything
-when no threshold is set. Leave both alone.
+`slow_threshold` is falsy — `DatabaseCollectorProvider` collects everything when
+no threshold is set. Leave both alone.
 
 The soft/hard limits are worth knowing about: when either trips, debugbar
 injects synthetic `type: "info"` statements into `statements[]` explaining
@@ -178,8 +193,8 @@ filtered out of the listing today.
 - Registered in `bootstrap/app.php` behind the environment check.
 
 ### 3. Config
-- Publish `config/debugbar.php`, set `collectors.route` and
-  `options.db.timeline`, commit it.
+- Re-publish `config/debugbar.php` with `--force`, re-apply
+  `options.db.timeline` and make the limits explicit, commit it.
 - Also publish `config/ray.php` — still missing in the monorepo — so the host
   and port are explicit rather than defaulted.
 
