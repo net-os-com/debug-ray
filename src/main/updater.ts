@@ -8,6 +8,11 @@ import type { UpdateStatus } from '../shared/ray-event'
  */
 const { autoUpdater } = electronUpdater
 
+/** How long "you are up to date" stays up before the banner steps aside again. */
+const UP_TO_DATE_MS = 4_000
+
+const IDLE: UpdateStatus = { phase: 'idle', version: null, percent: 0, error: null }
+
 /**
  * Watches GitHub releases for a newer build and reports what it finds.
  *
@@ -19,7 +24,16 @@ const { autoUpdater } = electronUpdater
  * it, which is why checking is skipped unless the app is packaged.
  */
 export class Updater {
-  private state: UpdateStatus = { phase: 'idle', version: null, percent: 0, error: null }
+  private state: UpdateStatus = IDLE
+
+  /**
+   * Whether the check in flight was asked for. The one at startup is silent and
+   * says nothing when it finds nothing; a check someone pressed for owes them an
+   * answer either way, or the menu item looks broken.
+   */
+  private asked = false
+
+  private resetting: ReturnType<typeof setTimeout> | null = null
 
   constructor(private readonly window: () => BrowserWindow | null) {
     autoUpdater.autoDownload = false
@@ -30,7 +44,14 @@ export class Updater {
     })
 
     autoUpdater.on('update-not-available', () => {
-      this.set({ phase: 'idle', version: null, percent: 0, error: null })
+      if (!this.asked) {
+        this.set(IDLE)
+
+        return
+      }
+
+      this.set({ phase: 'up-to-date', version: app.getVersion(), percent: 0, error: null })
+      this.resetting = setTimeout(() => this.set(IDLE), UP_TO_DATE_MS)
     })
 
     autoUpdater.on('download-progress', (progress) => {
@@ -50,10 +71,30 @@ export class Updater {
     return this.state
   }
 
-  /** Silent by design: a failed check is not worth interrupting anyone over. */
-  check(): void {
-    if (!app.isPackaged) {
+  /**
+   * `asked` marks a check someone triggered from the menu or the banner, which
+   * is the only kind that reports back when there is nothing to report.
+   */
+  check({ asked = false }: { asked?: boolean } = {}): void {
+    // A download in flight, or one already waiting to be installed, is further
+    // along than any answer a fresh check could give.
+    if (this.state.phase === 'downloading' || this.state.phase === 'ready') {
       return
+    }
+
+    this.stopResetting()
+    this.asked = asked
+
+    if (!app.isPackaged) {
+      if (asked) {
+        this.set({ ...IDLE, phase: 'error', error: 'this build is not packaged, so there is nothing to update' })
+      }
+
+      return
+    }
+
+    if (asked) {
+      this.set({ ...IDLE, phase: 'checking' })
     }
 
     void autoUpdater.checkForUpdates()?.catch(() => undefined)
@@ -77,5 +118,14 @@ export class Updater {
   private set(state: UpdateStatus): void {
     this.state = state
     this.window()?.webContents.send('ray:update', state)
+  }
+
+  private stopResetting(): void {
+    if (this.resetting === null) {
+      return
+    }
+
+    clearTimeout(this.resetting)
+    this.resetting = null
   }
 }

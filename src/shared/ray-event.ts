@@ -61,7 +61,7 @@ export type McpStatus = {
 
 /** Where a pending application update has got to. */
 export type UpdateStatus = {
-  phase: 'idle' | 'available' | 'downloading' | 'ready' | 'error'
+  phase: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'error'
   version: string | null
   /** 0–100 while downloading. */
   percent: number

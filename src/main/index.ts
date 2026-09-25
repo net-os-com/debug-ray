@@ -5,6 +5,7 @@ import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
 import { EventLog } from './event-log'
 import { McpPresence } from './mcp-status'
+import { applyMenu } from './menu'
 import { Preferences } from './preferences'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
@@ -84,6 +85,7 @@ app.whenReady().then(() => {
   })
 
   applyDockIcon()
+  applyMenu(updater)
 
   mainWindow = createWindow()
 
@@ -92,7 +94,9 @@ app.whenReady().then(() => {
   ipcMain.handle('ray:mcp', () => presence.status())
   ipcMain.handle('ray:update', () => updater.current())
 
-  ipcMain.on('ray:update:check', () => updater.check())
+  // Always on someone's behalf: the menu item and the banner's Try again are
+  // the only callers, and both want an answer even when there is no update.
+  ipcMain.on('ray:update:check', () => updater.check({ asked: true }))
   ipcMain.on('ray:update:download', () => updater.download())
   ipcMain.on('ray:update:install', () => updater.install())
 

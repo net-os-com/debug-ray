@@ -20,6 +20,10 @@ export function UpdateBanner({ status }: { status: UpdateStatus }) {
 
 function message(status: UpdateStatus): string {
   switch (status.phase) {
+    case 'checking':
+      return 'Checking for updates…'
+    case 'up-to-date':
+      return `NetOS Debug ${status.version} is the latest version.`
     case 'available':
       return `NetOS Debug ${status.version} is available.`
     case 'downloading':
