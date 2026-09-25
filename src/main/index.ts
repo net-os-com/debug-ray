@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { ServerStatus } from '../shared/ray-event'
+import type { Snippet, TinkerRequest } from '../shared/tinker'
 import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
 import { EventLog } from './event-log'
@@ -8,6 +9,9 @@ import { McpPresence } from './mcp-status'
 import { applyMenu } from './menu'
 import { Preferences } from './preferences'
 import { createRayServer } from './ray-server'
+import { Snippets } from './snippets'
+import { classIndex } from './tinker/class-index'
+import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
 import { Updater } from './updater'
 
@@ -26,7 +30,9 @@ const clients = new Clients()
 const log = new EventLog()
 const presence = new McpPresence()
 let preferences: Preferences
+let snippets: Snippets
 const updater = new Updater(() => mainWindow)
+const tinker = new Tinker()
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -78,6 +84,7 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   preferences = new Preferences()
+  snippets = new Snippets()
 
   app.setAboutPanelOptions({
     applicationName: app.getName(),
@@ -103,6 +110,21 @@ app.whenReady().then(() => {
   // Once the window is up, so a check can never delay showing it.
   mainWindow.once('ready-to-show', () => updater.check())
 
+  // Tinker runs arbitrary PHP, so it lives on IPC and nowhere else. The ray
+  // server binds 0.0.0.0 so containers can post to it; the same endpoint there
+  // would hand code execution to anything on the network.
+  ipcMain.handle('tinker:containers', () => tinker.containers())
+
+  ipcMain.handle('tinker:tenants', (_event, containerId: string, workingDir: string) =>
+    tinker.tenants(containerId, workingDir),
+  )
+
+  ipcMain.handle('tinker:run', (_event, request: TinkerRequest) => tinker.run(request))
+
+  ipcMain.handle('tinker:classes', (_event, containerId: string, workingDir: string) =>
+    classIndex(containerId, workingDir),
+  )
+
   ipcMain.on('ray:always-on-top', (_event, onTop: boolean) => {
     mainWindow?.setAlwaysOnTop(onTop)
   })
@@ -111,6 +133,14 @@ app.whenReady().then(() => {
   // instead of flashing the default first.
   ipcMain.on('ray:prefs:read', (event) => {
     event.returnValue = preferences.all()
+  })
+
+  ipcMain.on('tinker:snippets:read', (event) => {
+    event.returnValue = snippets.all()
+  })
+
+  ipcMain.on('tinker:snippets:write', (_event, list: Snippet[]) => {
+    snippets.replace(list)
   })
 
   ipcMain.on('ray:prefs:write', (_event, patch: Record<string, unknown>) => {
@@ -168,7 +198,10 @@ app.whenReady().then(() => {
 
 app.on('browser-window-focus', () => mainWindow?.flashFrame(false))
 
-app.on('before-quit', () => preferences?.flush())
+app.on('before-quit', () => {
+  preferences?.flush()
+  snippets?.flush()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

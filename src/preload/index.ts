@@ -6,6 +6,12 @@ import type {
   ServerStatus,
   UpdateStatus,
 } from '../shared/ray-event'
+import type {
+  Snippet,
+  TinkerContainer,
+  TinkerOutcome,
+  TinkerRequest,
+} from '../shared/tinker'
 
 const api = {
   onEvent(listener: (event: RayEvent) => void): () => void {
@@ -64,6 +70,30 @@ const api = {
 
   installUpdate(): void {
     ipcRenderer.send('ray:update:install')
+  },
+
+  getContainers(): Promise<TinkerContainer[]> {
+    return ipcRenderer.invoke('tinker:containers')
+  },
+
+  getTenants(containerId: string, workingDir: string): Promise<string[]> {
+    return ipcRenderer.invoke('tinker:tenants', containerId, workingDir)
+  },
+
+  getClasses(containerId: string, workingDir: string): Promise<string[]> {
+    return ipcRenderer.invoke('tinker:classes', containerId, workingDir)
+  },
+
+  runTinker(request: TinkerRequest): Promise<TinkerOutcome> {
+    return ipcRenderer.invoke('tinker:run', request)
+  },
+
+  readSnippets(): Snippet[] {
+    return ipcRenderer.sendSync('tinker:snippets:read') as Snippet[]
+  },
+
+  writeSnippets(list: Snippet[]): void {
+    ipcRenderer.send('tinker:snippets:write', list)
   },
 
   onFullScreen(listener: (fullScreen: boolean) => void): () => void {

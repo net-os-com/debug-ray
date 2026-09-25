@@ -57,7 +57,10 @@ export function applyMenu(updater: Updater): void {
     {
       label: 'View',
       submenu: [
-        { role: 'reload' },
+        // Tinker runs a snippet with Cmd+R, and a menu accelerator wins over
+        // the page, so reloading moves aside rather than reloading the app
+        // mid-edit.
+        { role: 'reload', accelerator: 'CmdOrCtrl+Alt+R' },
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
