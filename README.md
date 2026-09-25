@@ -1,11 +1,20 @@
-# NetOS Ray
+# Net OS Ray
 
-An Electron receiver for [spatie/ray](https://github.com/spatie/ray) payloads,
-built to the "NetOS Debug Console" Claude Design canvas. It speaks the HTTP
-protocol the PHP client expects and renders what it receives — including
-Symfony `HtmlDumper` dumps — as a filterable stream with a detail panel.
+An Electron receiver for [spatie/ray](https://github.com/spatie/ray) payloads.
+It speaks the HTTP protocol the PHP client expects and renders what it receives
+— including Symfony `HtmlDumper` dumps — as a filterable stream with a detail
+panel, and turns every finished Laravel request into a debugbar-style Requests
+view.
 
-## Run
+Built to the "NetOS Debug Console" Claude Design canvas.
+
+## Install
+
+Grab the latest DMG from [Releases](https://github.com/net-os-com/debug-ray/releases).
+Builds are signed and notarised, so they open normally and update themselves —
+**Check for Updates…** sits in the application menu.
+
+To run from source instead:
 
 ```bash
 npm install
@@ -16,10 +25,10 @@ npm run start   # run the production build
 
 The receiver listens on `0.0.0.0:23517`. Override with `RAY_HOST` / `RAY_PORT`.
 
-## Point the Laravel app at it
+## Point your Laravel app at it
 
 `spatie/ray` reads its host and port from a `ray.php` config file only — there is
-no environment fallback without one. In `laravel/server`:
+no environment fallback without one:
 
 ```bash
 php artisan ray:publish-config --docker
@@ -29,168 +38,37 @@ That writes `config/ray.php` with `'host' => env('RAY_HOST', 'host.docker.intern
 which is what a container needs to reach the app on the host. For PHP running
 directly on the host, set `RAY_HOST=localhost`.
 
-## Protocol notes
+That is enough for the Stream. The Requests view needs one more package,
+[net-os/laravel-netos-debug](https://github.com/net-os-com/laravel-netos-debug),
+which ships the full Debugbar payload of every finished request. It is not on
+Packagist, so add the repository first:
 
-The endpoints in `src/main/routes/` mirror `vendor/spatie/ray/src/Client.php`:
-
-- `GET /_availability_check` returns **404** on purpose. The client sets
-  `CURLOPT_FAILONERROR` and reads an HTTP error as "a Ray app is listening";
-  answering 200 makes it drop every payload.
-- `POST /` carries `{ uuid, payloads[], meta }`. Each payload becomes one row.
-- `GET /locks/:name` always reports the lock released, so `ray()->pause()` does
-  not block the PHP process.
-- `GET /windows` and `GET /theme` return empty stubs.
-
-## Handing a payload to Claude Code
-
-The detail panel has two copy buttons. **Copy payload** puts the readable value
-on the clipboard (ray ships a plain-text rendering in `meta[0].clipboard_data`).
-**Copy as Claude prompt** wraps it into a prompt: for an exception that means the
-throwable, the application frames, and the source lines around the failing one.
-
-### MCP server
-
-`mcp/server.mjs` lets a Claude Code session pull payloads itself, so you can ask
-about the last exception without leaving the conversation:
-
-The Settings view carries the exact command with this checkout's path, a copy
-button, and whether a session is currently attached:
-
-```bash
-claude mcp add netos-ray -- node /absolute/path/to/NetOS-ray/mcp/server.mjs
+```json
+"repositories": [
+    { "type": "vcs", "url": "https://github.com/net-os-com/laravel-netos-debug" }
+]
 ```
 
-Nothing about a stdio MCP server is observable from the app — Claude Code spawns
-it, not us — so the server posts a heartbeat to the receiver every 10 seconds and
-"connected" means one arrived in the last 30. Expect the status to lag a session
-ending by up to half a minute.
-
-Tools: `list_ray_events` (newest first, optional type filter), `get_last_exception`
-(trace plus the code around the failing line), `get_ray_event` (one payload by id).
-
-It reads from `http://127.0.0.1:23517/api/…`, served by the receiver itself. Those
-read endpoints answer **only to this machine** — the receiver binds `0.0.0.0` so
-containers can reach it, and without that check everything your app dumps would
-be readable from the network. Docker Desktop proxies container traffic through the
-host, so a container still counts as local; another machine gets a 403.
-
-## Releasing
-
-`.github/workflows/release.yml` builds on macOS, signs and notarises when the
-secrets are present, and attaches the DMG and zip to a GitHub release.
-
 ```bash
-npm version minor        # tags v0.2.0
-git push --follow-tags   # the tag triggers the release
+composer require --dev net-os/laravel-netos-debug
 ```
 
-Running the workflow by hand (`workflow_dispatch`) builds the same artefacts but
-uploads them to the run instead of publishing a release — useful for testing the
-pipeline. Note that this repository is private, so macOS runner minutes bill at
-ten times the Linux rate.
+It reads the host and port from the same `ray.php` and registers its own
+middleware, so there is nothing else to wire up.
 
-Locally, `npm run dist` builds unsigned into `dist/` (it sets
-`CSC_IDENTITY_AUTO_DISCOVERY=false`). `dist/` is gitignored.
+## Usage
 
-### Signing
+- **[Stream](https://github.com/net-os-com/debug-ray/wiki/Stream)** — every
+  `ray()` call as it arrives, filtered by source, type and label, with a detail
+  panel and two copy buttons for handing a payload to Claude Code.
+- **[Requests](https://github.com/net-os-com/debug-ray/wiki/Requests)** — one row
+  per finished HTTP request, with its queries (including N+1 detection and
+  `EXPLAIN`), timeline, route, events, cache and response.
+- **[MCP server](https://github.com/net-os-com/debug-ray/wiki/MCP-server)** — let
+  a Claude Code session read payloads itself. Settings carries the exact command
+  for your checkout.
 
-Until the secrets below exist the workflow still runs, but it warns and produces
-an unsigned build. Signing needs a **Developer ID Application** certificate —
-not the Apple Development or Apple Distribution certificates, which are for
-devices and the App Store.
-
-1. In the Apple Developer portal, under Certificates, create a
-   **Developer ID Application** certificate and install it. Creating one
-   generally requires the Account Holder role.
-2. In Keychain Access, export it including its private key as a `.p12`.
-3. Create an app-specific password at appleid.apple.com for notarisation.
-4. Add the secrets (each command prompts for the value, except the team id):
-
-```bash
-base64 -i developer-id.p12 | gh secret set MACOS_CERTIFICATE --repo net-os-com/debug-ray
-gh secret set MACOS_CERTIFICATE_PASSWORD --repo net-os-com/debug-ray
-gh secret set KEYCHAIN_PASSWORD --repo net-os-com/debug-ray
-gh secret set APPLE_ID --repo net-os-com/debug-ray
-gh secret set APPLE_APP_SPECIFIC_PASSWORD --repo net-os-com/debug-ray
-gh secret set APPLE_TEAM_ID --repo net-os-com/debug-ray --body P8D7SFY2ZW
-```
-
-`KEYCHAIN_PASSWORD` is only used for the throwaway keychain on the runner, so
-any random string will do. The workflow prints the identities it found and runs
-`codesign --verify` plus `spctl --assess` afterwards, so a misconfigured
-certificate fails the build rather than shipping something broken.
-
-`build/entitlements.mac.plist` carries the three exemptions Electron needs under
-the hardened runtime, which notarisation requires.
-
-### Opening a downloaded build
-
-A signed and notarised build opens normally. An unsigned one is quarantined by
-macOS and reports itself as damaged; after dragging it to Applications:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/NetOS Debug.app"
-```
-
-## App name
-
-`productName` in `package.json` plus `app.setName()` at load time give the menu
-bar, the About panel and the window title "NetOS Debug".
-
-macOS still reports the *process* as "Electron" — in the dock tooltip, the
-Force Quit list and Activity Monitor. That name is `CFBundleName` inside the
-vendored `node_modules/electron/dist/Electron.app`, so only a packaged build
-fixes it. Add a packager (electron-builder reads `productName` and `mac.icon`)
-if that matters.
-
-## App icon
-
-`resources/icon.icns` and `resources/icon.png` are generated from the
-"NetOS Debug App Icon" canvas:
-
-```bash
-npm run icon
-```
-
-`build/icon/icon.html` is the 1024x1024 source (824px squircle inset by 100px,
-leaving that margin for the baked shadow, per Apple's icon grid).
-`build/icon/render.mjs` renders it in an offscreen Electron window and builds the
-iconset with `sips` and `iconutil`, so what ships is exactly the CSS rendering.
-
-Following the canvas' own note, the two mark bars use the gradient fills at 256px
-and up, and flat 55% fills at 128px and below so the mark still reads at 32px.
-
-The dock icon is set at runtime because an unpackaged macOS app otherwise shows
-Electron's own. A packaged build takes the icon from the bundle instead — point
-your packager at `resources/icon.icns` (electron-builder: `mac.icon`).
-
-## How ray concepts map to the UI
-
-- **Sources** are `origin.hostname`, so the host and each container appear
-  separately. The rail shows `meta.project_name`.
-- **Types** are the eight kinds from the design, derived from the payload type.
-  A `log` payload counts as `dump` when its value is a var-dump.
-- **Labels and colours** (`ray()->label()`, `ray()->green()`) arrive as their own
-  payloads reusing the request uuid. Ray attaches them to the entry rather than
-  listing them, so they become the row's label pill and stripe colour.
-- **Connected clients** in Settings are derived from who has posted recently;
-  ray has no handshake.
-- `ray()->clearAll()` clears the stream. Unknown payload types still show up,
-  as raw JSON.
-
-**Pause buffers rather than drops.** The canvas simply skips events while
-paused; silently losing payloads in a debug tool is worse than holding them, so
-incoming events queue up and the Resume button shows the count.
-
-## Not built
-
-- Grouping by request (`uuid`), the canvas' "Group by request" toggle.
-- "Open in editor" and "Bookmark" in the detail panel.
-- Screens (`ray()->newScreen()`) — everything lands in one stream.
-- Host Grotesk is not bundled; the font stack falls back to Inter and system-ui.
-  Add the `.otf` files and `@font-face` rules in `tokens.css` for the real face.
-
-## Two things to know
+## Keep in mind
 
 - The receiver binds `0.0.0.0` so Docker can reach it, which means anything on
   your network can post to it. Payload HTML is rendered as-is, the same way Ray
@@ -198,3 +76,14 @@ incoming events queue up and the Resume button shows the count.
   down but then containers can no longer reach it.
 - `ray()->trace()` needs a booted Laravel app (`base_path()`); it works from the
   app, not from a bare `php -r` script.
+
+## Documentation
+
+The [wiki](https://github.com/net-os-com/debug-ray/wiki) carries the long form:
+the two views in detail, the
+[ray protocol](https://github.com/net-os-com/debug-ray/wiki/Protocol-notes) this
+app implements,
+[releasing and signing](https://github.com/net-os-com/debug-ray/wiki/Releasing),
+and where the
+[app name and icon](https://github.com/net-os-com/debug-ray/wiki/App-name-and-icon)
+come from.
