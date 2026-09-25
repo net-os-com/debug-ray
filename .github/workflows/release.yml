@@ -45,6 +45,19 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # electron-builder publishes the zip and the dmg through two publishers
+      # that run at the same time. With no release to attach to, both create
+      # one, and the assets end up split across two drafts for the same tag —
+      # which is what happened to v0.2.0 and v0.3.0. Creating it up front
+      # leaves them nothing to race over.
+      - name: Create the draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --generate-notes
+
       - name: Import the Developer ID certificate
         if: env.HAS_SIGNING == 'true'
         env:
@@ -106,6 +119,14 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP"
           echo "--- Gatekeeper assessment ---"
           spctl --assess --type execute --verbose=4 "$APP"
+
+      # Only once every asset is attached, so nobody downloads a half-built
+      # release.
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
 
       - uses: actions/upload-artifact@v4
         if: github.ref_type != 'tag'
