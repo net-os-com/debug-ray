@@ -17,7 +17,7 @@ export function TabBar({ tabs, active, onSelect }: TabBarProps) {
           type="button"
         >
           {tab.label}
-          <span className="tab__count">{tab.count}</span>
+          {tab.count === null ? null : <span className="tab__count">{tab.count}</span>}
         </button>
       ))}
     </div>

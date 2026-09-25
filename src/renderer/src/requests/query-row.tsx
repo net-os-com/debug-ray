@@ -1,3 +1,4 @@
+import { formatDuration } from '../duration'
 import { QueryDetail } from './query-detail'
 import { tokenize } from './sql-tokens'
 import { SLOW_QUERY_MS, type HttpRequest, type Query } from './types'
@@ -64,7 +65,7 @@ export function QueryRow({
             className="query-row__duration"
             style={slow ? { color: 'var(--warn-fg)', fontWeight: 600 } : undefined}
           >
-            {query.durationMs.toFixed(1)} ms
+            {formatDuration(query.durationMs)}
           </span>
           <div className="query-row__track">
             <div

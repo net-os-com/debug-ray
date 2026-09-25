@@ -3,7 +3,9 @@ import { CollectorPlaceholder } from './collector-placeholder'
 import { QueriesTab } from './queries-tab'
 import { RequestHeader } from './request-header'
 import { RequestList } from './request-list'
+import { RouteTab } from './route-tab'
 import { TabBar } from './tab-bar'
+import { TimelineTab } from './timeline-tab'
 import { tabsFor, type TabKey } from './tabs'
 import { useRequests } from './use-requests'
 
@@ -16,6 +18,8 @@ export function RequestsView() {
     <>
       <RequestList
         filter={requests.filter}
+        onClear={requests.clear}
+        preflightCount={requests.preflightCount}
         onFilterChange={requests.setFilter}
         onQueryChange={requests.setQuery}
         onReset={requests.reset}
@@ -23,11 +27,16 @@ export function RequestsView() {
         query={requests.query}
         requests={requests.shown}
         selectedId={requests.selectedId}
+        total={requests.total}
       />
 
       <section className="app__content">
         {selected === null ? (
-          <div className="request-detail-placeholder">Select a request</div>
+          <div className="request-detail-placeholder">
+            {requests.total === 0
+              ? 'Waiting for requests. Hit your app and they show up here.'
+              : 'Select a request'}
+          </div>
         ) : (
           <>
             <div className="request-detail__head">
@@ -38,6 +47,10 @@ export function RequestsView() {
             <div className="request-detail__body">
               {tab === 'queries' ? (
                 <QueriesTab key={selected.id} request={selected} />
+              ) : tab === 'timeline' ? (
+                <TimelineTab key={selected.id} request={selected} />
+              ) : tab === 'route' ? (
+                <RouteTab key={selected.id} request={selected} />
               ) : (
                 <CollectorPlaceholder
                   title={tabsFor(selected).find((entry) => entry.key === tab)?.label ?? ''}

@@ -1,4 +1,5 @@
 import type { RayEvent } from '../../shared/ray-event'
+import { formatSeconds } from './duration'
 import { toPlainText, truncate } from './ui/plain-text'
 
 const MAX = 160
@@ -71,5 +72,5 @@ function tablePreview(values: unknown): string {
 }
 
 function seconds(value: unknown): string {
-  return typeof value === 'number' ? `${(value * 1000).toFixed(1)} ms` : '—'
+  return typeof value === 'number' ? formatSeconds(value) : '—'
 }

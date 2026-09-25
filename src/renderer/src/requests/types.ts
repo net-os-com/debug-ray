@@ -14,12 +14,57 @@ export type HttpRequest = {
   startedAt: number
   durationMs: number
   memoryMb: number | null
-  route: string | null
-  action: string | null
-  middleware: string[]
+  route: RouteInfo | null
+  /** The request's own query string, flattened to bracketed keys. */
+  queryParameters: KeyValue[]
+  /** Credentials arrive already masked; the collector never ships them. */
+  headers: KeyValue[]
+  /** Whatever the application put on Laravel's Context. */
+  context: KeyValue[]
   queries: Query[]
+  /** Debugbar's timeline measures, in the order they started. */
+  timeline: Measure[]
   /** Counts for the collector tabs that have no screen yet. */
   collectorCounts: Record<string, number>
+}
+
+/**
+ * One span on the request's timeline. Debugbar emits these for booting and the
+ * application itself, and for whichever collectors have their `timeline` option
+ * on — queries today.
+ */
+export type Measure = {
+  label: string
+  /** Milliseconds into the request at which the span began. */
+  offsetMs: number
+  durationMs: number
+  /** The collector that produced it: `time`, `queries`, `views`, … */
+  collector: string
+  /** Debugbar's own grouping label, e.g. "Database Query". */
+  group: string | null
+}
+
+export type KeyValue = { key: string; value: string }
+
+/** The route a request matched, as the Route tab shows it. */
+export type RouteInfo = {
+  uri: string | null
+  methods: string[]
+  name: string | null
+  action: string | null
+  /** Where the action lives, as `app/Http/…php:31-56`. */
+  file: string | null
+  prefix: string | null
+  domain: string | null
+  parameters: KeyValue[]
+  throttle: string | null
+  middleware: MiddlewareEntry[]
+}
+
+export type MiddlewareEntry = {
+  /** The class' short name, plus any parameters it was given. */
+  name: string
+  class: string | null
 }
 
 export type Query = {
@@ -41,7 +86,15 @@ export type QueryFrame = {
   application: boolean
 }
 
-export type RequestFilter = 'all' | 'errors' | 'slow' | 'n1'
+export type RequestFilter = 'all' | 'errors' | 'slow' | 'n1' | 'options'
+
+/**
+ * CORS preflights outnumber the calls they precede and carry no queries, so
+ * they are kept out of every other filter and reachable only through their own.
+ */
+export function isPreflight(request: HttpRequest): boolean {
+  return request.method.toUpperCase() === 'OPTIONS'
+}
 
 /** The canvas calls a request slow at this point. */
 export const SLOW_REQUEST_MS = 200

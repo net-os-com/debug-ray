@@ -1,23 +1,70 @@
-import { useCallback, useMemo, useState } from 'react'
-import { REQUESTS } from './fixtures'
-import { hasNPlusOne, SLOW_REQUEST_MS, type HttpRequest, type RequestFilter } from './types'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { REQUEST_PAYLOAD_TYPE } from '../../../shared/ray-event'
+import { toHttpRequest } from './to-http-request'
+import {
+  hasNPlusOne,
+  isPreflight,
+  SLOW_REQUEST_MS,
+  type HttpRequest,
+  type RequestFilter,
+} from './types'
 
 /**
- * Owns the list state the way use-ray-events owns the stream's. The requests
- * themselves are fixtures for now; only this hook has to change when a
- * collector arrives.
+ * One collected request carries every query it ran, so the list is kept far
+ * shorter than the event stream's buffer.
+ */
+const MAX_REQUESTS = 100
+
+/**
+ * Owns the list state the way use-ray-events owns the stream's, and subscribes
+ * to the same event channel — requests arrive as `netos_request` payloads from
+ * the Laravel middleware, which the stream skips.
  */
 export function useRequests() {
-  const [requests] = useState<HttpRequest[]>(REQUESTS)
+  const [requests, setRequests] = useState<HttpRequest[]>([])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<RequestFilter>('all')
-  const [selectedId, setSelectedId] = useState<string | null>(REQUESTS[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(
+    () =>
+      window.ray.onEvent((event) => {
+        if (event.type === 'clear_all') {
+          setRequests([])
+          setSelectedId(null)
+
+          return
+        }
+
+        if (event.type !== REQUEST_PAYLOAD_TYPE) {
+          return
+        }
+
+        const request = toHttpRequest(event.content)
+
+        if (request === null) {
+          return
+        }
+
+        // Newest first, matching the order the list renders in.
+        setRequests((current) => [request, ...current].slice(0, MAX_REQUESTS))
+      }),
+    [],
+  )
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
 
     return requests.filter((request) => {
       if (needle && !`${request.method} ${request.uri}`.toLowerCase().includes(needle)) {
+        return false
+      }
+
+      if (filter === 'options') {
+        return isPreflight(request)
+      }
+
+      if (isPreflight(request)) {
         return false
       }
 
@@ -37,6 +84,8 @@ export function useRequests() {
     })
   }, [requests, query, filter])
 
+  const preflightCount = useMemo(() => requests.filter(isPreflight).length, [requests])
+
   const selected = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? null,
     [requests, selectedId],
@@ -47,5 +96,23 @@ export function useRequests() {
     setFilter('all')
   }, [])
 
-  return { shown, selected, selectedId, setSelectedId, query, setQuery, filter, setFilter, reset }
+  const clear = useCallback(() => {
+    setRequests([])
+    setSelectedId(null)
+  }, [])
+
+  return {
+    shown,
+    selected,
+    selectedId,
+    setSelectedId,
+    query,
+    setQuery,
+    filter,
+    setFilter,
+    reset,
+    clear,
+    preflightCount,
+    total: requests.length,
+  }
 }

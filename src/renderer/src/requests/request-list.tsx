@@ -7,10 +7,15 @@ const FILTERS: { key: RequestFilter; label: string }[] = [
   { key: 'errors', label: 'Errors' },
   { key: 'slow', label: 'Slow' },
   { key: 'n1', label: 'N+1' },
+  { key: 'options', label: 'Options' },
 ]
 
 type RequestListProps = {
   requests: HttpRequest[]
+  /** Before filtering, so an empty list can say which kind of empty it is. */
+  total: number
+  /** Preflights are hidden outside their own filter; offer them a way back. */
+  preflightCount: number
   selectedId: string | null
   query: string
   filter: RequestFilter
@@ -18,10 +23,13 @@ type RequestListProps = {
   onFilterChange: (filter: RequestFilter) => void
   onSelect: (id: string) => void
   onReset: () => void
+  onClear: () => void
 }
 
 export function RequestList({
   requests,
+  total,
+  preflightCount,
   selectedId,
   query,
   filter,
@@ -29,17 +37,29 @@ export function RequestList({
   onFilterChange,
   onSelect,
   onReset,
+  onClear,
 }: RequestListProps) {
   return (
     <aside className="request-list">
       <div className="request-list__head">
-        <div className="search">
-          <SearchIcon />
-          <input
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Filter requests"
-            value={query}
-          />
+        <div className="request-list__search">
+          <div className="search">
+            <SearchIcon />
+            <input
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Filter requests"
+              value={query}
+            />
+          </div>
+          <button
+            className="button"
+            disabled={total === 0}
+            onClick={onClear}
+            title="Discard every collected request"
+            type="button"
+          >
+            Clear
+          </button>
         </div>
         <div className="request-list__filters">
           {FILTERS.map((option) => (
@@ -58,12 +78,24 @@ export function RequestList({
       </div>
 
       <div className="request-list__body">
-        {requests.length === 0 ? (
+        {total === 0 ? (
           <div className="request-list__empty">
-            <div>No requests match these filters.</div>
-            <button className="button" onClick={onReset} type="button">
-              Reset filters
-            </button>
+            <div>No requests collected yet.</div>
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="request-list__empty">
+            {filter !== 'options' && preflightCount === total ? (
+              <div>
+                Only CORS preflights collected. They live behind the Options filter.
+              </div>
+            ) : (
+              <>
+                <div>No requests match these filters.</div>
+                <button className="button" onClick={onReset} type="button">
+                  Reset filters
+                </button>
+              </>
+            )}
           </div>
         ) : (
           requests.map((request) => (

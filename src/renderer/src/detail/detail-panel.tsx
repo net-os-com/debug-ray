@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { RayEvent } from '../../../shared/ray-event'
+import { formatDuration } from '../duration'
 import { eventTitle } from '../event-title'
 import { sourceOf } from '../filter-events'
 import { kindFor } from '../kind'
@@ -82,7 +83,7 @@ export function DetailPanel({
 function duration(event: RayEvent): { key: string; value: string } | null {
   const time = event.content.time
 
-  return typeof time === 'number' ? { key: 'Duration', value: `${time} ms` } : null
+  return typeof time === 'number' ? { key: 'Duration', value: formatDuration(time) } : null
 }
 
 function project(event: RayEvent): { key: string; value: string } | null {

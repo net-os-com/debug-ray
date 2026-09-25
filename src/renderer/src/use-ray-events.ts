@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { RayEvent } from '../../shared/ray-event'
+import { REQUEST_PAYLOAD_TYPE, type RayEvent } from '../../shared/ray-event'
 
 /** The design's buffer card promises 500 events kept. */
 export const MAX_EVENTS = 500
@@ -43,6 +43,12 @@ export function useRayEvents({ paused, onEvent }: Options) {
           setEvents([])
           setPending([])
 
+          return
+        }
+
+        // Collected HTTP requests belong to the Requests view; use-requests
+        // subscribes to the same channel and picks them up there.
+        if (event.type === REQUEST_PAYLOAD_TYPE) {
           return
         }
 

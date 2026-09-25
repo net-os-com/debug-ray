@@ -1,9 +1,17 @@
-import type { RayEvent } from '../shared/ray-event'
+import { REQUEST_PAYLOAD_TYPE, type RayEvent } from '../shared/ray-event'
 
 /** Matches the renderer's buffer, so both show the same history. */
 const CAPACITY = 500
 
 const ANNOTATIONS = new Set(['label', 'color', 'confetti'])
+
+/**
+ * Collected HTTP requests are their own view, not stream entries, and one of
+ * them outweighs a hundred log payloads. They stay in the buffer so the API can
+ * fetch one by id, but they are kept out of the default listing so an MCP
+ * client asking for recent events is not handed a wall of SQL.
+ */
+const OUT_OF_STREAM = new Set([...ANNOTATIONS, REQUEST_PAYLOAD_TYPE])
 
 /**
  * The main process keeps the authoritative buffer. The renderer mirrors it for
@@ -23,13 +31,14 @@ export class EventLog {
 
   /**
    * Newest first, the way the stream reads. label and color payloads are
-   * annotations on their sibling entry rather than entries of their own, so
-   * they stay out of listings unless asked for by name.
+   * annotations on their sibling entry rather than entries of their own, and
+   * collected requests belong to the Requests view, so both stay out of
+   * listings unless asked for by name.
    */
   recent(limit: number, type?: string): RayEvent[] {
     const matching = type
       ? this.events.filter((event) => event.type === type)
-      : this.events.filter((event) => !ANNOTATIONS.has(event.type))
+      : this.events.filter((event) => !OUT_OF_STREAM.has(event.type))
 
     return matching.slice(-limit).reverse()
   }

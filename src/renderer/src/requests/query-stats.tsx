@@ -1,3 +1,4 @@
+import { formatDuration } from '../duration'
 import { duplicateQueries, SLOW_QUERY_MS, type HttpRequest } from './types'
 
 export function QueryStats({ request }: { request: HttpRequest }) {
@@ -10,7 +11,7 @@ export function QueryStats({ request }: { request: HttpRequest }) {
     { label: 'Queries', value: String(request.queries.length), unit: '', alert: false },
     {
       label: 'Time in database',
-      value: `${totalMs.toFixed(1)} ms`,
+      value: formatDuration(totalMs),
       unit: `${Math.round((totalMs / request.durationMs) * 100)}% of request`,
       alert: false,
     },
@@ -24,7 +25,7 @@ export function QueryStats({ request }: { request: HttpRequest }) {
     {
       label: 'Slow queries',
       value: String(slow.length),
-      unit: `≥ ${SLOW_QUERY_MS} ms`,
+      unit: `≥ ${formatDuration(SLOW_QUERY_MS)}`,
       alert: slow.length > 0,
       tone: 'warn' as const,
     },

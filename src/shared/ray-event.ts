@@ -1,3 +1,10 @@
+/**
+ * The payload type the Laravel side sends one finished HTTP request under. It
+ * carries debugbar's data rather than a ray() call, so it is routed to the
+ * Requests view instead of the stream.
+ */
+export const REQUEST_PAYLOAD_TYPE = 'netos_request'
+
 /** The `origin` block every ray payload carries: where the ray() call sat. */
 export type RayOrigin = {
   file: string | null

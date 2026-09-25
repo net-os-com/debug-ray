@@ -2,6 +2,9 @@ node_modules/
 out/
 dist/
 .DS_Store
+developerID_application.cer
+Certificates.p12
+p12_password.txt
 
 # icon build scratch
 build/icon/.work/

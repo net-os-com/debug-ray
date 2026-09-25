@@ -3,7 +3,7 @@
 Source: the "NetOS Debug Requests" canvas in the NetOS design-system project.
 
 A debugbar-style view of HTTP requests: a list on the left, and per request a set
-of collector tabs of which **only Queries is designed**. The other six tabs carry
+of collector tabs of which **Queries and Timeline are designed**. The other six tabs carry
 the canvas' own placeholder — "This collector gets its own screen in the next
 pass" — so they are in scope as tabs with counts, not as screens.
 

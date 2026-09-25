@@ -392,6 +392,10 @@ body {
 /* ── Requests list ──────────────────────────────────────── */
 .request-list {
   flex: 0 0 312px;
+  /* Without these a long query string sets the column's automatic minimum size
+     and the list grows until it owns the window. */
+  min-width: 0;
+  max-width: 312px;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -407,10 +411,22 @@ body {
   border-bottom: 1px solid var(--app-border);
 }
 
+.request-list__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 /* The toolbar's search is capped; in the sidebar it fills the column. */
 .request-list .search {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: none;
+}
+
+.request-list__search .button {
+  flex: 0 0 auto;
 }
 
 .request-list__filters {
@@ -2080,4 +2096,260 @@ body.is-resizing {
   font-size: 12.5px;
   color: var(--t3);
   font-family: var(--font-mono);
+}
+
+/* ── Timeline tab ───────────────────────────────────────── */
+.timeline-tab {
+  padding: 20px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline {
+  border-radius: 12px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  padding: 16px 16px 8px;
+  overflow-x: auto;
+}
+
+/* The bars need room to mean anything; narrower than this and it scrolls. */
+.timeline__inner {
+  min-width: 720px;
+}
+
+.timeline__head,
+.timeline__row {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.timeline__head {
+  padding-bottom: 8px;
+}
+
+.timeline__row {
+  align-items: center;
+  padding: 7px 0;
+}
+
+.timeline__phase-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.timeline__axis {
+  position: relative;
+  height: 14px;
+}
+
+.timeline__tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+.timeline__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.timeline__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 99rem;
+}
+
+.timeline__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline__duration {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__track {
+  position: relative;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--app-surface-2);
+}
+
+.timeline__bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  min-width: 3px;
+  border-radius: 4px;
+}
+
+.timeline__legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--t2);
+}
+
+.timeline__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline__none {
+  padding: 32px 16px;
+  font-size: 13px;
+  color: var(--t3);
+  text-align: center;
+}
+
+/* ── Route tab ──────────────────────────────────────────── */
+.route-tab {
+  padding: 20px 24px 32px;
+}
+
+/*
+ * A column flow, not a grid. In a grid every row is as tall as its tallest
+ * card, so a short card leaves a hole beneath it — with five cards of very
+ * different heights the tab was mostly gaps. Columns let each card sit
+ * directly under the one above it.
+ *
+ * `3 300px` means: at most three columns, and never narrower than 300px, so a
+ * smaller window falls back to two side by side and a narrow one to a single
+ * column.
+ */
+.card-wall {
+  columns: 3 300px;
+  column-gap: 16px;
+}
+
+.card-wall > .card {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.card {
+  border-radius: 12px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  overflow: hidden;
+}
+
+.card__title {
+  padding: 14px 16px 10px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.route-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--app-border-soft);
+}
+
+.route-row__key {
+  font-size: 12.5px;
+  color: var(--t3);
+}
+
+.route-row__value {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+  word-break: break-word;
+}
+
+.middleware-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--app-border-soft);
+}
+
+.middleware-row__n {
+  flex: 0 0 18px;
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.middleware-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.middleware-row__name {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+}
+
+.middleware-row__class {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route__none {
+  padding: 0 0 16px;
+  font-size: 13px;
+  color: var(--t3);
+  text-align: center;
+}
+
+/* Key/value card rows, as the canvas' Request cards draw them. */
+.pair-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--app-border-soft);
+}
+
+.pair-row__key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t3);
+  word-break: break-word;
+}
+
+.pair-row__value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+  word-break: break-all;
 }

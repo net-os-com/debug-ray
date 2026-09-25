@@ -1,3 +1,5 @@
+import { formatSeconds } from '../duration'
+
 type MeasureDetailProps = {
   content: Record<string, unknown>
 }
@@ -50,7 +52,7 @@ function seconds(value: unknown): number {
 }
 
 function ms(value: number): string {
-  return `${(value * 1000).toFixed(2)} ms`
+  return formatSeconds(value)
 }
 
 function megabytes(value: unknown): string {
