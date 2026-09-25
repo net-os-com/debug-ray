@@ -1,7 +1,7 @@
 {
   "name": "netos-ray",
   "productName": "NetOS Debug",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Debug viewer for spatie/ray payloads",
   "author": "NetOS",
   "main": "./out/main/index.js",
