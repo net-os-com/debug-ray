@@ -1,117 +1,203 @@
 # Request collector — implementation plan
 
-Goal: after every HTTP request, ship that request's full debug payload to NetOS
-Ray so the Requests view runs on real data instead of fixtures.
+Ship one payload per HTTP request from the NetOS monorepo to NetOS Debug, so the
+Requests view runs on real data instead of `requests/fixtures.ts`.
 
-## Two findings that change the shape of this
+Source: `barryvdh/laravel-debugbar ^4.4`, installed as a dev dependency in
+`laravel/server` (commit adding it is on `feature/SOFT-2872`). Transport:
+the existing ray channel, with a custom payload type.
 
-**laravel-debugbar is not installed.** It is absent from `composer.json` and
-from `vendor/`. What *is* installed is `laravel/telescope` ^5.22, enabled
-(`TELESCOPE_ENABLED=true`), with eighteen watchers — everything debugbar
-collects, and more.
+Everything below was verified against the installed vendor code and against a
+live `Debugbar::getData()` dump taken inside the `php` container — not from
+the package README.
 
-**`laravel/octane` ^2.17 is installed.** Debugbar keeps collector state on a
-long-lived object, which is the wrong shape for a worker that serves many
-requests per process. Telescope is built for that environment. Adding debugbar
-here would mean a new dependency that duplicates an existing one and is the
-weaker fit for how this application runs.
+## What debugbar actually hands us
 
-So the plan below collects from Telescope. The request is otherwise unchanged:
-one payload per request, pushed after the response.
+`Debugbar::getData()` returns one array keyed by collector name. The live dump:
 
-## The seam is better than a middleware
-
-Telescope already does the hard part — collecting and correlating a request's
-entries under one `batch_id` — and it exposes the result:
-
-```php
-Telescope::afterStoring(function (array $entries, string $batchId) { … });
+```
+__meta, request, php, messages, memory, route, queries, inertia,
+symfonymailer_mails, gate, jobs, session, http_client, time, event
 ```
 
-That fires at terminate, after the response, with every `IncomingEntry` for
-that request. There is nothing left for a middleware to collect; a middleware
-would only be re-deriving what this hook hands over. The hook is the seam.
+The three that carry the Requests view:
 
-Whether the ray call itself should additionally sit inside `defer()` is worth
-settling during implementation, not before: `afterStoring` already runs during
-terminate, so a deferred callback registered there may be flushed too late.
-Verify it before relying on it. The cost of sending synchronously is small
-anyway — ray's client caches "is anything listening" for 30 seconds and returns
-false fast, so with NetOS Ray closed the overhead is one failed connect per half
-minute, not per request.
+**`__meta`** — `id` (ULID), `datetime`, `utime`, `method`, `uri`, `ip`.
+Under Octane/console the method becomes `CLI`/`JOB`; we only ship real requests.
 
-## What maps, and what does not
+**`time`** — `start`, `end`, `duration` (seconds, float), plus `measures[]`
+with `label`, `start`, `relative_start`, `duration`, `collector`, `group`.
+`time.start` is the request's t0, which is what makes `Query.offsetMs`
+computable.
 
-A Telescope query entry carries `connection`, `driver`, `sql`, `time`, `slow`,
-`file`, `line`, `hash`. Against the contract in
-`src/renderer/src/requests/types.ts` that covers `sql`, `durationMs`, `source`,
-`connection` and the slow flag. The request entry covers method, uri, status,
-duration, memory, route, action and middleware.
+**`queries`** — `nb_statements`, `accumulated_duration`, and `statements[]`.
+A statement (real dump, transaction entry):
 
-Four things the Requests view draws have no source in Telescope:
+```json
+{
+  "sql": "select * from users where id = 1",
+  "type": "query",
+  "params": ["1"],
+  "backtrace": [{ "index": 8, "namespace": null, "name": "app/Foo.php", "file": "…", "line": 8 }],
+  "start": 1790319427.915325,
+  "duration": 0.00042,
+  "slow": false,
+  "filename": "Foo.php:8",
+  "source": { "file": "…", "line": 8, "name": "…" },
+  "connection": "default"
+}
+```
 
-- **Bindings.** Telescope substitutes them into the SQL and leaves the
-  `bindings` array empty. The "Fill in bindings" toggle would have nothing to
-  toggle, and the bindings chips nothing to list.
-- **Timeline offsets.** Not recorded. Approximable from each entry's
-  `recordedAt` minus the request's start, which is good enough to position a
-  bar but is not the real figure.
-- **EXPLAIN.** Not recorded at all. Producing it means running `EXPLAIN` against
-  each select ourselves — a feature in its own right, with its own cost.
-- **Backtrace.** Only the calling frame is kept, not a stack.
+**`route`** — `uri` ("GET api/foo"), `as`, `controller`, `middleware[]`, `file`,
+`prefix`, `namespace`. Exactly the `route` / `action` / `middleware` fields the
+view needs.
 
-These are decisions to take, not gaps to paper over. Drawing an empty EXPLAIN
-table or a bindings toggle that does nothing repeats the Copy payload mistake.
+**`memory`** — `peak_usage` in bytes → `memoryMb`.
 
-**Also:** `.env` currently disables the event, cache, model and redis watchers.
-The Events and Cache tabs stay empty until those are turned on.
+Note `sql` is already display-ready: `options.db.with_params` defaults to true,
+so debugbar substitutes bindings via `Grammar::substituteBindingsIntoRawSql()`.
+`params` still carries the raw bindings separately, so both
+`Query.sql` and `Query.bindings` come straight off one statement.
+
+## Three gaps between debugbar and the design
+
+1. **EXPLAIN is not in the payload.** In 4.x, `statements[].explain` is not the
+   EXPLAIN result — it is `{url, driver, connection, query, modes, hash}`, a
+   handle for an on-demand AJAX call to the `debugbar.queries.explain` route.
+   It is also only populated when `debugbar.isStorageOpen()`. So `Query.explain`
+   ships as `null` in phase 1. Closing it means running `EXPLAIN` ourselves
+   inside the deferred callback for `select` statements — cheap, but it doubles
+   the query count, so it goes behind its own config flag in a later phase.
+2. **`hints` no longer exists.** Debugbar v4 dropped the hint feature; there is
+   no `hint` key anywhere in `src/`. This costs nothing: the renderer already
+   derives its own via `duplicateQueries()`, `hasNPlusOne()`, `repeatCount()` and
+   `worstRepeat()` in `src/renderer/src/requests/types.ts`. `Query.hint` stays
+   `null` and the UI keeps computing it.
+3. **`status` is not on the debugbar payload.** `__meta` has no response status.
+   We read it from the response in the middleware and pass it through ourselves.
+
+## Config we must set
+
+Debugbar's own defaults are mostly right, but four keys matter and one is wrong
+for us. `config/debugbar.php` is not published in the monorepo yet, so this
+starts with `php artisan vendor:publish --tag=debugbar-config`.
+
+| Key | Package default | We need | Why |
+|---|---|---|---|
+| `collectors.route` | `false` | `true` | route name, action and middleware |
+| `options.db.backtrace` | `true` | keep | `Query.trace` |
+| `options.db.with_params` | `true` | keep | `Query.sql` + `Query.bindings` |
+| `options.db.timeline` | `false` | `true` | puts queries on the shared timeline |
+| `options.db.soft_limit` | `100` | keep | past 100 queries, params/backtrace are dropped |
+| `options.db.hard_limit` | `500` | keep | past 500, queries are ignored entirely |
+
+`options.db.only_slow_queries` defaults to `true` but is inert while
+`slow_threshold` is `false` — `DatabaseCollectorProvider` collects everything
+when no threshold is set. Leave both alone.
+
+The soft/hard limits are worth knowing about: when either trips, debugbar
+injects synthetic `type: "info"` statements into `statements[]` explaining
+itself. The shaper must skip anything whose `type` is not `query`.
+
+## Where to hook
+
+Debugbar collects on the `RequestHandled` event (`handleResponse()` →
+`sendDataInHeaders()` → `collect()`), well before termination. `getData()` also
+collects lazily if nothing has yet. So any post-response hook is safe.
+
+Use a `terminate()` middleware — it runs in `Kernel::terminate()` after the
+response is flushed, and it is the seam the codebase already uses for
+post-response work (see the notifications read-marking). Inside it, call
+`defer()` so a slow or unreachable NetOS Debug can never hold the worker.
+
+Do **not** hook the `Terminating` event: debugbar's own listener is registered
+there, and relying on listener ordering is fragile.
+
+## Guards
+
+All of these live in the middleware, checked before we touch debugbar:
+
+- `app()->environment('local')` only — never test, never production.
+- `Debugbar::isEnabled()` — if the developer turned it off, ship nothing.
+- Skip debugbar's and telescope's own routes (`_debugbar/*`, `telescope/*`) and
+  the ray availability probe.
+- Size cap: json-encode the shaped payload, and if it exceeds ~512 KB drop
+  `queries.statements[].backtrace` first, then truncate the statement list,
+  rather than sending a payload the Electron app's 500-entry ring buffer will
+  choke on.
+- Wrap the whole body in `rescue()`. A debug tool must never be able to fail a
+  request.
+
+**Octane caveat:** the monorepo runs classic FrankenPHP locally and Octane on
+GKE. Since this is local-only, Octane is not on the path — but debugbar already
+resets itself per Octane request via `ResetDebugbar` on `RequestReceived`, so
+the hook stays correct if that ever changes.
+
+## Transport
+
+`Spatie\Ray\Ray::sendRequest(array $payloads, array $meta = [])` is public and
+takes `Payload` objects, so we define our own type rather than squeezing this
+through `sendCustom()` (which hardcodes `type: "custom"`).
+
+```php
+final class HttpRequestPayload extends Payload
+{
+    public function __construct(private readonly array $request) {}
+
+    public function getType(): string
+    {
+        return 'netos_request';
+    }
+
+    public function getContent(): array
+    {
+        return $this->request;
+    }
+}
+```
+
+On the Electron side, `event-log.ts` routes `type === 'netos_request'` into the
+Requests store instead of the event list, the same way `ANNOTATIONS` are
+filtered out of the listing today.
 
 ## Phases
 
-### 1. The payload type
+### 1. Payload type and shaper
+- `HttpRequestPayload` (one file).
+- `ShapeDebugbarData` action: `array $data, Response $response` →
+  the `HttpRequest` shape from `src/renderer/src/requests/types.ts`.
+  `offsetMs = ($statement['start'] - $data['time']['start']) * 1000`,
+  `durationMs = $data['time']['duration'] * 1000`,
+  `memoryMb = $data['memory']['peak_usage'] / 1024 / 1024`,
+  `collectorCounts` from `count()` per collector key.
+  Skips statements whose `type !== 'query'`.
 
-A `Payload` subclass in the application with its own type, say
-`netos_request`, so NetOS Ray can route it to the Requests view rather than the
-stream. Extending `Spatie\Ray\Payloads\Payload` is enough; `CustomPayload`
-would arrive as a generic `custom` and be indistinguishable from `ray()->html()`.
+### 2. Middleware
+- `SendRequestToNetosDebug` with a `terminate()` method, wrapping a `defer()`
+  that calls the shaper and `sendRequest()`. All guards above.
+- Registered in `bootstrap/app.php` behind the environment check.
 
-### 2. Shaping
-
-A class that turns `(array $entries, string $batchId)` into the JSON the
-contract describes: one request object with its queries. It reads entries by
-`type` (`request`, `query`, `event`, `cache`, …) and fills what it can, leaving
-the four gaps above explicitly null rather than invented.
-
-Counts for the undesigned collector tabs come free: they are the number of
-entries of each type.
-
-### 3. Registration and guards
-
-A service provider registering the hook, active only when ray is enabled and
-the environment is not production. Two more guards worth having: a cap on the
-number of entries shipped per request, and a skip for requests to Telescope's
-own routes, so opening Telescope does not generate payloads about opening
-Telescope.
+### 3. Config
+- Publish `config/debugbar.php`, set `collectors.route` and
+  `options.db.timeline`, commit it.
+- Also publish `config/ray.php` — still missing in the monorepo — so the host
+  and port are explicit rather than defaulted.
 
 ### 4. Receiving
+- `netos_request` routing in `event-log.ts`.
+- Swap `fixtures.ts` for the live store; keep the fixtures as the empty-state
+  fallback so the view still renders with nothing connected.
 
-NetOS Ray routes `netos_request` into a request store instead of the stream, and
-`useRequests` reads from it instead of `fixtures.ts`. The view itself does not
-change — that was the point of writing `types.ts` as the contract.
+### 5. EXPLAIN (optional, behind a flag)
+- In the deferred callback, for each `select` statement, run
+  `EXPLAIN` on the same connection and attach the rows as `Query.explain`.
+- Off by default; it doubles query count on every request.
 
-### 5. Closing the four gaps
+## Open questions
 
-Taken one at a time, each on its own merits:
-
-- Bindings: either keep raw SQL plus a real bindings array by collecting from
-  `QueryExecuted` ourselves, or drop the toggle.
-- Offsets: derive from `recordedAt`, and say in the UI that they are derived.
-- EXPLAIN: a deliberate feature, opt-in, select statements only.
-- Backtrace: needs its own collection; Telescope will not provide it.
-
-## Open question
-
-Telescope writes every batch to the database. If NetOS Ray becomes where you
-actually look, that storage is cost without a reader — worth deciding whether
-Telescope stays on for its own UI, or is reduced to a collector that only feeds
-this tool.
+- Does the monorepo want this committed to `develop`, or kept on a local-only
+  branch? It is dev-only and guarded, but it does add two app files and a
+  config.
+- `queries.statements[].source.file` is a container path (`/var/www/...`).
+  Ray's `remotePath`/`localPath` rewriting exists for exactly this; we should
+  reuse it so the trace lines are clickable on the host.
