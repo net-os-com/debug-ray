@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { CollectorPlaceholder } from './collector-placeholder'
 import { QueriesTab } from './queries-tab'
 import { RequestHeader } from './request-header'
@@ -9,12 +8,11 @@ import { RequestTab } from './request-tab'
 import { RouteTab } from './route-tab'
 import { TabBar } from './tab-bar'
 import { TimelineTab } from './timeline-tab'
-import { tabsFor, type TabKey } from './tabs'
-import { useRequests } from './use-requests'
+import { tabsFor } from './tabs'
+import type { RequestsState } from './use-requests'
 
-export function RequestsView() {
-  const requests = useRequests()
-  const [tab, setTab] = useState<TabKey>('queries')
+export function RequestsView({ requests }: { requests: RequestsState }) {
+  const { tab, setTab } = requests
   const selected = requests.selected
 
   return (

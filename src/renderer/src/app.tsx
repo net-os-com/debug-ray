@@ -10,7 +10,9 @@ import { DetailPanel } from './detail/detail-panel'
 import { usePanelWidth } from './detail/use-panel-width'
 import { ALL, filterEvents, type Filters } from './filter-events'
 import { RequestsView } from './requests/requests-view'
+import { useRequests } from './requests/use-requests'
 import { SettingsView } from './settings/settings-view'
+import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
 import { NoResults } from './stream/no-results'
@@ -29,6 +31,7 @@ export function App() {
   const status = useServerStatus()
   const panel = usePanelWidth()
   const update = useUpdate()
+  const requests = useRequests()
 
   useAlwaysOnTop(settings.alwaysOnTop)
 
@@ -46,7 +49,10 @@ export function App() {
     [settings.notifyOnError],
   )
 
-  const { events, pendingCount, labels, colors, clear } = useRayEvents({ paused, onEvent })
+  const { events, pendingCount, labels, colors, confettiAt, clear } = useRayEvents({
+    paused,
+    onEvent,
+  })
 
   const shown = useMemo(() => filterEvents(events, filters, labels), [events, filters, labels])
   const selected = shown.find((event) => event.id === selectedId) ?? null
@@ -74,7 +80,7 @@ export function App() {
       <div className="app__main">
 
         {view === 'requests' ? (
-          <RequestsView />
+          <RequestsView requests={requests} />
         ) : (
           <>
             <Sidebar
@@ -145,6 +151,8 @@ export function App() {
           </>
         )}
       </div>
+
+      <ConfettiOverlay trigger={confettiAt} />
     </div>
   )
 }

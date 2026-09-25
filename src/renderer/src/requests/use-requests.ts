@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { REQUEST_PAYLOAD_TYPE } from '../../../shared/ray-event'
+import type { TabKey } from './tabs'
 import { toHttpRequest } from './to-http-request'
 import {
   hasNPlusOne,
@@ -15,16 +16,25 @@ import {
  */
 const MAX_REQUESTS = 100
 
+/** Everything RequestsView needs, owned one level up so it outlives the view. */
+export type RequestsState = ReturnType<typeof useRequests>
+
 /**
  * Owns the list state the way use-ray-events owns the stream's, and subscribes
  * to the same event channel — requests arrive as `netos_request` payloads from
  * the Laravel middleware, which the stream skips.
+ *
+ * Called from App rather than from RequestsView: the view unmounts whenever the
+ * Stream tab is shown, and a hook that lives inside it would take the collected
+ * requests with it and stop listening until someone looked again.
  */
 export function useRequests() {
   const [requests, setRequests] = useState<HttpRequest[]>([])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<RequestFilter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Up here for the same reason as the rest: the view unmounts on every switch.
+  const [tab, setTab] = useState<TabKey>('queries')
 
   useEffect(
     () =>
@@ -112,6 +122,8 @@ export function useRequests() {
     setFilter,
     reset,
     clear,
+    tab,
+    setTab,
     preflightCount,
     total: requests.length,
   }
