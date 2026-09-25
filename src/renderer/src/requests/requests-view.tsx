@@ -3,6 +3,9 @@ import { CollectorPlaceholder } from './collector-placeholder'
 import { QueriesTab } from './queries-tab'
 import { RequestHeader } from './request-header'
 import { RequestList } from './request-list'
+import { CacheTab } from './cache-tab'
+import { EventsTab } from './events-tab'
+import { RequestTab } from './request-tab'
 import { RouteTab } from './route-tab'
 import { TabBar } from './tab-bar'
 import { TimelineTab } from './timeline-tab'
@@ -51,6 +54,12 @@ export function RequestsView() {
                 <TimelineTab key={selected.id} request={selected} />
               ) : tab === 'route' ? (
                 <RouteTab key={selected.id} request={selected} />
+              ) : tab === 'events' ? (
+                <EventsTab key={selected.id} request={selected} />
+              ) : tab === 'cache' ? (
+                <CacheTab key={selected.id} request={selected} />
+              ) : tab === 'request' ? (
+                <RequestTab key={selected.id} request={selected} />
               ) : (
                 <CollectorPlaceholder
                   title={tabsFor(selected).find((entry) => entry.key === tab)?.label ?? ''}

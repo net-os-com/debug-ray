@@ -9,13 +9,25 @@ import { sourceOf } from '../filter-events'
 
 type StreamRowProps = {
   event: RayEvent
+  /** How many identical events in a row this one stands for. */
+  count: number
+  /** When the run last fired; the same as the event's own time when count is 1. */
+  latestAt: number
   label: string | undefined
   color: string | undefined
   selected: boolean
   onSelect: () => void
 }
 
-export function StreamRow({ event, label, color, selected, onSelect }: StreamRowProps) {
+export function StreamRow({
+  event,
+  count,
+  latestAt,
+  label,
+  color,
+  selected,
+  onSelect,
+}: StreamRowProps) {
   const kind = kindFor(event)
 
   // ray()->green() wins over the kind colour for the stripe, the way Ray tints
@@ -38,13 +50,14 @@ export function StreamRow({ event, label, color, selected, onSelect }: StreamRow
       <div className="row__head">
         <span className="badge">{kind.label}</span>
         <span className="row__title">{eventTitle(event)}</span>
+        {count > 1 ? <span className="pill">×{count}</span> : null}
         {label ? (
           <span className="row__label">
             <span className="row__label-dot" style={{ background: stripe }} />
             {label}
           </span>
         ) : null}
-        <span className="row__time">{formatTime(event.receivedAt)}</span>
+        <span className="row__time">{formatTime(latestAt)}</span>
       </div>
       <div className="row__preview">{eventPreview(event)}</div>
       <div className="row__origin">

@@ -21,6 +21,14 @@ export type HttpRequest = {
   headers: KeyValue[]
   /** Whatever the application put on Laravel's Context. */
   context: KeyValue[]
+  responseHeaders: KeyValue[]
+  /** JSON only, capped; null for anything else. */
+  responseBody: string | null
+  session: KeyValue[]
+  /** One entry per guard somebody is signed in with. */
+  auth: KeyValue[]
+  events: FiredEvent[]
+  cache: CacheOperation[]
   queries: Query[]
   /** Debugbar's timeline measures, in the order they started. */
   timeline: Measure[]
@@ -65,6 +73,26 @@ export type MiddlewareEntry = {
   /** The class' short name, plus any parameters it was given. */
   name: string
   class: string | null
+}
+
+/** An event name, folded across every time the request dispatched it. */
+export type FiredEvent = {
+  name: string
+  count: number
+  /** Milliseconds into the request at which it first fired. */
+  offsetMs: number
+  /** Class names of the listeners; closures have no name worth showing. */
+  listeners: string[]
+}
+
+export type CacheOperation = {
+  /** debugbar's verbs: hit, missed, written, forgotten. */
+  operation: string
+  key: string
+  store: string
+  tags: string[]
+  offsetMs: number
+  durationMs: number
 }
 
 export type Query = {

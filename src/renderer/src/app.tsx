@@ -4,6 +4,7 @@ import { buildKindOptions, buildLabelOptions, buildSourceOptions } from './build
 import { Sidebar } from './chrome/sidebar'
 import { TitleRail } from './chrome/title-rail'
 import { Toolbar } from './chrome/toolbar'
+import { UpdateBanner } from './chrome/update-banner'
 import type { View } from './chrome/view-nav'
 import { DetailPanel } from './detail/detail-panel'
 import { usePanelWidth } from './detail/use-panel-width'
@@ -18,6 +19,7 @@ import { useRayEvents } from './use-ray-events'
 import { useServerStatus } from './use-server-status'
 import { useSettings } from './use-settings'
 import { useTheme } from './use-theme'
+import { useUpdate } from './use-update'
 
 const NO_FILTERS: Filters = { source: ALL, kind: ALL, label: ALL, query: '' }
 
@@ -26,6 +28,7 @@ export function App() {
   const { settings, toggle: toggleSetting } = useSettings()
   const status = useServerStatus()
   const panel = usePanelWidth()
+  const update = useUpdate()
 
   useAlwaysOnTop(settings.alwaysOnTop)
 
@@ -65,6 +68,8 @@ export function App() {
         theme={theme}
         view={view}
       />
+
+      <UpdateBanner status={update} />
 
       <div className="app__main">
 

@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { McpStatus, RayClient, RayEvent, ServerStatus } from '../shared/ray-event'
+import type {
+  McpStatus,
+  RayClient,
+  RayEvent,
+  ServerStatus,
+  UpdateStatus,
+} from '../shared/ray-event'
 
 const api = {
   onEvent(listener: (event: RayEvent) => void): () => void {
@@ -32,6 +38,32 @@ const api = {
 
   getMcpStatus(): Promise<McpStatus> {
     return ipcRenderer.invoke('ray:mcp')
+  },
+
+  getUpdateStatus(): Promise<UpdateStatus> {
+    return ipcRenderer.invoke('ray:update')
+  },
+
+  onUpdate(listener: (status: UpdateStatus) => void): () => void {
+    const handler = (_: unknown, status: UpdateStatus): void => listener(status)
+
+    ipcRenderer.on('ray:update', handler)
+
+    return () => {
+      ipcRenderer.off('ray:update', handler)
+    }
+  },
+
+  checkForUpdate(): void {
+    ipcRenderer.send('ray:update:check')
+  },
+
+  downloadUpdate(): void {
+    ipcRenderer.send('ray:update:download')
+  },
+
+  installUpdate(): void {
+    ipcRenderer.send('ray:update:install')
   },
 
   onFullScreen(listener: (fullScreen: boolean) => void): () => void {

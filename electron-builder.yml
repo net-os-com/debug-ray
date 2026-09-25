@@ -10,6 +10,12 @@ directories:
 files:
   - out/**
   - resources/icon.png
+  # electron-updater is left unbundled by electron-vite's externalizeDepsPlugin,
+  # which externalises everything in `dependencies`. Without node_modules here
+  # the packaged app would start and immediately fail on a missing import — and
+  # only in a release build, never in dev. electron-builder prunes
+  # devDependencies from this itself.
+  - node_modules/**
 
 mac:
   target:

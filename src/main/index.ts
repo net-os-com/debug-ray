@@ -8,6 +8,7 @@ import { McpPresence } from './mcp-status'
 import { Preferences } from './preferences'
 import { createRayServer } from './ray-server'
 import { toRayEvents } from './to-ray-events'
+import { Updater } from './updater'
 
 // Unpackaged, Electron names the app after its own binary; the default menu is
 // built from app.name on ready, so this has to happen at load time.
@@ -24,6 +25,7 @@ const clients = new Clients()
 const log = new EventLog()
 const presence = new McpPresence()
 let preferences: Preferences
+const updater = new Updater(() => mainWindow)
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -88,6 +90,14 @@ app.whenReady().then(() => {
   ipcMain.handle('ray:status', () => status)
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
+  ipcMain.handle('ray:update', () => updater.current())
+
+  ipcMain.on('ray:update:check', () => updater.check())
+  ipcMain.on('ray:update:download', () => updater.download())
+  ipcMain.on('ray:update:install', () => updater.install())
+
+  // Once the window is up, so a check can never delay showing it.
+  mainWindow.once('ready-to-show', () => updater.check())
 
   ipcMain.on('ray:always-on-top', (_event, onTop: boolean) => {
     mainWindow?.setAlwaysOnTop(onTop)

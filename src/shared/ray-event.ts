@@ -58,3 +58,12 @@ export type McpStatus = {
   /** Absolute path to mcp/server.mjs, or null when it is not on disk. */
   serverPath: string | null
 }
+
+/** Where a pending application update has got to. */
+export type UpdateStatus = {
+  phase: 'idle' | 'available' | 'downloading' | 'ready' | 'error'
+  version: string | null
+  /** 0–100 while downloading. */
+  percent: number
+  error: string | null
+}

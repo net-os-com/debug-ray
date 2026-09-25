@@ -1,4 +1,6 @@
 import type {
+  CacheOperation,
+  FiredEvent,
   HttpRequest,
   KeyValue,
   Measure,
@@ -36,6 +38,12 @@ export function toHttpRequest(content: Record<string, unknown>): HttpRequest | n
     queryParameters: pairs(content.queryParameters),
     headers: pairs(content.headers),
     context: pairs(content.context),
+    responseHeaders: pairs(content.responseHeaders),
+    responseBody: text(content.responseBody),
+    session: pairs(content.session),
+    auth: pairs(content.auth),
+    events: events(content.events),
+    cache: cache(content.cache),
     queries: queries(content.queries),
     timeline: timeline(content.timeline),
     collectorCounts: counts(content.collectorCounts),
@@ -81,6 +89,40 @@ function middleware(value: unknown): MiddlewareEntry[] {
     .filter(isRecord)
     .map((entry) => ({ name: text(entry.name) ?? '', class: text(entry.class) }))
     .filter((entry) => entry.name !== '')
+}
+
+function events(value: unknown): FiredEvent[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter(isRecord)
+    .map((entry) => ({
+      name: text(entry.name) ?? '',
+      count: number(entry.count) ?? 1,
+      offsetMs: number(entry.offsetMs) ?? 0,
+      listeners: strings(entry.listeners),
+    }))
+    .filter((entry) => entry.name !== '')
+}
+
+function cache(value: unknown): CacheOperation[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter(isRecord)
+    .map((entry) => ({
+      operation: text(entry.operation) ?? '',
+      key: text(entry.key) ?? '',
+      store: text(entry.store) ?? '',
+      tags: strings(entry.tags),
+      offsetMs: number(entry.offsetMs) ?? 0,
+      durationMs: number(entry.durationMs) ?? 0,
+    }))
+    .filter((entry) => entry.operation !== '')
 }
 
 function timeline(value: unknown): Measure[] {
