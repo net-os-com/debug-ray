@@ -12,6 +12,9 @@ import { ALL, filterEvents, type Filters } from './filter-events'
 import { RequestsView } from './requests/requests-view'
 import { useRequests } from './requests/use-requests'
 import { SettingsView } from './settings/settings-view'
+import { TinkerView } from './tinker/tinker-view'
+import { useSnippets } from './tinker/use-snippets'
+import { useTinker } from './tinker/use-tinker'
 import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
@@ -32,6 +35,8 @@ export function App() {
   const panel = usePanelWidth()
   const update = useUpdate()
   const requests = useRequests()
+  const tinker = useTinker()
+  const snippets = useSnippets()
 
   useAlwaysOnTop(settings.alwaysOnTop)
 
@@ -81,6 +86,8 @@ export function App() {
 
         {view === 'requests' ? (
           <RequestsView requests={requests} />
+        ) : view === 'tinker' ? (
+          <TinkerView snippets={snippets} tinker={tinker} />
         ) : (
           <>
             <Sidebar

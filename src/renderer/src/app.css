@@ -2560,3 +2560,760 @@ body.is-resizing {
   flex: 1;
   min-width: 0;
 }
+
+/* Tinker ------------------------------------------------------------------ */
+
+.pane__label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.tinker-editor {
+  flex: 1 1 0;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+/*
+ * The name gets a line of its own. Sharing one with two pickers and two buttons
+ * meant everything truncated at once — including the pickers' own labels, mid
+ * word — and no amount of shrink tuning made five controls fit a narrow pane.
+ */
+.tinker-editor__head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 12px 12px 16px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.tinker-editor__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tinker-editor__controls > .button {
+  flex: 0 0 auto;
+}
+
+
+
+.tinker-editor__foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--app-border-soft);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.tinker-editor__problem {
+  color: var(--err-fg);
+}
+
+.tinker-output {
+  flex: 1 1 0;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-canvas);
+}
+
+.tinker-output__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.tinker-output__stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tinker-output__type {
+  font-family: var(--font-mono);
+  color: var(--t2);
+  word-break: break-all;
+}
+
+.tinker-output__actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tinker-output__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tinker-output__running {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.tinker-output__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 99rem;
+  background: var(--sql-kw);
+}
+
+.tinker-output__empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.tinker-output__empty-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.tinker-output__empty-body {
+  max-width: 320px;
+  margin-inline: auto;
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+.tinker-output__echo {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t2);
+  white-space: pre-wrap;
+}
+
+.tinker-output__unavailable {
+  padding: 18px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+.tinker-tree {
+  padding: 14px 16px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.85;
+}
+
+.tinker-tree__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: pre;
+}
+
+.tinker-tree__toggle,
+.tinker-tree__gutter {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.tinker-tree__toggle {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.tinker-tree__toggle:hover {
+  background: var(--app-surface-3);
+  color: var(--t1);
+}
+
+.tinker-tree__key {
+  color: var(--t2);
+}
+
+.tinker-tree__suffix {
+  color: var(--t3);
+}
+
+.tinker-error {
+  margin: 14px 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--err-bg);
+  color: var(--err-fg);
+}
+
+.tinker-error__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tinker-error__class {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tinker-error__where {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+.tinker-error__message {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.tinker-error__frames {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.tinker-error__frame {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tinker-error__call {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tinker-error__file {
+  margin-left: auto;
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
+.tinker {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.tinker-editor__name {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--t1);
+}
+
+.tinker-editor__run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Save and Run keep to the right, away from the two pickers. */
+.tinker-editor__controls > .button:not(.button--primary) {
+  margin-left: auto;
+}
+
+.tinker-editor__controls > .button:not(.button--primary) ~ .button {
+  margin-left: 0;
+}
+
+.tinker-editor__shortcut {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.tinker-editor__lines {
+  margin-left: auto;
+}
+
+.code-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  font-family: var(--font-mono);
+}
+
+.code-editor__numbers {
+  flex: 0 0 auto;
+  padding: 16px 10px 16px 16px;
+  text-align: right;
+  color: var(--t3);
+  user-select: none;
+  background: var(--app-surface);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.code-editor__field {
+  position: relative;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+/*
+ * The painted copy and the textarea have to agree on every metric that decides
+ * where a character lands, or the caret drifts away from the glyph it is on.
+ */
+.code-editor__paint,
+.code-editor__input {
+  padding: 16px 24px 16px 8px;
+  font: inherit;
+  line-height: inherit;
+}
+
+.code-editor__paint {
+  color: var(--t2);
+  pointer-events: none;
+}
+
+.code-editor__paint > div {
+  white-space: pre;
+}
+
+.code-editor__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--t1);
+}
+
+.code-editor__input::selection {
+  background: var(--app-sel);
+}
+
+.picker {
+  position: relative;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.picker__button {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 99rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.picker__button:hover {
+  background: var(--app-surface-2);
+}
+
+.picker__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 99rem;
+}
+
+/*
+ * The label gives up its width a hundred times faster than the value does, so a
+ * cramped picker reads "net-os_local-php-1" rather than "Docker net-os_lo…".
+ * Which container you are pointing at is the part worth keeping.
+ */
+.picker__label {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--t3);
+}
+
+.picker__value {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker__menu {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  z-index: 5;
+  width: 320px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.picker__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker__item:hover:not(:disabled) {
+  background: var(--app-surface-2);
+}
+
+.picker__item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.picker__item--on {
+  background: var(--app-sel);
+}
+
+.picker__item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker__item-name {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker__item-meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.splitter {
+  flex: 0 0 7px;
+  margin: 0 -3px;
+  position: relative;
+  z-index: 4;
+  cursor: col-resize;
+  display: flex;
+  justify-content: center;
+}
+
+.splitter:hover {
+  background: var(--app-sel);
+}
+
+.splitter__line {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+}
+
+.splitter--dragging .splitter__line {
+  background: var(--sql-kw);
+}
+
+.snippets {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-surface-2);
+  border-right: 1px solid var(--app-border);
+}
+
+.snippets__head {
+  padding: 14px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.snippets__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.snippets__title-row .pane__label {
+  flex: 1;
+}
+
+.snippets__title-row .button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.snippets__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border-radius: 99rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--t3);
+}
+
+.snippets__search input {
+  border: 0;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--t1);
+}
+
+.snippets__list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+}
+
+.snippets__none {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--t3);
+}
+
+.snippet {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  margin-bottom: 2px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.snippet:hover {
+  background: var(--app-surface-3);
+}
+
+.snippet--active {
+  background: var(--app-sel);
+}
+
+.snippet__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.snippet__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippet__dirty {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 99rem;
+  background: var(--sql-num);
+}
+
+.snippet__delete {
+  flex: 0 0 auto;
+  display: none;
+  align-items: center;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t3);
+  font-family: var(--font-display);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.snippet:hover .snippet__delete {
+  display: flex;
+}
+
+.snippet__delete:hover {
+  color: var(--err-fg);
+}
+
+.snippet__delete--armed {
+  display: flex;
+  background: var(--err-bg);
+  color: var(--err-fg);
+}
+
+.snippet__preview {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker__button > svg {
+  flex: 0 0 auto;
+}
+
+/* Measures the rendered font so the popup can be placed by arithmetic. */
+.code-editor__ruler {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre;
+  font: inherit;
+  line-height: inherit;
+}
+
+.completion {
+  position: absolute;
+  z-index: 6;
+  width: 340px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.completion__item {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.completion__item--on {
+  background: var(--app-sel);
+}
+
+.completion__short {
+  flex: 0 0 auto;
+  color: var(--t1);
+}
+
+.completion__namespace {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--t3);
+}
