@@ -5,9 +5,9 @@ import type {
   TinkerRequest,
   ValueNode,
 } from '../../shared/tinker'
-import { listContainers } from './containers'
+import { listContainers } from '../exec/containers'
 import { buildProgram, RESULT_MARKER } from './php-program'
-import { DockerMissing, runDocker } from './run-docker'
+import { DockerMissing, runDocker } from '../exec/run-docker'
 
 /** Long enough for a slow query, short enough that a runaway loop frees the app. */
 const RUN_TIMEOUT_MS = 30_000

@@ -1,4 +1,4 @@
-import { runDocker } from './run-docker'
+import { runDocker } from '../exec/run-docker'
 
 /** Scanning sixteen thousand files is not something to do twice. */
 const cache = new Map<string, string[]>()
