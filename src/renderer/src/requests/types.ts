@@ -29,6 +29,7 @@ export type HttpRequest = {
   auth: KeyValue[]
   events: FiredEvent[]
   cache: CacheOperation[]
+  mail: MailMessage[]
   queries: Query[]
   /** Debugbar's timeline measures, in the order they started. */
   timeline: Measure[]
@@ -93,6 +94,23 @@ export type CacheOperation = {
   tags: string[]
   offsetMs: number
   durationMs: number
+}
+
+/** A body the package trimmed, so the view can say it did. */
+export type MailBody = {
+  value: string
+  truncated: boolean
+}
+
+export type MailMessage = {
+  subject: string
+  to: string[]
+  from: string[]
+  cc: string[]
+  bcc: string[]
+  replyTo: string[]
+  text: MailBody | null
+  html: MailBody | null
 }
 
 export type Query = {

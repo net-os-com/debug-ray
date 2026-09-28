@@ -3789,3 +3789,55 @@ body.is-resizing {
   text-transform: uppercase;
   color: var(--t3);
 }
+
+.mail + .mail {
+  margin-top: 12px;
+}
+
+.mail__addresses {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 12px;
+  font-size: 12.5px;
+}
+
+.mail__row {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mail__label {
+  flex: 0 0 64px;
+  color: var(--t3);
+}
+
+.mail__value {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  color: var(--t2);
+  word-break: break-all;
+}
+
+.mail__tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mail__body {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

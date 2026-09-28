@@ -4,6 +4,7 @@ import { RequestHeader } from './request-header'
 import { RequestList } from './request-list'
 import { CacheTab } from './cache-tab'
 import { EventsTab } from './events-tab'
+import { MailTab } from './mail-tab'
 import { RequestTab } from './request-tab'
 import { RouteTab } from './route-tab'
 import { TabBar } from './tab-bar'
@@ -56,6 +57,8 @@ export function RequestsView({ requests }: { requests: RequestsState }) {
                 <EventsTab key={selected.id} request={selected} />
               ) : tab === 'cache' ? (
                 <CacheTab key={selected.id} request={selected} />
+              ) : tab === 'mail' ? (
+                <MailTab key={selected.id} request={selected} />
               ) : tab === 'request' ? (
                 <RequestTab key={selected.id} request={selected} />
               ) : (

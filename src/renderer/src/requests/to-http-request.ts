@@ -1,5 +1,7 @@
 import type {
   CacheOperation,
+  MailBody,
+  MailMessage,
   FiredEvent,
   HttpRequest,
   KeyValue,
@@ -44,6 +46,7 @@ export function toHttpRequest(content: Record<string, unknown>): HttpRequest | n
     auth: pairs(content.auth),
     events: events(content.events),
     cache: cache(content.cache),
+    mail: mail(content.mail),
     queries: queries(content.queries),
     timeline: timeline(content.timeline),
     collectorCounts: counts(content.collectorCounts),
@@ -105,6 +108,33 @@ function events(value: unknown): FiredEvent[] {
       listeners: strings(entry.listeners),
     }))
     .filter((entry) => entry.name !== '')
+}
+
+function mail(value: unknown): MailMessage[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(isRecord).map((entry) => ({
+    subject: text(entry.subject) ?? '',
+    to: strings(entry.to),
+    from: strings(entry.from),
+    cc: strings(entry.cc),
+    bcc: strings(entry.bcc),
+    replyTo: strings(entry.replyTo),
+    text: body(entry.text),
+    html: body(entry.html),
+  }))
+}
+
+function body(value: unknown): MailBody | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const content = text(value.value)
+
+  return content === null ? null : { value: content, truncated: value.truncated === true }
 }
 
 function cache(value: unknown): CacheOperation[] {
