@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { ServerStatus } from '../shared/ray-event'
+import type { StreamStart } from './exec/run-stream'
 import type { Snippet, TinkerRequest } from '../shared/tinker'
 import { applyDockIcon, windowIcon } from './app-icon'
 import { Clients } from './clients'
@@ -10,6 +11,9 @@ import { applyMenu } from './menu'
 import { Preferences } from './preferences'
 import { createRayServer } from './ray-server'
 import { Snippets } from './snippets'
+import { Streams } from './exec/run-stream'
+import { artisanCommands } from './tools/artisan'
+import { scoutIndexes } from './tools/scout'
 import { classIndex } from './tinker/class-index'
 import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
@@ -33,6 +37,7 @@ let preferences: Preferences
 let snippets: Snippets
 const updater = new Updater(() => mainWindow)
 const tinker = new Tinker()
+const streams = new Streams(() => mainWindow)
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -125,6 +130,22 @@ app.whenReady().then(() => {
     classIndex(containerId, workingDir),
   )
 
+  ipcMain.handle('tools:artisan', (_event, containerId: string, workingDir: string) =>
+    artisanCommands(containerId, workingDir),
+  )
+
+  ipcMain.handle(
+    'tools:scout',
+    (_event, containerId: string, workingDir: string, tenant: string) =>
+      scoutIndexes(containerId, workingDir, tenant),
+  )
+
+  // Long-running commands push their output instead of resolving with it, so a
+  // log tail and a migration both report while they work.
+  ipcMain.handle('exec:start', (_event, start: StreamStart) => streams.start(start))
+
+  ipcMain.on('exec:stop', (_event, id: string) => streams.stop(id))
+
   ipcMain.on('ray:always-on-top', (_event, onTop: boolean) => {
     mainWindow?.setAlwaysOnTop(onTop)
   })
@@ -201,6 +222,7 @@ app.on('browser-window-focus', () => mainWindow?.flashFrame(false))
 app.on('before-quit', () => {
   preferences?.flush()
   snippets?.flush()
+  streams.stopAll()
 })
 
 app.on('window-all-closed', () => {

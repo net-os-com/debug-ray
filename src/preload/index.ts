@@ -12,6 +12,7 @@ import type {
   TinkerOutcome,
   TinkerRequest,
 } from '../shared/tinker'
+import type { ArtisanCommand, ScoutIndex } from '../shared/tools'
 
 const api = {
   onEvent(listener: (event: RayEvent) => void): () => void {
@@ -86,6 +87,46 @@ const api = {
 
   runTinker(request: TinkerRequest): Promise<TinkerOutcome> {
     return ipcRenderer.invoke('tinker:run', request)
+  },
+
+  getArtisanCommands(containerId: string, workingDir: string): Promise<ArtisanCommand[]> {
+    return ipcRenderer.invoke('tools:artisan', containerId, workingDir)
+  },
+
+  getScoutIndexes(containerId: string, workingDir: string, tenant: string): Promise<ScoutIndex[]> {
+    return ipcRenderer.invoke('tools:scout', containerId, workingDir, tenant)
+  },
+
+  startExec(start: { id: string; args: string[]; columns?: number }): Promise<{
+    ok: boolean
+    message?: string
+  }> {
+    return ipcRenderer.invoke('exec:start', start)
+  },
+
+  stopExec(id: string): void {
+    ipcRenderer.send('exec:stop', id)
+  },
+
+  onExecData(listener: (event: { id: string; chunk: string; stream: 'out' | 'err' }) => void) {
+    const handler = (_: unknown, event: { id: string; chunk: string; stream: 'out' | 'err' }) =>
+      listener(event)
+
+    ipcRenderer.on('exec:data', handler)
+
+    return () => {
+      ipcRenderer.off('exec:data', handler)
+    }
+  },
+
+  onExecEnd(listener: (event: { id: string; code: number | null }) => void) {
+    const handler = (_: unknown, event: { id: string; code: number | null }) => listener(event)
+
+    ipcRenderer.on('exec:end', handler)
+
+    return () => {
+      ipcRenderer.off('exec:end', handler)
+    }
   },
 
   readSnippets(): Snippet[] {

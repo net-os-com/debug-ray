@@ -15,6 +15,10 @@ import { SettingsView } from './settings/settings-view'
 import { TinkerView } from './tinker/tinker-view'
 import { useSnippets } from './tinker/use-snippets'
 import { useTinker } from './tinker/use-tinker'
+import { ToolsView, type ToolKey } from './tools/tools-view'
+import { useArtisan } from './tools/use-artisan'
+import { useLogs } from './tools/use-logs'
+import { useScout } from './tools/use-scout'
 import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
@@ -37,6 +41,10 @@ export function App() {
   const requests = useRequests()
   const tinker = useTinker()
   const snippets = useSnippets()
+  const artisan = useArtisan(tinker.container)
+  const logs = useLogs(tinker.container)
+  const scout = useScout(tinker.container)
+  const [tool, setTool] = useState<ToolKey>('artisan')
 
   useAlwaysOnTop(settings.alwaysOnTop)
 
@@ -88,6 +96,15 @@ export function App() {
           <RequestsView requests={requests} />
         ) : view === 'tinker' ? (
           <TinkerView snippets={snippets} tinker={tinker} />
+        ) : view === 'tools' ? (
+          <ToolsView
+            artisan={artisan}
+            logs={logs}
+            onSelectTool={setTool}
+            scout={scout}
+            tenants={tinker.tenants}
+            tool={tool}
+          />
         ) : (
           <>
             <Sidebar
