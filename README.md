@@ -4,7 +4,8 @@ An Electron receiver for [spatie/ray](https://github.com/spatie/ray) payloads.
 It speaks the HTTP protocol the PHP client expects and renders what it receives
 — including Symfony `HtmlDumper` dumps — as a filterable stream with a detail
 panel, turns every finished Laravel request into a debugbar-style Requests view,
-and runs PHP against your application's container.
+runs PHP against your application's container, and drives artisan, the logs and
+the search indexes from there too.
 
 Built to the "NetOS Debug Console" Claude Design canvas.
 
@@ -67,6 +68,9 @@ middleware, so there is nothing else to wire up.
 - **[Tinker](https://github.com/net-os-com/debug-ray/wiki/Tinker)** — run PHP
   inside a running Docker container, against the central connection or a chosen
   tenant, with saved snippets and class-name completion.
+- **[Tools](https://github.com/net-os-com/debug-ray/wiki/Tools)** — run artisan
+  commands with a form built from their own definitions, tail the logs, and
+  check the search indexes against the database.
 - **[MCP server](https://github.com/net-os-com/debug-ray/wiki/MCP-server)** — let
   a Claude Code session read payloads itself. Settings carries the exact command
   for your checkout.
