@@ -171,6 +171,80 @@
   --btn-primary-fg: rgb(var(--color-brand-primary-600));
 }
 
+/*
+ * Phosphor: a debug console dressed as the terminal it descends from. Reached
+ * only by shift-clicking the theme button, and any plain click leaves again,
+ * so nobody can end up stuck in green.
+ */
+[data-app='phosphor'] {
+  --p-bg: rgb(6 14 8);
+  --p-dim: rgb(52 160 96);
+  --p-mid: rgb(94 224 140);
+  --p-hot: rgb(178 255 200);
+
+  --app-canvas: var(--p-bg);
+  --app-surface: rgb(9 20 12);
+  --app-surface-2: rgb(13 28 17);
+  --app-surface-3: rgb(18 38 23);
+  --app-border: rgb(24 58 34);
+  --app-border-soft: rgb(18 42 25);
+  --border-form-field: rgb(30 72 42);
+  --border-form-field-active: var(--p-mid);
+  --t1: var(--p-hot);
+  --t2: var(--p-mid);
+  --t3: var(--p-dim);
+  --app-rail: rgb(9 24 13);
+  --app-sel: rgb(20 52 30);
+
+  --dump-string: var(--p-mid);
+  --dump-number: rgb(190 255 140);
+  --dump-const: var(--p-hot);
+  --dump-note: var(--p-dim);
+
+  --app-accent-fg: var(--p-mid);
+  --brand-primary: var(--p-mid);
+  --sql-kw: var(--p-hot);
+  --sql-str: var(--p-mid);
+  --sql-num: rgb(190 255 140);
+  --warn-bg: rgb(28 44 14);
+  --warn-fg: rgb(210 255 150);
+  --warn-line: rgb(150 210 90);
+  --err-bg: rgb(48 20 18);
+  --err-fg: rgb(255 150 140);
+  --ok-fg: var(--p-mid);
+  --ansi-magenta: rgb(150 255 210);
+  --ansi-cyan: rgb(120 255 235);
+  --btn-primary-bg: var(--p-mid);
+  --btn-primary-fg: rgb(6 14 8);
+  --shadow-focus: 0 0 8px 0.5px var(--p-mid);
+}
+
+/* The scanlines sit above everything and catch no clicks. */
+[data-app='phosphor']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.16) 0px,
+    rgb(0 0 0 / 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+[data-app='phosphor'] {
+  text-shadow: 0 0 5px rgb(94 224 140 / 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app='phosphor']::after {
+    background: none;
+  }
+}
+
 @keyframes netos-pulse {
   0% {
     opacity: 0.3;

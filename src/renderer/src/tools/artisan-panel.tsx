@@ -1,4 +1,5 @@
 import { ConsolePane } from './console-pane'
+import { isFridayAfternoon } from './friday'
 import type { ArtisanState } from './use-artisan'
 
 export function ArtisanPanel({ artisan }: { artisan: ArtisanState }) {
@@ -69,6 +70,7 @@ export function ArtisanPanel({ artisan }: { artisan: ArtisanState }) {
             {artisan.armed ? (
               <div className="artisan__warning">
                 <strong>{selected.name}</strong> throws data away and cannot be undone.
+                {isFridayAfternoon(new Date()) ? ' And it is Friday afternoon. Still?' : null}
               </div>
             ) : null}
 

@@ -8,7 +8,7 @@ type TitleRailProps = {
   theme: Theme
   view: View
   onSelectView: (view: View) => void
-  onToggleTheme: () => void
+  onToggleTheme: (shift: boolean) => void
   onOpenSettings: () => void
 }
 
@@ -34,9 +34,14 @@ export function TitleRail({
       <span className="rail__subtitle">{subtitle}</span>
 
       <div className="rail__actions">
-        <button className="rail__theme" onClick={onToggleTheme} type="button">
+        <button
+          className="rail__theme"
+          onClick={(event) => onToggleTheme(event.shiftKey)}
+          title="Shift-click for something older"
+          type="button"
+        >
           <MoonIcon />
-          {theme === 'dark' ? 'Light' : 'Dark'}
+          {theme === 'light' ? 'Dark' : 'Light'}
         </button>
         <button
           className="rail__icon-button"

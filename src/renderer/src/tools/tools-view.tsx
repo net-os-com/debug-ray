@@ -1,23 +1,35 @@
 import { ArtisanPanel } from './artisan-panel'
 import { LogsPanel } from './logs-panel'
+import { QueuesPanel } from './queues-panel'
+import { SchemaPanel } from './schema-panel'
 import { ScoutPanel } from './scout-panel'
+import { TestsPanel } from './tests-panel'
 import type { ArtisanState } from './use-artisan'
 import type { LogsState } from './use-logs'
+import type { QueuesState } from './use-queues'
+import type { SchemaState } from './use-schema'
 import type { ScoutState } from './use-scout'
+import type { TestsState } from './use-tests'
 
-export type ToolKey = 'artisan' | 'logs' | 'scout'
+export type ToolKey = 'artisan' | 'logs' | 'queues' | 'schema' | 'scout' | 'tests'
 
 const TOOLS: { key: ToolKey; label: string }[] = [
   { key: 'artisan', label: 'Artisan' },
   { key: 'logs', label: 'Logs' },
+  { key: 'queues', label: 'Queues' },
+  { key: 'schema', label: 'Schema' },
   { key: 'scout', label: 'Scout' },
+  { key: 'tests', label: 'Tests' },
 ]
 
 type ToolsViewProps = {
   artisan: ArtisanState
   logs: LogsState
+  queues: QueuesState
+  schema: SchemaState
   scout: ScoutState
   tenants: string[]
+  tests: TestsState
   tool: ToolKey
   onSelectTool: (tool: ToolKey) => void
 }
@@ -25,8 +37,11 @@ type ToolsViewProps = {
 export function ToolsView({
   artisan,
   logs,
+  queues,
+  schema,
   scout,
   tenants,
+  tests,
   tool,
   onSelectTool,
 }: ToolsViewProps) {
@@ -49,7 +64,10 @@ export function ToolsView({
 
       {tool === 'artisan' ? <ArtisanPanel artisan={artisan} /> : null}
       {tool === 'logs' ? <LogsPanel logs={logs} /> : null}
+      {tool === 'queues' ? <QueuesPanel queues={queues} /> : null}
+      {tool === 'schema' ? <SchemaPanel schema={schema} tenants={tenants} /> : null}
       {tool === 'scout' ? <ScoutPanel scout={scout} tenants={tenants} /> : null}
+      {tool === 'tests' ? <TestsPanel tests={tests} /> : null}
     </div>
   )
 }

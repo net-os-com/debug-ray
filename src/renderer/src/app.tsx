@@ -18,7 +18,10 @@ import { useTinker } from './tinker/use-tinker'
 import { ToolsView, type ToolKey } from './tools/tools-view'
 import { useArtisan } from './tools/use-artisan'
 import { useLogs } from './tools/use-logs'
+import { useQueues } from './tools/use-queues'
+import { useSchema } from './tools/use-schema'
 import { useScout } from './tools/use-scout'
+import { useTests } from './tools/use-tests'
 import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
 import { EventStream } from './stream/event-stream'
@@ -44,7 +47,10 @@ export function App() {
   const snippets = useSnippets()
   const artisan = useArtisan(tinker.container)
   const logs = useLogs(tinker.container)
+  const queues = useQueues(tinker.container)
+  const schema = useSchema(tinker.container, tinker.tenants)
   const scout = useScout(tinker.container, tinker.tenants)
+  const tests = useTests(tinker.container)
   const [tool, setTool] = useState<ToolKey>('artisan')
 
   useAlwaysOnTop(settings.alwaysOnTop)
@@ -71,6 +77,14 @@ export function App() {
 
     if (view === 'tools' && tool === 'artisan') {
       return '[data-find="artisan"]'
+    }
+
+    if (view === 'tools' && tool === 'tests') {
+      return '[data-find="tests"]'
+    }
+
+    if (view === 'tools' && tool === 'schema') {
+      return '[data-find="schema"]'
     }
 
     return null
@@ -124,8 +138,11 @@ export function App() {
             artisan={artisan}
             logs={logs}
             onSelectTool={setTool}
+            queues={queues}
+            schema={schema}
             scout={scout}
             tenants={tinker.tenants}
+            tests={tests}
             tool={tool}
           />
         ) : (

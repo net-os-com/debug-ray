@@ -34,8 +34,16 @@ export function eventPreview(event: RayEvent): string {
       return Array.isArray(content.frames) ? `${content.frames.length} frames` : ''
     case 'carbon':
       return `${content.timestamp} · ${content.timezone}`
+    case 'response':
+      return line([content.json ?? content.content])
+    case 'view':
+      return line([content.data])
+    case 'expand':
+      return Array.isArray(content.keys) ? content.keys.join(', ') : `level ${content.level ?? 'all'}`
+    case 'json_string':
+      return line([content.value])
     default:
-      return line([content.value ?? content.label ?? content.color])
+      return line([content.value ?? content.label ?? content.color ?? content.name ?? content.size])
   }
 }
 

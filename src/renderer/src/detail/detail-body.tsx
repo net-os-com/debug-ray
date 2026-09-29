@@ -3,6 +3,13 @@ import { ErrorDetail } from './error-detail'
 import { FieldsDetail } from './fields-detail'
 import { FramesDetail, type Frame } from './frames-detail'
 import { MeasureDetail } from './measure-detail'
+import { CodeBlock } from './payloads/code-block'
+import { CustomDetail } from './payloads/custom-detail'
+import { JsonTree } from './payloads/json-tree'
+import { ResponseDetail } from './payloads/response-detail'
+import { ColorSwatch, ScreenControl } from './payloads/screen-control'
+import { TableDetail } from './payloads/table-detail'
+import { ViewDetail } from './payloads/view-detail'
 import { TextDetail } from './text-detail'
 import { ValueDetail } from './value-detail'
 
@@ -25,12 +32,10 @@ export function DetailBody({ event, hideVendorFrames }: DetailBodyProps) {
       )
 
     case 'custom':
-      return <ValueDetail allowHtml value={content.content} />
+      return <CustomDetail content={content} />
 
     case 'table':
-      return content.values && typeof content.values === 'object' ? (
-        <FieldsDetail fields={content.values as Record<string, unknown>} />
-      ) : null
+      return <TableDetail content={content} />
 
     case 'exception':
       return <ErrorDetail content={content} hideVendorFrames={hideVendorFrames} />
@@ -103,8 +108,84 @@ export function DetailBody({ event, hideVendorFrames }: DetailBodyProps) {
         </div>
       )
 
+    // json() sends the decoded structure; toJson() sends the string it made.
+    case 'json_string':
+      return <JsonString value={content.value} />
+
+    case 'response':
+      return <ResponseDetail content={content} />
+
+    case 'view':
+      return <ViewDetail content={content} />
+
+    case 'notify':
+      return <div className="notify-detail">{String(content.value ?? '')}</div>
+
+    case 'create_lock':
+      return <ScreenControl call="createLock()" detail={String(content.name ?? '')} />
+
+    case 'new_screen':
+      return <ScreenControl call="newScreen()" detail={String(content.name ?? '')} />
+
+    case 'clear_all':
+      return <ScreenControl call="clearAll()" />
+
+    case 'hide':
+      return <ScreenControl call="hide()" />
+
+    case 'remove':
+      return <ScreenControl call="remove()" />
+
+    case 'hide_app':
+      return <ScreenControl call="hideApp()" />
+
+    case 'show_app':
+      return <ScreenControl call="showApp()" />
+
+    case 'separator':
+      return <ScreenControl call="separator()" />
+
+    case 'size':
+      return <ScreenControl call="size()" detail={String(content.size ?? '')} />
+
+    case 'expand':
+      return (
+        <ScreenControl
+          call="expand()"
+          detail={
+            Array.isArray(content.keys) && content.keys.length > 0
+              ? content.keys.join(', ')
+              : `level ${content.level ?? 'all'}`
+          }
+        />
+      )
+
+    case 'color':
+      return <ColorSwatch call="color()" color={String(content.color ?? '')} />
+
+    case 'screen_color':
+      return <ColorSwatch call="screenColor()" color={String(content.color ?? '')} />
+
+    case 'label':
+      return <ScreenControl call="label()" detail={String(content.label ?? '')} />
+
     default:
-      return <TextDetail text={JSON.stringify(content, null, 2)} />
+      return <CodeBlock caption={event.type} code={JSON.stringify(content, null, 2)} />
+  }
+}
+
+/**
+ * `toJson()` sends JSON as a string, so it is parsed back before it is drawn —
+ * and left as text when it will not parse, because a malformed payload is
+ * exactly the thing you sent it to look at.
+ */
+function JsonString({ value }: { value: unknown }) {
+  const source = typeof value === 'string' ? value : JSON.stringify(value)
+
+  try {
+    return <JsonTree value={JSON.parse(source)} />
+  } catch {
+    return <CodeBlock caption="Not valid JSON" code={source} />
   }
 }
 

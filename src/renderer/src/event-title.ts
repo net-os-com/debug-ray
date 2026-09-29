@@ -1,4 +1,5 @@
 import type { RayEvent } from '../../shared/ray-event'
+import { customKind } from './detail/payloads/custom-kind'
 import { isVarDump } from './ui/sf-dump'
 import { toPlainText, truncate } from './ui/plain-text'
 
@@ -12,9 +13,7 @@ export function eventTitle(event: RayEvent): string {
     case 'log':
       return titleForValues(Array.isArray(content.values) ? content.values : [])
     case 'custom':
-      // html(), text(), image() and markdown() name themselves; json() sends an
-      // empty label, so fall back to describing the dump.
-      return text(content.label) || titleForValues([content.content])
+      return customTitle(content)
     case 'exception':
       return `${text(content.class) || 'Exception'}: ${firstLine(text(content.message))}`
     case 'executed_query':
@@ -32,7 +31,30 @@ export function eventTitle(event: RayEvent): string {
     case 'carbon':
       return text(content.formatted) || 'Carbon'
     case 'color':
+    case 'screen_color':
       return `screen colour · ${text(content.color)}`
+    case 'response':
+      return `response · ${text(content.status_code) || '?'}`
+    case 'view':
+      return text(content.view_path_relative_to_project_root) || text(content.view_path) || 'view'
+    case 'notify':
+      return truncate(firstLine(text(content.value)), 90) || 'notify'
+    case 'new_screen':
+      return `new screen · ${text(content.name) || 'unnamed'}`
+    case 'create_lock':
+      return `lock · ${text(content.name)}`
+    case 'size':
+      return `size · ${text(content.size)}`
+    case 'json_string':
+      return truncate(text(content.value), 90) || 'json'
+    case 'hide':
+      return 'hide'
+    case 'remove':
+      return 'remove'
+    case 'clear_all':
+      return 'clear all'
+    case 'expand':
+      return `expand · ${Array.isArray(content.keys) && content.keys.length > 0 ? content.keys.join(', ') : `level ${content.level ?? 'all'}`}`
     case 'trace':
       return `trace · ${Array.isArray(content.frames) ? content.frames.length : 0} frames`
     case 'caller':
@@ -42,6 +64,43 @@ export function eventTitle(event: RayEvent): string {
     default:
       return text(content.label) || text(content.value) || event.type
   }
+}
+
+/**
+ * Nine helpers send a `custom` payload and say which one they were in the
+ * label — except json(), which sends an empty one, and file(), whose label is
+ * the file's own name.
+ */
+function customTitle(content: Record<string, unknown>): string {
+  const label = text(content.label)
+
+  switch (customKind(content.label, content.content)) {
+    case 'json':
+      return jsonTitle(content.content)
+    case 'bool':
+      return content.content === true ? 'true' : 'false'
+    case 'null':
+      return 'null'
+    case 'file':
+      return label || 'file'
+    default:
+      return label || titleForValues([content.content])
+  }
+}
+
+/** An object stringifies to "[object Object]", which says nothing at all. */
+function jsonTitle(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `json · ${value.length} ${value.length === 1 ? 'item' : 'items'}`
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const keys = Object.keys(value as Record<string, unknown>)
+
+    return truncate(`json · ${keys.join(', ')}`, 90)
+  }
+
+  return `json · ${String(value)}`
 }
 
 function titleForValues(values: unknown[]): string {

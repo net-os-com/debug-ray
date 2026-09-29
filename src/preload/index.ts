@@ -12,7 +12,15 @@ import type {
   TinkerOutcome,
   TinkerRequest,
 } from '../shared/tinker'
-import type { ArtisanCommand, ScoutIndex } from '../shared/tools'
+import type {
+  AppRoute,
+  ArtisanCommand,
+  ContainerProcesses,
+  QueueReport,
+  SchemaTable,
+  ScoutIndex,
+  TestFile,
+} from '../shared/tools'
 
 const api = {
   onEvent(listener: (event: RayEvent) => void): () => void {
@@ -95,6 +103,26 @@ const api = {
 
   getScoutIndexes(containerId: string, workingDir: string, tenant: string): Promise<ScoutIndex[]> {
     return ipcRenderer.invoke('tools:scout', containerId, workingDir, tenant)
+  },
+
+  getRoutes(containerId: string, workingDir: string): Promise<AppRoute[]> {
+    return ipcRenderer.invoke('tools:routes', containerId, workingDir)
+  },
+
+  getSchemaTables(containerId: string, workingDir: string, tenant: string): Promise<SchemaTable[]> {
+    return ipcRenderer.invoke('tools:schema', containerId, workingDir, tenant)
+  },
+
+  getTestFiles(containerId: string, workingDir: string): Promise<TestFile[]> {
+    return ipcRenderer.invoke('tools:tests', containerId, workingDir)
+  },
+
+  getQueueReport(containerId: string, workingDir: string): Promise<QueueReport> {
+    return ipcRenderer.invoke('tools:queues', containerId, workingDir)
+  },
+
+  getContainerProcesses(liveMasters: string[]): Promise<ContainerProcesses[]> {
+    return ipcRenderer.invoke('tools:processes', liveMasters)
   },
 
   startExec(start: { id: string; args: string[]; columns?: number }): Promise<{

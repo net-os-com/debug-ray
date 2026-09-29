@@ -13,7 +13,13 @@ import { createRayServer } from './ray-server'
 import { Snippets } from './snippets'
 import { Streams } from './exec/run-stream'
 import { artisanCommands } from './tools/artisan'
+import { queueReport } from './tools/queues'
+import { appRoutes } from './tools/routes'
+import { schemaTables } from './tools/schema'
 import { scoutIndexes } from './tools/scout'
+import { testFiles } from './tools/tests'
+import { containerProcesses } from './tools/worker-processes'
+import { listContainers } from './exec/containers'
 import { classIndex } from './tinker/class-index'
 import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
@@ -138,6 +144,33 @@ app.whenReady().then(() => {
     'tools:scout',
     (_event, containerId: string, workingDir: string, tenant: string) =>
       scoutIndexes(containerId, workingDir, tenant),
+  )
+
+  ipcMain.handle('tools:routes', (_event, containerId: string, workingDir: string) =>
+    appRoutes(containerId, workingDir),
+  )
+
+  ipcMain.handle(
+    'tools:schema',
+    (_event, containerId: string, workingDir: string, tenant: string) =>
+      schemaTables(containerId, workingDir, tenant),
+  )
+
+  ipcMain.handle('tools:tests', (_event, containerId: string, workingDir: string) =>
+    testFiles(containerId, workingDir),
+  )
+
+  ipcMain.handle('tools:queues', (_event, containerId: string, workingDir: string) =>
+    queueReport(containerId, workingDir),
+  )
+
+  // Horizon reports what it started. What it failed to reap only shows up in
+  // the containers themselves, so this asks every running one.
+  ipcMain.handle('tools:processes', async (_event, liveMasters: string[]) =>
+    containerProcesses(
+      (await listContainers()).filter((container) => container.running),
+      liveMasters,
+    ),
   )
 
   // Long-running commands push their output instead of resolving with it, so a

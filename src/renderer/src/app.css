@@ -1421,25 +1421,7 @@ body {
   text-align: center;
 }
 
-.empty__badge {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.empty__pulse {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--brand-primary);
-  animation: netos-pulse 1.6s ease-in-out infinite;
-}
 
 [data-app='dark'] .empty__pulse {
   background: rgb(var(--color-brand-primary-300));
@@ -3908,8 +3890,766 @@ body.is-resizing {
 }
 
 .scout__note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 10px 16px;
   background: var(--warn-bg, var(--app-surface-2));
   font-size: 12.5px;
+  line-height: 1.6;
   color: var(--t2);
+}
+
+/* The waiting sonar ----------------------------------------------------- */
+
+.sonar {
+  display: block;
+  margin: 0 auto 18px;
+  overflow: visible;
+}
+
+.sonar__ring {
+  fill: none;
+  stroke: var(--app-accent-fg);
+  stroke-width: 1.25;
+  transform-origin: 66px 66px;
+  opacity: 0;
+  animation: sonar-ring var(--breath) cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.sonar__ring--2 {
+  animation-delay: calc(var(--breath) / 3);
+}
+
+.sonar__ring--3 {
+  animation-delay: calc(var(--breath) / 3 * 2);
+}
+
+.sonar__core {
+  fill: var(--app-accent-fg);
+  transform-origin: 66px 66px;
+  animation: sonar-core var(--breath) ease-in-out infinite;
+}
+
+@keyframes sonar-ring {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.45;
+  }
+
+  100% {
+    transform: scale(2.7);
+    opacity: 0;
+  }
+}
+
+@keyframes sonar-core {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* A screen that says "nothing is happening" should not be the one thing
+   moving for someone who asked the system to hold still. */
+@media (prefers-reduced-motion: reduce) {
+  .sonar__ring,
+  .sonar__core {
+    animation: none;
+  }
+
+  .sonar__ring {
+    opacity: 0.3;
+  }
+
+  .sonar__ring--2 {
+    transform: scale(1.7);
+  }
+
+  .sonar__ring--3 {
+    transform: scale(2.4);
+  }
+}
+
+/*
+ * Phosphor corrections: a handful of places paint a literal white rather than
+ * a token, which on a green terminal reads as a hole burnt in the screen.
+ * The kind dots keep their own colours on purpose — red still has to mean an
+ * exception, joke theme or not.
+ */
+[data-app='phosphor'] .view-nav__item--active,
+[data-app='phosphor'] .view-nav__item--active:hover {
+  background: var(--p-mid);
+  color: rgb(6 14 8);
+}
+
+[data-app='phosphor'] .rail__theme,
+[data-app='phosphor'] .rail__mark,
+[data-app='phosphor'] .view-nav {
+  background: rgb(20 52 30);
+  color: var(--p-hot);
+}
+
+[data-app='phosphor'] .rail__icon-button {
+  color: var(--p-mid);
+}
+
+/* ---------------------------------------------------------------------------
+   Payload renderers: the Ray helpers that used to share one generic view.
+   --------------------------------------------------------------------------- */
+
+.code-block {
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--app-surface-2);
+}
+
+.code-block__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--app-surface-3);
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.code-block__caption {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t2);
+  overflow-wrap: anywhere;
+}
+
+.code-block__count {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t3);
+  text-align: right;
+}
+
+.code-block__body {
+  max-height: 460px;
+  overflow: auto;
+  padding: 8px 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.code-block__line {
+  display: flex;
+  gap: 12px;
+  padding: 0 10px;
+}
+
+.code-block__line:hover {
+  background: var(--app-surface-3);
+}
+
+.code-block__number {
+  flex: none;
+  width: 34px;
+  text-align: right;
+  color: var(--t3);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.code-block__text {
+  white-space: pre;
+  color: var(--t1);
+}
+
+.code-block__body--wrap .code-block__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code-block__more {
+  padding: 8px 12px;
+  border-top: 1px solid var(--app-border-soft);
+  font-size: 12px;
+  color: var(--t3);
+}
+
+/* Markup colouring, reusing the dump ramp so nothing new enters the palette. */
+.code-block__name {
+  color: var(--dump-note);
+}
+
+.code-block__attr {
+  color: var(--dump-const);
+}
+
+.code-block__value {
+  color: var(--dump-string);
+}
+
+.code-block__punct {
+  color: var(--t3);
+}
+
+.code-block__comment {
+  color: var(--t3);
+  font-style: italic;
+}
+
+.code-block__meta {
+  color: var(--dump-number);
+}
+
+.image-detail {
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.image-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--app-surface-3);
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.image-detail__source {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.image-detail__size {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.image-detail__frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* A chequerboard, so transparency reads as transparency. */
+  background-color: var(--app-surface-2);
+  background-image:
+    linear-gradient(45deg, var(--app-surface-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--app-surface-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--app-surface-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--app-surface-3) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  max-height: 480px;
+  overflow: auto;
+}
+
+.image-detail__frame img {
+  max-width: 100%;
+  max-height: 440px;
+  object-fit: contain;
+}
+
+.image-detail__frame--full {
+  justify-content: flex-start;
+}
+
+.image-detail__frame--full img {
+  max-width: none;
+  max-height: none;
+}
+
+.image-detail__failed {
+  padding: 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+.image-detail__failed code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+}
+
+.html-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.html-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.html-detail__caption {
+  flex: 1;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.json-tree {
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+  padding: 8px 4px;
+  max-height: 460px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.json-tree__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-right: 10px;
+}
+
+.json-tree__row:hover {
+  background: var(--app-surface-3);
+}
+
+.json-tree__toggle {
+  flex: none;
+  width: 14px;
+  margin-left: -14px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: inherit;
+}
+
+.json-tree__key {
+  color: var(--t2);
+}
+
+.json-tree__key::after {
+  content: ':';
+  color: var(--t3);
+}
+
+.json-tree__summary {
+  color: var(--t3);
+}
+
+.json-tree__string {
+  color: var(--dump-string);
+  overflow-wrap: anywhere;
+}
+
+.json-tree__number {
+  color: var(--dump-number);
+}
+
+.json-tree__const {
+  color: var(--dump-const);
+}
+
+.constant-detail {
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--dump-const);
+}
+
+.notify-detail {
+  border: 1px solid var(--warn-line);
+  border-radius: var(--radius-xl);
+  background: var(--warn-bg);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--warn-fg);
+}
+
+.screen-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+  padding: 14px 16px;
+}
+
+.screen-control__call {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.screen-control__detail {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t2);
+  overflow-wrap: anywhere;
+}
+
+.screen-control__note {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t3);
+}
+
+.screen-control__swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--app-border);
+}
+
+.response-detail__status {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.response-detail__code {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: var(--fw-medium);
+}
+
+.response-detail__phrase {
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.view-detail__path {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chips__one {
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--app-surface-2);
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t2);
+}
+
+/* ---------------------------------------------------------------------------
+   Queues: what the workers are carrying, and what nobody reaped.
+   --------------------------------------------------------------------------- */
+
+.tools__tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  background: var(--app-surface-3);
+  border-radius: var(--radius-lg);
+  padding: 2px;
+}
+
+.tools__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  border-radius: var(--radius-md);
+  padding: 5px 11px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.tools__tab:hover {
+  color: var(--t1);
+}
+
+.tools__tab--on {
+  background: var(--app-surface);
+  color: var(--t1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.tools__tab-count {
+  border-radius: 999px;
+  background: var(--app-surface-3);
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--t2);
+}
+
+.tools__tab--on .tools__tab-count {
+  background: var(--app-surface-3);
+}
+
+.tools__tab-count--warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.scout__note--warn {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.queues__exception {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 420px;
+}
+
+/* A note that carries buttons needs the sentence to hold its own line-height. */
+.scout__note-text {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Tests: the suite's table of contents, and what the last run said.
+   --------------------------------------------------------------------------- */
+
+.tests {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tests__file {
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.tests__row,
+.tests__case {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+}
+
+.tests__row:hover,
+.tests__case:hover {
+  background: var(--app-surface-2);
+}
+
+.tests__disclose {
+  flex: none;
+  width: 16px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.tests__suite {
+  flex: none;
+  width: 62px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.tests__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tests__count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.tests__case {
+  padding-left: 58px;
+}
+
+.tests__case-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tests__result {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+  font-size: 12.5px;
+  color: var(--t2);
+}
+
+.tests__result--ok {
+  background: var(--app-surface-2);
+}
+
+.tests__result--bad {
+  background: var(--err-bg);
+}
+
+.tests__result-count {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.tests__result--ok .tests__result-count {
+  color: var(--ok-fg);
+}
+
+.tests__result--bad .tests__result-count {
+  color: var(--err-fg);
+}
+
+.tests__failure {
+  flex-basis: 100%;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--err-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tests__failure em {
+  font-style: normal;
+  color: var(--t3);
+}
+
+/* ---------------------------------------------------------------------------
+   Schema: the routing table, and the tables behind it.
+   --------------------------------------------------------------------------- */
+
+.routes__methods {
+  display: flex;
+  flex: none;
+  gap: 5px;
+  width: 92px;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.routes__uri {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routes__param {
+  font-style: normal;
+  color: var(--sql-kw);
+}
+
+.routes__controller {
+  flex: none;
+  max-width: 280px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routes__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px 12px 108px;
+  background: var(--app-surface-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t2);
+  overflow-wrap: anywhere;
+}
+
+.routes__label {
+  display: inline-block;
+  width: 78px;
+  color: var(--t3);
+}
+
+.schema__detail {
+  padding: 4px 16px 14px 34px;
+  background: var(--app-surface-2);
+}
+
+.schema__indexes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
 }
