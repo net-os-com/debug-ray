@@ -47,6 +47,7 @@ export function RequestList({
             <SearchIcon />
             <input
               onChange={(event) => onQueryChange(event.target.value)}
+              data-find="requests"
               placeholder="Filter requests"
               value={query}
             />

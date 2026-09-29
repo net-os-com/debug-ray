@@ -11,6 +11,7 @@ export function SearchField({ value, onChange }: SearchFieldProps) {
       <SearchIcon />
       <input
         onChange={(event) => onChange(event.target.value)}
+        data-find="stream"
         placeholder="Filter events"
         value={value}
       />

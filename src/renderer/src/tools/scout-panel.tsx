@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ConsolePane } from './console-pane'
 import { drift, type ScoutState } from './use-scout'
 
@@ -7,6 +8,18 @@ type ScoutPanelProps = {
 }
 
 export function ScoutPanel({ scout, tenants }: ScoutPanelProps) {
+  // Opening the panel is the request. Making you press Check as well turns a
+  // glance into two steps, and the first one is always the same.
+  useEffect(() => {
+    if (!scout.checked && !scout.loading && scout.tenant !== '') {
+      void scout.check()
+    }
+  }, [scout])
+
+  // Rows that could not be read are one fact about the connection, not ten
+  // separate failures to read one by one.
+  const failed = scout.rows.filter((row) => row.error !== null).length
+
   // Two models writing to one index make a per-model difference meaningless:
   // neither count is wrong, they simply are not counting the same thing.
   const shared = new Set(
@@ -57,7 +70,16 @@ export function ScoutPanel({ scout, tenants }: ScoutPanelProps) {
         ) : scout.rows.length === 0 ? (
           <div className="scout__empty">No searchable models found.</div>
         ) : (
-          <table className="scout__table">
+          <>
+            {failed === 0 ? null : (
+              <div className="scout__note">
+                {failed} of {scout.rows.length} models have no table on{' '}
+                {scout.tenant === '' ? 'the central connection' : `tenant ${scout.tenant}`}. Under
+                multi-database tenancy most of them live in a tenant's database.
+              </div>
+            )}
+
+            <table className="scout__table">
             <thead>
               <tr>
                 <th>Model</th>
@@ -124,7 +146,8 @@ export function ScoutPanel({ scout, tenants }: ScoutPanelProps) {
                 )
               })}
             </tbody>
-          </table>
+            </table>
+          </>
         )}
       </div>
 

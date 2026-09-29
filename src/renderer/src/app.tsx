@@ -26,6 +26,7 @@ import { NoResults } from './stream/no-results'
 import { useAlwaysOnTop } from './use-always-on-top'
 import { useRayEvents } from './use-ray-events'
 import { useServerStatus } from './use-server-status'
+import { useFindShortcut } from './use-find-shortcut'
 import { useSettings } from './use-settings'
 import { useTheme } from './use-theme'
 import { useUpdate } from './use-update'
@@ -43,7 +44,7 @@ export function App() {
   const snippets = useSnippets()
   const artisan = useArtisan(tinker.container)
   const logs = useLogs(tinker.container)
-  const scout = useScout(tinker.container)
+  const scout = useScout(tinker.container, tinker.tenants)
   const [tool, setTool] = useState<ToolKey>('artisan')
 
   useAlwaysOnTop(settings.alwaysOnTop)
@@ -52,6 +53,28 @@ export function App() {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
+
+  useFindShortcut(() => {
+    if (view === 'stream') {
+      return '[data-find="stream"]'
+    }
+
+    if (view === 'requests') {
+      return '[data-find="requests"]'
+    }
+
+    if (view === 'tinker') {
+      // There is nothing to search until a run returned a value, so the box
+      // that is any use right now is the snippet list.
+      return tinker.outcome?.kind === 'value' ? '[data-find="tinker-output"]' : '[data-find="snippets"]'
+    }
+
+    if (view === 'tools' && tool === 'artisan') {
+      return '[data-find="artisan"]'
+    }
+
+    return null
+  })
 
   const onEvent = useCallback(
     (event: RayEvent) => {

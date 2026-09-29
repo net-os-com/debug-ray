@@ -10,6 +10,7 @@ export function ArtisanPanel({ artisan }: { artisan: ArtisanState }) {
         <div className="command-list__head">
           <input
             onChange={(event) => artisan.setQuery(event.target.value)}
+            data-find="artisan"
             placeholder={`Search ${artisan.total} commands`}
             value={artisan.query}
           />
