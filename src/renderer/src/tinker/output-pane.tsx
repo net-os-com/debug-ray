@@ -1,6 +1,15 @@
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { TinkerError, TinkerOutcome } from '../../../shared/tinker'
 import { formatDuration } from '../duration'
-import { branchPaths, flatten, typeLabel, type Tone } from './value-tree'
+import {
+  branchPaths,
+  flatten,
+  pathsWithMatch,
+  rowMatches,
+  segments,
+  typeLabel,
+  type Tone,
+} from './value-tree'
 
 const TONE: Record<Tone, string> = {
   class: 'var(--sql-kw)',
@@ -19,6 +28,8 @@ type OutputPaneProps = {
   running: boolean
   containerName: string
   collapsed: ReadonlySet<string>
+  search: string
+  onSearch: (search: string) => void
   onToggle: (path: string) => void
   onExpandAll: () => void
   onCollapseAll: () => void
@@ -31,13 +42,64 @@ export function OutputPane({
   running,
   containerName,
   collapsed,
+  search,
+  onSearch,
   onToggle,
   onExpandAll,
   onCollapseAll,
   onClear,
 }: OutputPaneProps) {
   const value = outcome?.kind === 'value' ? outcome.value : null
-  const rows = value === null ? [] : flatten(value, collapsed)
+  const needle = search.trim()
+
+  // A branch holding a hit is opened for as long as the search stands, without
+  // disturbing what the reader collapsed: clearing the box puts it all back.
+  const found = value === null ? new Set<string>() : pathsWithMatch(value, needle)
+  const shown =
+    found.size === 0 ? collapsed : new Set([...collapsed].filter((path) => !found.has(path)))
+
+  const rows = value === null ? [] : flatten(value, shown)
+  const hits = needle === '' ? [] : rows.filter((row) => rowMatches(row, needle)).map((row) => row.path)
+
+  const [active, setActive] = useState(0)
+  const drawn = useRef(new Map<string, HTMLDivElement>())
+
+  // Clamped while rendering rather than corrected afterwards: typing another
+  // letter can shrink the hit list under the cursor, and a frame drawn with an
+  // index past the end would highlight nothing at all.
+  const index = hits.length === 0 ? 0 : Math.min(active, hits.length - 1)
+  const target = hits[index]
+
+  // A new search starts at its first hit instead of wherever the last one
+  // happened to leave off.
+  useEffect(() => {
+    setActive(0)
+  }, [needle])
+
+  // Scrolling is the whole point: a match below the fold is a match you cannot
+  // see, and the tree is routinely taller than the pane. Keyed on the target
+  // path, because the hit list is a new array on every render and depending on
+  // it would drag the view back on each one.
+  useEffect(() => {
+    if (target !== undefined) {
+      drawn.current.get(target)?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [target])
+
+  const step = (by: number): void => {
+    if (hits.length > 0) {
+      setActive((current) => (Math.min(current, hits.length - 1) + by + hits.length) % hits.length)
+    }
+  }
+
+  const onSearchKey = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key !== 'Enter') {
+      return
+    }
+
+    event.preventDefault()
+    step(event.shiftKey ? -1 : 1)
+  }
 
   return (
     <section className="tinker-output" style={{ flex: `${flex} 1 0` }}>
@@ -47,6 +109,28 @@ export function OutputPane({
         {outcome !== null && !running ? <Stats outcome={outcome} /> : null}
 
         <div className="tinker-output__actions">
+          <div className="tinker-output__search">
+            <input
+              onChange={(event) => onSearch(event.target.value)}
+              onKeyDown={onSearchKey}
+              data-find="tinker-output"
+              placeholder="Find in output"
+              title="Enter for the next match, shift-enter for the previous"
+              value={search}
+            />
+            {needle === '' ? null : (
+              <span
+                className={
+                  hits.length === 0
+                    ? 'tinker-output__hits tinker-output__hits--none'
+                    : 'tinker-output__hits'
+                }
+              >
+                {hits.length === 0 ? 'none' : `${index + 1}/${hits.length}`}
+              </span>
+            )}
+          </div>
+
           <button className="button" onClick={onExpandAll} type="button">
             Expand all
           </button>
@@ -90,8 +174,15 @@ export function OutputPane({
               <div className="tinker-tree">
                 {rows.map((row) => (
                   <div
-                    className="tinker-tree__row"
+                    className={rowClass(row.path, target, rowMatches(row, needle))}
                     key={row.path}
+                    ref={(element) => {
+                      if (element === null) {
+                        drawn.current.delete(row.path)
+                      } else {
+                        drawn.current.set(row.path, element)
+                      }
+                    }}
                     style={{ paddingLeft: `${row.depth * 18}px` }}
                   >
                     {row.toggle ? (
@@ -105,8 +196,12 @@ export function OutputPane({
                     ) : (
                       <span className="tinker-tree__gutter" />
                     )}
-                    <span className="tinker-tree__key">{row.key}</span>
-                    <span style={{ color: TONE[row.tone] }}>{row.value}</span>
+                    <span className="tinker-tree__key">
+                      <Marked needle={needle} text={row.key} />
+                    </span>
+                    <span style={{ color: TONE[row.tone] }}>
+                      <Marked needle={needle} text={row.value} />
+                    </span>
                     <span className="tinker-tree__suffix">{row.suffix}</span>
                   </div>
                 ))}
@@ -181,6 +276,38 @@ function ErrorCard({ error }: { error: TinkerError }) {
         </div>
       )}
     </div>
+  )
+}
+
+/** The row the cursor is on reads differently from the other hits. */
+function rowClass(path: string, target: string | undefined, matches: boolean): string {
+  if (!matches) {
+    return 'tinker-tree__row'
+  }
+
+  return path === target
+    ? 'tinker-tree__row tinker-tree__row--hit tinker-tree__row--current'
+    : 'tinker-tree__row tinker-tree__row--hit'
+}
+
+/** The text, with every occurrence of the needle marked. */
+function Marked({ text, needle }: { text: string; needle: string }) {
+  if (needle === '') {
+    return <>{text}</>
+  }
+
+  return (
+    <>
+      {segments(text, needle).map((part, index) =>
+        part.hit ? (
+          <mark className="tinker-tree__mark" key={index}>
+            {part.text}
+          </mark>
+        ) : (
+          <span key={index}>{part.text}</span>
+        ),
+      )}
+    </>
   )
 }
 

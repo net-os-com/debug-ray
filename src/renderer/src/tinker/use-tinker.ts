@@ -13,6 +13,7 @@ export function useTinker() {
   const [running, setRunning] = useState(false)
   const [outcome, setOutcome] = useState<TinkerOutcome | null>(null)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
+  const [search, setSearch] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
 
   useEffect(() => {
@@ -104,6 +105,16 @@ export function useTinker() {
     containers,
     container,
     selectContainer: setContainerId,
+    selectContainerByName: useCallback(
+      (name: string) => {
+        const match = containers.find((one) => one.name === name)
+
+        if (match !== undefined) {
+          setContainerId(match.id)
+        }
+      },
+      [containers],
+    ),
     tenants,
     tenant,
     setTenant,
@@ -111,6 +122,8 @@ export function useTinker() {
     outcome,
     problem,
     collapsed,
+    search,
+    setSearch,
     toggle,
     expandAll: useCallback(() => setCollapsed(new Set()), []),
     collapseAll,

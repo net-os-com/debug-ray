@@ -29,6 +29,30 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
 
   // Held in a ref so the shortcut is registered once instead of on every
   // keystroke, and still runs whatever is in the editor right now.
+  // Opening a snippet puts you back where it ran. Keyed on the containers too,
+  // because the list arrives after the first render and a name cannot be
+  // resolved before it does.
+  useEffect(() => {
+    if (snippets.active.container !== '') {
+      tinker.selectContainerByName(snippets.active.container)
+    }
+
+    tinker.setTenant(snippets.active.tenant)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snippets.activeId, tinker.containers])
+
+  // Opening a snippet puts you back where it ran. Keyed on the containers too,
+  // because the list arrives after the first render and a name cannot be
+  // resolved before it does.
+  useEffect(() => {
+    if (snippets.active.container !== '') {
+      tinker.selectContainerByName(snippets.active.container)
+    }
+
+    tinker.setTenant(snippets.active.tenant)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snippets.activeId, tinker.containers])
+
   const latest = useRef(() => {})
   latest.current = () => void tinker.run(snippets.code)
 
@@ -88,6 +112,9 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
               label="Docker"
               onSelect={(key) => {
                 tinker.selectContainer(key)
+                snippets.setTarget({
+                  container: tinker.containers.find((one) => one.id === key)?.name ?? '',
+                })
                 setMenu(null)
               }}
               onToggle={() => setMenu((current) => (current === 'container' ? null : 'container'))}
@@ -100,6 +127,7 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
               label="Tenant"
               onSelect={(key) => {
                 tinker.setTenant(key)
+                snippets.setTarget({ tenant: key })
                 setMenu(null)
               }}
               onToggle={() => setMenu((current) => (current === 'tenant' ? null : 'tenant'))}
@@ -170,8 +198,10 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
         onClear={tinker.clear}
         onCollapseAll={tinker.collapseAll}
         onExpandAll={tinker.expandAll}
+        onSearch={tinker.setSearch}
         onToggle={tinker.toggle}
         outcome={tinker.outcome}
+        search={tinker.search}
         running={tinker.running}
       />
     </div>

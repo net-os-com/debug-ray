@@ -168,3 +168,108 @@ function tone(node: ValueNode): Tone {
       return 'null'
   }
 }
+
+/**
+ * Branches holding a match anywhere beneath them.
+ *
+ * Searching a tree that hides most of itself is useless unless the hits come
+ * into view, so the pane opens exactly these and leaves the rest as the reader
+ * left them.
+ */
+export function pathsWithMatch(node: ValueNode, needle: string): Set<string> {
+  const open = new Set<string>()
+
+  if (needle === '') {
+    return open
+  }
+
+  const lowered = needle.toLowerCase()
+
+  const visit = (current: ValueNode, key: string, path: string): boolean => {
+    if (key.toLowerCase().includes(lowered)) {
+      return true
+    }
+
+    if (current.t !== 'obj' && current.t !== 'arr') {
+      return scalarText(current).toLowerCase().includes(lowered)
+    }
+
+    // The class name is part of the row, so an object can match on its own.
+    let hit = current.t === 'obj' && current.cls.toLowerCase().includes(lowered)
+
+    current.kids.forEach(([childKey, child], index) => {
+      if (visit(child, childKey, `${path}.${index}`)) {
+        hit = true
+      }
+    })
+
+    if (hit) {
+      open.add(path)
+    }
+
+    return hit
+  }
+
+  visit(node, '', 'root')
+
+  return open
+}
+
+/** Whether a drawn row is one of the hits, so it can be marked. */
+export function rowMatches(row: TreeRow, needle: string): boolean {
+  if (needle === '') {
+    return false
+  }
+
+  const lowered = needle.toLowerCase()
+
+  return (
+    row.key.toLowerCase().includes(lowered) || row.value.toLowerCase().includes(lowered)
+  )
+}
+
+/**
+ * Splits text around every occurrence of the needle, so the hits can be given
+ * a mark and the rest left alone.
+ */
+export function segments(text: string, needle: string): { text: string; hit: boolean }[] {
+  if (needle === '' || text === '') {
+    return [{ text, hit: false }]
+  }
+
+  const lowered = text.toLowerCase()
+  const target = needle.toLowerCase()
+  const parts: { text: string; hit: boolean }[] = []
+
+  let cursor = 0
+
+  for (let at = lowered.indexOf(target); at !== -1; at = lowered.indexOf(target, cursor)) {
+    if (at > cursor) {
+      parts.push({ text: text.slice(cursor, at), hit: false })
+    }
+
+    parts.push({ text: text.slice(at, at + needle.length), hit: true })
+    cursor = at + needle.length
+  }
+
+  if (cursor < text.length) {
+    parts.push({ text: text.slice(cursor), hit: false })
+  }
+
+  return parts
+}
+
+function scalarText(node: ValueNode): string {
+  switch (node.t) {
+    case 'str':
+      return node.v
+    case 'num':
+      return String(node.v)
+    case 'bool':
+      return node.v ? 'true' : 'false'
+    case 'ref':
+      return node.cls
+    default:
+      return 'null'
+  }
+}

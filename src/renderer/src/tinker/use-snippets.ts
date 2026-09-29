@@ -7,7 +7,19 @@ const STARTER = "use Illuminate\\Support\\Str;\n\nreturn Str::slug('Hello there'
 export type SnippetsState = ReturnType<typeof useSnippets>
 
 function firstSnippet(): Snippet {
-  return { id: newId(), name: 'Untitled snippet', code: STARTER, updatedAt: Date.now() }
+  return {
+    id: newId(),
+    name: 'Untitled snippet',
+    code: STARTER,
+    container: '',
+    tenant: '',
+    updatedAt: Date.now(),
+  }
+}
+
+/** Snippets written before a field existed simply do not carry it. */
+function complete(snippet: Snippet): Snippet {
+  return { ...snippet, container: snippet.container ?? '', tenant: snippet.tenant ?? '' }
 }
 
 /**
@@ -20,7 +32,7 @@ export function useSnippets() {
   const [saved, setSaved] = useState<Snippet[]>(() => {
     const stored = window.ray.readSnippets()
 
-    return stored.length > 0 ? stored : [firstSnippet()]
+    return stored.length > 0 ? stored.map(complete) : [firstSnippet()]
   })
 
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -43,6 +55,21 @@ export function useSnippets() {
   const setCode = useCallback(
     (next: string) => setDrafts((current) => ({ ...current, [active.id]: next })),
     [active.id],
+  )
+
+  /**
+   * Where the snippet runs travels with it, so opening one puts you back on the
+   * container and tenant you wrote it against instead of wherever you happened
+   * to be.
+   */
+  const setTarget = useCallback(
+    (patch: { container?: string; tenant?: string }) =>
+      persist(
+        saved.map((snippet) =>
+          snippet.id === active.id ? { ...snippet, ...patch } : snippet,
+        ),
+      ),
+    [persist, saved, active.id],
   )
 
   const rename = useCallback(
@@ -120,6 +147,7 @@ export function useSnippets() {
       () => new Set(saved.filter((s) => (drafts[s.id] ?? s.code) !== s.code).map((s) => s.id)),
       [saved, drafts],
     ),
+    setTarget,
     save,
     create,
     remove,

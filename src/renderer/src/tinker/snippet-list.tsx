@@ -26,6 +26,7 @@ export function SnippetList({ snippets, width }: SnippetListProps) {
           <SearchIcon />
           <input
             onChange={(event) => snippets.setQuery(event.target.value)}
+            data-find="snippets"
             placeholder="Search snippets"
             value={snippets.query}
           />

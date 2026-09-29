@@ -3841,3 +3841,75 @@ body.is-resizing {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.tinker-output__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tinker-output__search input {
+  height: 28px;
+  width: 170px;
+  padding: 0 46px 0 12px;
+  border-radius: 99rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  font-size: 12.5px;
+  color: var(--t1);
+  outline: none;
+}
+
+.tinker-output__hits {
+  position: absolute;
+  right: 10px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t3);
+  pointer-events: none;
+}
+
+.tinker-output__hits--none {
+  color: var(--err-fg);
+}
+
+.tinker-tree__mark {
+  background: var(--sql-num);
+  color: var(--app-surface);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* The row a hit sits on, so the eye finds it without reading every line. */
+.tinker-tree__row--hit {
+  background: var(--app-sel);
+  border-radius: 4px;
+}
+
+.tinker-tree__row--current {
+  background: var(--app-surface-3);
+  box-shadow: inset 2px 0 0 var(--sql-kw);
+}
+
+/*
+ * A field whose border sits on a wrapper has to catch the focus ring there as
+ * well. Left to the input, the glow traces the bare inner box — a rectangle
+ * floating inside a rounded one — which is what set these two apart from the
+ * fields that are a plain input.
+ */
+.search:focus-within,
+.snippets__search:focus-within {
+  box-shadow: var(--shadow-focus);
+}
+
+.search input:focus-visible,
+.snippets__search input:focus-visible {
+  box-shadow: none;
+}
+
+.scout__note {
+  padding: 10px 16px;
+  background: var(--warn-bg, var(--app-surface-2));
+  font-size: 12.5px;
+  color: var(--t2);
+}

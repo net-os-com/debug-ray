@@ -69,5 +69,13 @@ export type Snippet = {
   id: string
   name: string
   code: string
+  /**
+   * The container by name, not by id: ids are minted afresh by every
+   * `docker compose up`, so a stored id stops matching the moment someone
+   * rebuilds, while the name survives.
+   */
+  container: string
+  /** Empty means the central connection. */
+  tenant: string
   updatedAt: number
 }
