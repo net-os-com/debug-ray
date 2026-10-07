@@ -161,3 +161,23 @@ export type AppRoute = {
   middleware: string[]
   domain: string
 }
+
+export type ContractField = {
+  name: string
+  /** The PHP type, short — `string`, `int`, `Carbon`. Empty when unknown. */
+  type: string
+  nullable: boolean
+  /** Validation rules, with rule objects reduced to their class name. */
+  rules: string[]
+}
+
+export type RouteContext = {
+  uri: string
+  methods: string[]
+  name: string
+  action: string
+  /** The DTO or FormRequest the controller takes, when it takes one. */
+  contract: string | null
+  kind: 'data' | 'request' | ''
+  fields: ContractField[]
+}
