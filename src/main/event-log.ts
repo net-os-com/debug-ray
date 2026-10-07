@@ -1,17 +1,7 @@
-import { REQUEST_PAYLOAD_TYPE, type RayEvent } from '../shared/ray-event'
+import { OUT_OF_STREAM, type RayEvent } from '../shared/ray-event'
 
 /** Matches the renderer's buffer, so both show the same history. */
 const CAPACITY = 500
-
-const ANNOTATIONS = new Set(['label', 'color', 'confetti'])
-
-/**
- * Collected HTTP requests are their own view, not stream entries, and one of
- * them outweighs a hundred log payloads. They stay in the buffer so the API can
- * fetch one by id, but they are kept out of the default listing so an MCP
- * client asking for recent events is not handed a wall of SQL.
- */
-const OUT_OF_STREAM = new Set([...ANNOTATIONS, REQUEST_PAYLOAD_TYPE])
 
 /**
  * The main process keeps the authoritative buffer. The renderer mirrors it for

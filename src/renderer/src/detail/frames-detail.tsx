@@ -1,3 +1,5 @@
+import { OpenFile } from '../open-file'
+
 type SnippetLine = { line_number: number; text: string }
 
 export type Frame = {
@@ -32,9 +34,9 @@ export function FramesDetail({ frames, hideVendorFrames }: FramesDetailProps) {
           key={`${frame.file_name}:${frame.line_number}:${index}`}
         >
           <div className="frame__callable">{callable(frame)}</div>
-          <div className="frame__file">
+          <OpenFile className="frame__file" file={frame.file_name} line={frame.line_number}>
             {frame.file_name}:{frame.line_number}
-          </div>
+          </OpenFile>
           {!frame.vendor_frame && frame.snippet?.length ? (
             <pre className="frame__snippet">
               {frame.snippet

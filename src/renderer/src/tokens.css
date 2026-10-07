@@ -136,6 +136,11 @@
   --ok-fg: rgb(4 120 87);
   --btn-primary-bg: var(--brand-primary);
   --btn-primary-fg: #fff;
+
+  /* A {{ variable }} chip in a URL or a header value. */
+  --var-bg: rgb(var(--color-brand-primary-50));
+  --var-fg: rgb(var(--color-brand-primary-600));
+  --ok-bg: rgb(236 253 245);
 }
 
 [data-app='dark'] {
@@ -169,6 +174,10 @@
   /* The primary button inverts in dark: white ground, navy label. */
   --btn-primary-bg: #fff;
   --btn-primary-fg: rgb(var(--color-brand-primary-600));
+
+  --var-bg: rgb(var(--color-brand-primary-700));
+  --var-fg: rgb(var(--color-brand-primary-150));
+  --ok-bg: rgb(6 44 33);
 }
 
 /*
@@ -216,6 +225,10 @@
   --ansi-cyan: rgb(120 255 235);
   --btn-primary-bg: var(--p-mid);
   --btn-primary-fg: rgb(6 14 8);
+
+  --var-bg: rgb(12 38 20);
+  --var-fg: var(--p-hot);
+  --ok-bg: rgb(10 30 16);
   --shadow-focus: 0 0 8px 0.5px var(--p-mid);
 }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { REQUEST_PAYLOAD_TYPE, type RayEvent } from '../../shared/ray-event'
 
 /** The design's buffer card promises 500 events kept. */
+/** Fallback when no buffer size is configured. */
 export const MAX_EVENTS = 500
 
 /**
@@ -14,9 +15,11 @@ type Annotations = Record<string, string>
 type Options = {
   paused: boolean
   onEvent?: (event: RayEvent) => void
+  /** How many events to keep before the oldest drop off. */
+  maxEvents?: number
 }
 
-export function useRayEvents({ paused, onEvent }: Options) {
+export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Options) {
   const [events, setEvents] = useState<RayEvent[]>([])
   const [pending, setPending] = useState<RayEvent[]>([])
   const [labels, setLabels] = useState<Annotations>({})
@@ -79,12 +82,12 @@ export function useRayEvents({ paused, onEvent }: Options) {
         }
 
         if (pausedRef.current) {
-          setPending((current) => [...current, event].slice(-MAX_EVENTS))
+          setPending((current) => [...current, event].slice(-maxEvents))
 
           return
         }
 
-        setEvents((current) => [...current, event].slice(-MAX_EVENTS))
+        setEvents((current) => [...current, event].slice(-maxEvents))
       }),
     [],
   )
@@ -95,7 +98,7 @@ export function useRayEvents({ paused, onEvent }: Options) {
       return
     }
 
-    setEvents((current) => [...current, ...pending].slice(-MAX_EVENTS))
+    setEvents((current) => [...current, ...pending].slice(-maxEvents))
     setPending([])
   }, [paused, pending])
 

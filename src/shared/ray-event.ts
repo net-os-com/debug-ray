@@ -5,6 +5,26 @@
  */
 export const REQUEST_PAYLOAD_TYPE = 'netos_request'
 
+/**
+ * Payloads that annotate another event rather than being one: `ray()->label()`,
+ * `->color()`, `->confetti()`. They carry no headline of their own.
+ */
+export const ANNOTATION_TYPES = new Set(['label', 'color', 'confetti'])
+
+/**
+ * Everything that is not a stream entry.
+ *
+ * Collected HTTP requests are their own view, and one of them outweighs a
+ * hundred log payloads. They stay in the buffer so the API can fetch one by id,
+ * but they are kept out of listings so an MCP client asking for recent events is
+ * not handed a wall of SQL — and out of notifications, which would otherwise
+ * fire once per page load.
+ *
+ * Shared because the main process' buffer and the renderer both filter on it,
+ * and two copies of this list would drift.
+ */
+export const OUT_OF_STREAM = new Set([...ANNOTATION_TYPES, REQUEST_PAYLOAD_TYPE])
+
 /** The `origin` block every ray payload carries: where the ray() call sat. */
 export type RayOrigin = {
   file: string | null

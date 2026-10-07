@@ -5,16 +5,18 @@ import { toHttpRequest } from './to-http-request'
 import {
   hasNPlusOne,
   isPreflight,
-  SLOW_REQUEST_MS,
   type HttpRequest,
   type RequestFilter,
 } from './types'
 
-/**
- * One collected request carries every query it ran, so the list is kept far
- * shorter than the event stream's buffer.
- */
-const MAX_REQUESTS = 100
+type Options = {
+  /** How many requests to keep; one carries every query it ran. */
+  max: number
+  /** Above this a request matches the Slow filter. */
+  slowMs: number
+  /** When off, arriving requests are dropped instead of collected. */
+  collect: boolean
+}
 
 /** Everything RequestsView needs, owned one level up so it outlives the view. */
 export type RequestsState = ReturnType<typeof useRequests>
@@ -28,7 +30,7 @@ export type RequestsState = ReturnType<typeof useRequests>
  * Stream tab is shown, and a hook that lives inside it would take the collected
  * requests with it and stop listening until someone looked again.
  */
-export function useRequests() {
+export function useRequests({ max, slowMs, collect }: Options) {
   const [requests, setRequests] = useState<HttpRequest[]>([])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<RequestFilter>('all')
@@ -46,7 +48,7 @@ export function useRequests() {
           return
         }
 
-        if (event.type !== REQUEST_PAYLOAD_TYPE) {
+        if (event.type !== REQUEST_PAYLOAD_TYPE || !collect) {
           return
         }
 
@@ -57,9 +59,9 @@ export function useRequests() {
         }
 
         // Newest first, matching the order the list renders in.
-        setRequests((current) => [request, ...current].slice(0, MAX_REQUESTS))
+        setRequests((current) => [request, ...current].slice(0, max))
       }),
-    [],
+    [max, collect],
   )
 
   const shown = useMemo(() => {
@@ -83,7 +85,7 @@ export function useRequests() {
       }
 
       if (filter === 'slow') {
-        return request.durationMs >= SLOW_REQUEST_MS
+        return request.durationMs >= slowMs
       }
 
       if (filter === 'n1') {
@@ -92,13 +94,28 @@ export function useRequests() {
 
       return true
     })
-  }, [requests, query, filter])
+  }, [requests, query, filter, slowMs])
 
   const preflightCount = useMemo(() => requests.filter(isPreflight).length, [requests])
 
   const selected = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? null,
     [requests, selectedId],
+  )
+
+  /**
+   * The API tab stamps every call it sends with X-Netos-Debug-Id, and the
+   * collector on the other side reports the headers it received — so the two
+   * halves of one request can be put back together.
+   */
+  const findByDebugId = useCallback(
+    (debugId: string): string | null =>
+      requests.find((request) =>
+        request.headers.some(
+          (header) => header.key.toLowerCase() === 'x-netos-debug-id' && header.value === debugId,
+        ),
+      )?.id ?? null,
+    [requests],
   )
 
   const reset = useCallback(() => {
@@ -122,6 +139,7 @@ export function useRequests() {
     setFilter,
     reset,
     clear,
+    findByDebugId,
     tab,
     setTab,
     preflightCount,

@@ -1,10 +1,12 @@
 import { formatDuration } from '../duration'
-import { duplicateQueries, SLOW_QUERY_MS, type HttpRequest } from './types'
+import { useSettingsValue } from '../settings-context'
+import { duplicateQueries, type HttpRequest } from './types'
 
 export function QueryStats({ request }: { request: HttpRequest }) {
+  const { slowQueryMs } = useSettingsValue()
   const totalMs = request.queries.reduce((sum, query) => sum + query.durationMs, 0)
   const duplicates = duplicateQueries(request)
-  const slow = request.queries.filter((query) => query.durationMs >= SLOW_QUERY_MS)
+  const slow = request.queries.filter((query) => query.durationMs >= slowQueryMs)
   const statements = new Set(duplicates.map((query) => query.sql)).size
 
   const cards = [
@@ -25,7 +27,7 @@ export function QueryStats({ request }: { request: HttpRequest }) {
     {
       label: 'Slow queries',
       value: String(slow.length),
-      unit: `≥ ${formatDuration(SLOW_QUERY_MS)}`,
+      unit: `≥ ${formatDuration(slowQueryMs)}`,
       alert: slow.length > 0,
       tone: 'warn' as const,
     },

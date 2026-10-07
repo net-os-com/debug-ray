@@ -3,9 +3,13 @@ import type { RayEvent } from '../../../shared/ray-event'
 import { eventPreview } from '../event-preview'
 import { eventTitle } from '../event-title'
 import { kindFor } from '../kind'
+import { OpenFile } from '../open-file'
 import { originLabel } from '../origin-label'
 import { rayColor } from '../ray-color'
 import { sourceOf } from '../filter-events'
+import { relativeTime } from '../relative-time'
+import { useSettingsValue } from '../settings-context'
+import { useNow } from '../use-now'
 
 type StreamRowProps = {
   event: RayEvent
@@ -28,6 +32,8 @@ export function StreamRow({
   selected,
   onSelect,
 }: StreamRowProps) {
+  const { relativeTime: relative } = useSettingsValue()
+  const now = useNow(relative)
   const kind = kindFor(event)
 
   // ray()->green() wins over the kind colour for the stripe, the way Ray tints
@@ -57,15 +63,17 @@ export function StreamRow({
             {label}
           </span>
         ) : null}
-        <span className="row__time">{formatTime(latestAt)}</span>
+        <span className="row__time" title={formatTime(latestAt)}>
+          {relative ? relativeTime(latestAt, now) : formatTime(latestAt)}
+        </span>
       </div>
       <div className="row__preview">{eventPreview(event)}</div>
       <div className="row__origin">
         <span>{sourceOf(event)}</span>
         <span>·</span>
-        <span className="row__file" title={event.origin.file ?? ''}>
+        <OpenFile className="row__file" file={event.origin.file} line={event.origin.line_number}>
           {originLabel(event.origin)}
-        </span>
+        </OpenFile>
       </div>
     </div>
   )

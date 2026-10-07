@@ -1,3 +1,5 @@
+import { SettingRow } from './setting-row'
+
 type SettingsToggleProps = {
   label: string
   hint: string
@@ -7,11 +9,7 @@ type SettingsToggleProps = {
 
 export function SettingsToggle({ label, hint, on, onToggle }: SettingsToggleProps) {
   return (
-    <div className="setting">
-      <div className="setting__text">
-        <div className="setting__label">{label}</div>
-        <div className="setting__hint">{hint}</div>
-      </div>
+    <SettingRow hint={hint} label={label}>
       <button
         aria-pressed={on}
         className={on ? 'switch switch--on' : 'switch'}
@@ -20,6 +18,6 @@ export function SettingsToggle({ label, hint, on, onToggle }: SettingsToggleProp
       >
         <span className="switch__knob" />
       </button>
-    </div>
+    </SettingRow>
   )
 }

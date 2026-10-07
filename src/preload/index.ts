@@ -13,10 +13,20 @@ import type {
   TinkerRequest,
 } from '../shared/tinker'
 import type {
+  ApiEnvironment,
+  ApiResult,
+  ApiSend,
+  ApiUser,
+  CollectionSummary,
+  MintedToken,
+  SavedRequest,
+} from '../shared/api'
+import type {
   AppRoute,
   ArtisanCommand,
   ContainerProcesses,
   QueueReport,
+  RouteContext,
   SchemaTable,
   ScoutIndex,
   TestFile,
@@ -105,8 +115,75 @@ const api = {
     return ipcRenderer.invoke('tools:scout', containerId, workingDir, tenant)
   },
 
+  sendApiRequest(options: ApiSend): Promise<ApiResult> {
+    return ipcRenderer.invoke('api:send', options)
+  },
+
+  listCollections(
+    containerId: string,
+    workingDir: string,
+  ): Promise<{ collections: CollectionSummary[]; directory: string; error: string | null }> {
+    return ipcRenderer.invoke('api:collections', containerId, workingDir)
+  },
+
+  readCollection(containerId: string, workingDir: string, name: string): Promise<SavedRequest[]> {
+    return ipcRenderer.invoke('api:collection', containerId, workingDir, name)
+  },
+
+  saveToCollection(
+    containerId: string,
+    workingDir: string,
+    name: string,
+    request: SavedRequest,
+  ): Promise<{ file: string; operations: number; error: string | null }> {
+    return ipcRenderer.invoke('api:collection:save', containerId, workingDir, name, request)
+  },
+
+  forgetInCollection(
+    containerId: string,
+    workingDir: string,
+    name: string,
+    operationId: string,
+  ): Promise<{ file: string; operations: number; error: string | null }> {
+    return ipcRenderer.invoke('api:collection:forget', containerId, workingDir, name, operationId)
+  },
+
+  searchApiUsers(
+    containerId: string,
+    workingDir: string,
+    tenant: string,
+    query: string,
+  ): Promise<ApiUser[]> {
+    return ipcRenderer.invoke('api:users', containerId, workingDir, tenant, query)
+  },
+
+  mintApiToken(
+    containerId: string,
+    workingDir: string,
+    tenant: string,
+    userId: string,
+  ): Promise<MintedToken> {
+    return ipcRenderer.invoke('api:mint', containerId, workingDir, tenant, userId)
+  },
+
+  revokeApiTokens(containerId: string, workingDir: string, tenant: string): Promise<number> {
+    return ipcRenderer.invoke('api:revoke', containerId, workingDir, tenant)
+  },
+
+  readEnvironments(): ApiEnvironment[] {
+    return ipcRenderer.sendSync('api:environments:read') as ApiEnvironment[]
+  },
+
+  writeEnvironments(list: ApiEnvironment[]): void {
+    ipcRenderer.send('api:environments:write', list)
+  },
+
   getRoutes(containerId: string, workingDir: string): Promise<AppRoute[]> {
     return ipcRenderer.invoke('tools:routes', containerId, workingDir)
+  },
+
+  getRouteContexts(containerId: string, workingDir: string): Promise<RouteContext[]> {
+    return ipcRenderer.invoke('tools:route-context', containerId, workingDir)
   },
 
   getSchemaTables(containerId: string, workingDir: string, tenant: string): Promise<SchemaTable[]> {
@@ -177,6 +254,16 @@ const api = {
 
   requestAttention(): void {
     ipcRenderer.send('ray:attention')
+  },
+
+  /** Posts a macOS notification, unless the window already has focus. */
+  notify(title: string, body: string): void {
+    ipcRenderer.send('ray:notify', title, body)
+  },
+
+  /** Opens a file at a line in the configured editor. False when none is set. */
+  openInEditor(file: string, line: number): Promise<boolean> {
+    return ipcRenderer.invoke('ray:open-in-editor', file, line) as Promise<boolean>
   },
 
   setAlwaysOnTop(onTop: boolean): void {

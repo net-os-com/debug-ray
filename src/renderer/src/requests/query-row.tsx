@@ -1,7 +1,8 @@
 import { formatDuration } from '../duration'
 import { QueryDetail } from './query-detail'
 import { tokenize } from './sql-tokens'
-import { SLOW_QUERY_MS, type HttpRequest, type Query } from './types'
+import { useSettingsValue } from '../settings-context'
+import type { HttpRequest, Query } from './types'
 
 type QueryRowProps = {
   request: HttpRequest
@@ -22,7 +23,8 @@ export function QueryRow({
   open,
   onToggle,
 }: QueryRowProps) {
-  const slow = query.durationMs >= SLOW_QUERY_MS
+  const { slowQueryMs } = useSettingsValue()
+  const slow = query.durationMs >= slowQueryMs
   const duplicate = repeats > 1
 
   const stripe = slow ? 'var(--warn-line)' : duplicate ? 'var(--err-fg)' : 'transparent'

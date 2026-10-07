@@ -4,31 +4,39 @@ import { NPlusOneBanner } from './n-plus-one-banner'
 import { QueryRow } from './query-row'
 import { QueryStats } from './query-stats'
 import { fillBindings } from './sql-tokens'
-import { duplicateQueries, repeatCount, SLOW_QUERY_MS, type HttpRequest } from './types'
+import { useSettingsValue } from '../settings-context'
+import { duplicateQueries, repeatCount, type HttpRequest } from './types'
 
 type QueryFilter = 'all' | 'duplicates' | 'slow'
 type QuerySort = 'order' | 'slowest'
 
 export function QueriesTab({ request }: { request: HttpRequest }) {
+  const { slowQueryMs, hideVendorQueries } = useSettingsValue()
   const [filter, setFilter] = useState<QueryFilter>('all')
   const [sort, setSort] = useState<QuerySort>('order')
   const [withBindings, setWithBindings] = useState(true)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   const duplicates = duplicateQueries(request)
-  const slow = request.queries.filter((query) => query.durationMs >= SLOW_QUERY_MS)
+  const slow = request.queries.filter((query) => query.durationMs >= slowQueryMs)
 
   // Indexes are kept so the numbering keeps matching the order they ran in.
   const rows = useMemo(() => {
     const all = request.queries.map((query, index) => ({ query, index }))
 
     const filtered = all.filter(({ query }) => {
+      // A query whose only frames sit in vendor has no source worth showing, so
+      // it is hidden the same way vendor stack frames are.
+      if (hideVendorQueries && !query.trace.some((frame) => frame.application)) {
+        return false
+      }
+
       if (filter === 'duplicates') {
         return repeatCount(request, query) > 1
       }
 
       if (filter === 'slow') {
-        return query.durationMs >= SLOW_QUERY_MS
+        return query.durationMs >= slowQueryMs
       }
 
       return true
@@ -37,7 +45,7 @@ export function QueriesTab({ request }: { request: HttpRequest }) {
     return sort === 'slowest'
       ? [...filtered].sort((a, b) => b.query.durationMs - a.query.durationMs)
       : filtered
-  }, [request, filter, sort])
+  }, [request, filter, sort, slowQueryMs, hideVendorQueries])
 
   const allSql = request.queries
     .map((query) => `${fillBindings(query.sql, query.bindings)};`)
