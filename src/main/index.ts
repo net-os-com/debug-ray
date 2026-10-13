@@ -9,7 +9,7 @@ import { Clients } from './clients'
 import { EventLog } from './event-log'
 import { isIgnored } from './ignore-sources'
 import { Notifier } from './notifier'
-import type { ErdPoint } from '../shared/erd'
+import type { ErdPoint, ErdSticky } from '../shared/erd'
 import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
 import { McpPresence } from './mcp-status'
@@ -216,7 +216,8 @@ app.whenReady().then(() => {
       workingDir: string,
       dbml: string,
       layout: Record<string, ErdPoint>,
-    ) => saveErd(containerId, workingDir, dbml, layout),
+      stickies: ErdSticky[],
+    ) => saveErd(containerId, workingDir, dbml, layout, stickies),
   )
 
   // The files live in the application's repository and the package owns them,

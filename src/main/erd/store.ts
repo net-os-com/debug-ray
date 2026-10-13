@@ -1,4 +1,4 @@
-import type { ErdPoint, ErdSaved, ErdStored } from '../../shared/erd'
+import type { ErdPoint, ErdSaved, ErdSticky, ErdStored } from '../../shared/erd'
 import { runDocker } from '../exec/run-docker'
 
 const ERD_TIMEOUT_MS = 30_000
@@ -67,6 +67,7 @@ export async function readErd(containerId: string, workingDir: string): Promise<
 
   return {
     dbml: typeof data.dbml === 'string' ? data.dbml : '',
+    stickies: Array.isArray(data.stickies) ? (data.stickies as ErdSticky[]) : [],
     layout:
       typeof data.layout === 'object' && data.layout !== null && !Array.isArray(data.layout)
         ? (data.layout as Record<string, ErdPoint>)
@@ -81,8 +82,9 @@ export async function saveErd(
   workingDir: string,
   dbml: string,
   layout: Record<string, ErdPoint>,
+  stickies: ErdSticky[],
 ): Promise<ErdSaved> {
-  const data = await run(containerId, workingDir, 'save', JSON.stringify({ dbml, layout }))
+  const data = await run(containerId, workingDir, 'save', JSON.stringify({ dbml, layout, stickies }))
 
   return {
     files: Array.isArray(data.files) ? data.files.filter((one): one is string => typeof one === 'string') : [],

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ErdPoint, ErdSaved, ErdStored } from '../shared/erd'
+import type { ErdPoint, ErdSaved, ErdSticky, ErdStored } from '../shared/erd'
 import type {
   McpStatus,
   RayClient,
@@ -129,8 +129,9 @@ const api = {
     workingDir: string,
     dbml: string,
     layout: Record<string, ErdPoint>,
+    stickies: ErdSticky[],
   ): Promise<ErdSaved> {
-    return ipcRenderer.invoke('erd:save', containerId, workingDir, dbml, layout)
+    return ipcRenderer.invoke('erd:save', containerId, workingDir, dbml, layout, stickies)
   },
 
   listCollections(

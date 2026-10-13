@@ -6385,3 +6385,55 @@ body.is-resizing {
   font-size: 11.5px;
   color: var(--t3);
 }
+
+/* A note belongs to the canvas, not to a table, so it is not in the dbml. */
+.erd-sticky {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--warn-line, rgb(234 179 8));
+  background: var(--warn-bg, rgb(254 252 232));
+  overflow: hidden;
+}
+
+.erd-sticky__grip {
+  height: 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 4px;
+  cursor: grab;
+  background: rgb(0 0 0 / 0.04);
+}
+
+.erd-sticky__remove {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 99rem;
+  background: none;
+  color: var(--warn-fg, rgb(161 98 7));
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.erd-sticky__text {
+  border: 0;
+  outline: none;
+  resize: none;
+  min-height: 72px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--warn-fg, rgb(161 98 7));
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: var(--lh-body);
+}

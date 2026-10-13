@@ -117,6 +117,9 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
         <button className="button" onClick={fit} type="button">
           Fit
         </button>
+        <button className="button" onClick={erd.addSticky} type="button">
+          Add note
+        </button>
         <button className="button" onClick={() => setPaneOpen((open) => !open)} type="button">
           {paneOpen ? 'Hide source' : 'Show source'}
         </button>
@@ -138,7 +141,11 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
             onColumn={(table, column) => setEditing({ table, column })}
             onMove={erd.move}
             onSelect={erd.setSelected}
+            onStickyMove={erd.moveSticky}
+            onStickyRemove={erd.removeSticky}
+            onStickyText={erd.setStickyText}
             onView={erd.setView}
+            stickies={erd.stickies}
             selected={erd.selected}
             view={erd.view}
           />

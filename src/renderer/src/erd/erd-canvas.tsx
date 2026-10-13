@@ -2,6 +2,8 @@ import type { Layout, Point } from './arrange'
 import { groupRects } from './groups'
 import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel } from './model'
 import { RelationsLayer } from './relations-layer'
+import type { Sticky } from './stickies'
+import { StickyNote } from './sticky-note'
 import { TableCard } from './table-card'
 
 const MIN_ZOOM = 0.2
@@ -51,6 +53,10 @@ type ErdCanvasProps = {
   onSelect: (table: string | null) => void
   onMove: (table: string, at: Point) => void
   onColumn: ((table: string, column: string) => void) | null
+  stickies: Sticky[]
+  onStickyMove: (id: string, at: Point) => void
+  onStickyText: (id: string, text: string) => void
+  onStickyRemove: (id: string) => void
 }
 
 export function ErdCanvas({
@@ -62,6 +68,10 @@ export function ErdCanvas({
   onSelect,
   onMove,
   onColumn,
+  stickies,
+  onStickyMove,
+  onStickyText,
+  onStickyRemove,
 }: ErdCanvasProps) {
   const rowOf = (table: string, column: string): number => {
     const found = model.tables.find((one) => one.name === table)
@@ -126,6 +136,16 @@ export function ErdCanvas({
           </div>
         ))}
         <RelationsLayer layout={layout} relations={model.relations} rowOf={rowOf} />
+        {stickies.map((sticky) => (
+          <StickyNote
+            key={sticky.id}
+            onMove={(at) => onStickyMove(sticky.id, at)}
+            onRemove={() => onStickyRemove(sticky.id)}
+            onText={(text) => onStickyText(sticky.id, text)}
+            sticky={sticky}
+            zoom={view.z}
+          />
+        ))}
         {model.tables.map((table) => {
           const at = layout[table.name]
 

@@ -8,6 +8,7 @@ import type { ErdModel } from './model'
 import { parseDbml } from './parse'
 import { problemsOf } from './problems'
 import { schemaToModel } from './schema-to-model'
+import { readStickies, type Sticky } from './stickies'
 
 const EMPTY: ErdModel = { tables: [], relations: [], enums: [], groups: [] }
 
@@ -22,6 +23,8 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
   const [code, setCode] = useState('')
   const [committed, setCommitted] = useState('')
   const [layout, setLayout] = useState<Layout>({})
+  const [stickies, setStickies] = useState<Sticky[]>([])
+  const [committedStickies, setCommittedStickies] = useState('[]')
   const [view, setView] = useState<View>({ x: 0, y: 0, z: 1 })
   const [selected, setSelected] = useState<string | null>(null)
   const [saved, setSaved] = useState<string[]>([])
@@ -58,9 +61,13 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
 
     void window.ray.readErd(container.id, container.workingDir).then((stored) => {
       if (!cancelled) {
+        const notes = readStickies(stored.stickies)
+
         setCode(stored.dbml)
         setCommitted(stored.dbml)
         setLayout(stored.layout)
+        setStickies(notes)
+        setCommittedStickies(JSON.stringify(notes))
         setError(stored.error)
         setRead(true)
       }
@@ -124,18 +131,19 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     setSaving(true)
 
     try {
-      const result = await window.ray.saveErd(container.id, container.workingDir, code, layout)
+      const result = await window.ray.saveErd(container.id, container.workingDir, code, layout, stickies)
 
       setSaved(result.files)
       setError(result.error)
 
       if (result.error === null) {
         setCommitted(code)
+        setCommittedStickies(JSON.stringify(stickies))
       }
     } finally {
       setSaving(false)
     }
-  }, [container, code, layout])
+  }, [container, code, layout, stickies])
 
   return {
     code,
@@ -151,8 +159,31 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     error,
     saving,
     save,
-    /** True when the editor holds something the repository does not. */
-    dirty: code !== committed,
+    /** True when the editor or the canvas holds something the repository does not. */
+    dirty: code !== committed || JSON.stringify(stickies) !== committedStickies,
+    stickies,
+    addSticky: useCallback(() => {
+      setStickies((current) => [
+        ...current,
+        {
+          id: `s${Date.now().toString(36)}`,
+          text: '',
+          // Placed where you are looking: on a fitted diagram the origin is
+          // usually off screen.
+          x: Math.round(-view.x / view.z) + 60,
+          y: Math.round(-view.y / view.z) + 60,
+        },
+      ])
+    }, [view]),
+    moveSticky: useCallback((id: string, at: Point) => {
+      setStickies((current) => current.map((one) => (one.id === id ? { ...one, ...at } : one)))
+    }, []),
+    setStickyText: useCallback((id: string, text: string) => {
+      setStickies((current) => current.map((one) => (one.id === id ? { ...one, text } : one)))
+    }, []),
+    removeSticky: useCallback((id: string) => {
+      setStickies((current) => current.filter((one) => one.id !== id))
+    }, []),
     importing,
     /**
      * Asks for an import rather than performing one.
