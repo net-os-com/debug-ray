@@ -6024,3 +6024,189 @@ body.is-resizing {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ── ERD ─────────────────────────────────────────────────────────────────── */
+
+.erd {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.erd__bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: var(--app-surface);
+}
+
+.erd__spacer {
+  flex: 1;
+}
+
+.erd__zoom {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t3);
+  min-width: 44px;
+  text-align: right;
+}
+
+.erd__saved {
+  font-size: 12.5px;
+  color: var(--t3);
+  font-family: var(--font-mono);
+}
+
+.erd__error {
+  font-size: 12.5px;
+  color: var(--err-fg, rgb(185 28 28));
+}
+
+.erd-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-canvas);
+  cursor: grab;
+}
+
+.erd-canvas:active {
+  cursor: grabbing;
+}
+
+.erd-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+/* Sized 1x1 at the origin; the paths draw outside it. */
+.erd-lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.erd-line {
+  stroke: var(--line);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* MySQL does not enforce a reference across databases, so it must not read
+   like one it does. */
+.erd-line--cross {
+  stroke-dasharray: 4 3;
+  opacity: 0.7;
+}
+
+.erd-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 240px;
+  box-sizing: border-box;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.erd-card--selected {
+  border-color: var(--sel-ring);
+  box-shadow: 0 0 0 2px var(--app-sel);
+}
+
+.erd-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  background: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.erd-card__name {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.erd-card__db {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--t3);
+}
+
+.erd-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.erd-card__col {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--t1);
+}
+
+.erd-card__type {
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+}
+
+.erd-card__mark {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--app-accent-fg);
+}
+
+.erd__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.erd__empty-inner {
+  text-align: center;
+  max-width: 420px;
+}
+
+.erd__empty-title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 15px;
+  color: var(--t1);
+}
+
+.erd__empty-hint {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin: 6px 0 16px;
+  line-height: var(--lh-body);
+}
