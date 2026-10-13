@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { CodeEditor } from './code-editor'
+import { CodeEditor } from '../ui/code-editor'
+import { phpCompletion } from './php-completion'
+import { tokenize } from './php-tokens'
 import { SnippetList } from './snippet-list'
 import { OutputPane } from './output-pane'
 import { Picker, type PickerItem } from './picker'
@@ -160,11 +162,12 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
         </div>
 
         <CodeEditor
-          classes={classes}
           code={snippets.code}
+          completion={phpCompletion(classes)}
           key={snippets.activeId}
           onChange={snippets.setCode}
           onRun={() => void tinker.run(snippets.code)}
+          tokenize={tokenize}
         />
 
         <div className="tinker-editor__foot">

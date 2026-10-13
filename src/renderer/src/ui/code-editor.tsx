@@ -1,8 +1,24 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { applyCompletion, classToken } from './completion'
-import { CompletionPopup } from './completion-popup'
-import { tokenize } from './php-tokens'
-import { searchClasses, type ClassEntry, type ClassIndex } from './rank-classes'
+import { CompletionPopup } from '../tinker/completion-popup'
+import type { ClassEntry } from '../tinker/rank-classes'
+
+/** One coloured span on a line. Every language tokenizer returns these. */
+export type EditorToken = { text: string; color: string; italic: boolean }
+
+/**
+ * What a language offers while typing, or null when it offers nothing.
+ *
+ * Bundled into one prop rather than four: the editor either has a completion
+ * source or it has not, and splitting that across separate props would let a
+ * caller supply half of one.
+ */
+export type Completion = {
+  /** The token under the caret, or null when there is nothing to complete. */
+  tokenAt: (code: string, caret: number) => { text: string; start: number; end: number } | null
+  search: (token: string) => ClassEntry[]
+  /** Writes a picked entry back, and says where the caret lands. */
+  apply: (code: string, caret: number, entry: ClassEntry) => { code: string; caret: number }
+}
 
 /** The canvas' editor size; the line height follows from it. */
 const FONT_SIZE = 13
@@ -12,9 +28,11 @@ const PAD_LEFT = 8
 
 type CodeEditorProps = {
   code: string
-  classes: ClassIndex
+  /** Highlights one line; the shell knows nothing about the language. */
+  tokenize: (line: string) => EditorToken[]
+  completion?: Completion | null
   onChange: (code: string) => void
-  onRun: () => void
+  onRun?: () => void
 }
 
 type Suggestion = {
@@ -38,7 +56,7 @@ type Suggestion = {
  * position is arithmetic, so the completion popup can be placed without asking
  * the browser where anything is.
  */
-export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) {
+export function CodeEditor({ code, tokenize, completion = null, onChange, onRun }: CodeEditorProps) {
   const area = useRef<HTMLTextAreaElement>(null)
   const ruler = useRef<HTMLSpanElement>(null)
   const [charWidth, setCharWidth] = useState(0)
@@ -60,7 +78,7 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
   const suggest = useCallback(() => {
     const element = area.current
 
-    if (element === null || classes.length === 0 || charWidth === 0) {
+    if (element === null || completion === null || charWidth === 0) {
       return
     }
 
@@ -72,7 +90,7 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
       return
     }
 
-    const token = classToken(element.value, caret)
+    const token = completion.tokenAt(element.value, caret)
 
     if (token === null) {
       close()
@@ -80,7 +98,7 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
       return
     }
 
-    const entries = searchClasses(classes, token.text)
+    const entries = completion.search(token.text)
 
     if (entries.length === 0) {
       close()
@@ -98,7 +116,7 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
       left: PAD_LEFT + column * charWidth,
       top: PAD_TOP + (line + 1) * LINE_HEIGHT,
     })
-  }, [classes, charWidth, close])
+  }, [completion, charWidth, close])
 
   const accept = useCallback(
     (entry: ClassEntry) => {
@@ -108,15 +126,11 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
         return
       }
 
-      const token = classToken(element.value, element.selectionStart)
-
-      if (token === null) {
-        close()
-
+      if (completion === null) {
         return
       }
 
-      const next = applyCompletion(element.value, token, entry.fqcn)
+      const next = completion.apply(element.value, element.selectionStart, entry)
 
       onChange(next.code)
       close()
@@ -131,7 +145,8 @@ export function CodeEditor({ code, classes, onChange, onRun }: CodeEditorProps) 
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      // Not every language has something to run; the ERD has no run key.
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && onRun !== undefined) {
         event.preventDefault()
         close()
         onRun()
