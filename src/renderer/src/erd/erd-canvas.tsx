@@ -118,6 +118,7 @@ export function ErdCanvas({
           return at ? (
             <TableCard
               at={at}
+              enums={model.enums}
               key={table.name}
               onColumn={onColumn === null ? null : (column) => onColumn(table.name, column)}
               onMove={(point) => onMove(table.name, point)}

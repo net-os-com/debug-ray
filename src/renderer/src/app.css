@@ -6350,3 +6350,17 @@ body.is-resizing {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* An enum column points at a declaration; a plain type does not. */
+.erd-card__type--enum {
+  color: var(--app-accent-fg);
+  cursor: help;
+}
+
+.erd-card__note {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--t3);
+  cursor: help;
+}

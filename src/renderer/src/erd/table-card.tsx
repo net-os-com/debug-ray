@@ -1,5 +1,6 @@
 import type { Point } from './arrange'
-import type { ErdTable } from './model'
+import { enumFor } from './enums'
+import type { ErdEnum, ErdTable } from './model'
 
 type TableCardProps = {
   table: ErdTable
@@ -7,13 +8,24 @@ type TableCardProps = {
   selected: boolean
   /** The canvas zoom, so a screen delta becomes a layer delta. */
   zoom: number
+  /** Declared enums, so a column typed as one can say what it allows. */
+  enums: ErdEnum[]
   onSelect: () => void
   /** Opens the column form; null when editing is not offered. */
   onColumn: ((column: string) => void) | null
   onMove: (point: Point) => void
 }
 
-export function TableCard({ table, at, selected, zoom, onSelect, onMove, onColumn }: TableCardProps) {
+export function TableCard({
+  table,
+  at,
+  selected,
+  zoom,
+  enums,
+  onSelect,
+  onMove,
+  onColumn,
+}: TableCardProps) {
   return (
     <div
       className={selected ? 'erd-card erd-card--selected' : 'erd-card'}
@@ -47,6 +59,11 @@ export function TableCard({ table, at, selected, zoom, onSelect, onMove, onColum
     >
       <div className="erd-card__head">
         <span className="erd-card__name">{table.name}</span>
+        {table.note === null ? null : (
+          <span className="erd-card__note" title={table.note}>
+            note
+          </span>
+        )}
       </div>
       {table.columns.map((column) => (
         <div
@@ -62,7 +79,20 @@ export function TableCard({ table, at, selected, zoom, onSelect, onMove, onColum
           }}
         >
           <span className="erd-card__col">{column.name}</span>
-          <span className="erd-card__type">{column.type}</span>
+          {(() => {
+            const declared = enumFor(enums, column.type)
+
+            return (
+              <span
+                className={
+                  declared === null ? 'erd-card__type' : 'erd-card__type erd-card__type--enum'
+                }
+                title={declared === null ? undefined : declared.values.join(', ')}
+              >
+                {column.type}
+              </span>
+            )
+          })()}
           {column.primary ? <span className="erd-card__mark">pk</span> : null}
           {!column.primary && column.unique ? <span className="erd-card__mark">u</span> : null}
         </div>
