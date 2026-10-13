@@ -184,7 +184,10 @@ export function App() {
             <ErdView
               erd={erd}
               loading={schema.loading}
-              onImport={() => void schema.loadTables()}
+              onImport={() => {
+                erd.importFromMySql()
+                void schema.loadTables()
+              }}
               // Only the tenant is set here: loadTables closes over the tenant
               // it was created with, so calling it in the same tick would read
               // the database you just switched away from. setTenant clears the

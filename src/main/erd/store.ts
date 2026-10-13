@@ -66,6 +66,7 @@ export async function readErd(containerId: string, workingDir: string): Promise<
   const data = await run(containerId, workingDir, 'read')
 
   return {
+    dbml: typeof data.dbml === 'string' ? data.dbml : '',
     layout:
       typeof data.layout === 'object' && data.layout !== null && !Array.isArray(data.layout)
         ? (data.layout as Record<string, ErdPoint>)

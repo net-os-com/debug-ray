@@ -29,11 +29,14 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
   const fitted = useRef('')
   const placed = erd.model.tables.filter((table) => erd.layout[table.name] !== undefined).length
 
+  // Keyed on which tables are on screen rather than on the database: the source
+  // is now the state, so the diagram changes shape when you edit it, not only
+  // when you switch tenant. Typing inside a table does not re-fit.
+  const shape = erd.model.tables.map((table) => table.name).join(',')
+
   useEffect(() => {
-    // Keyed on the database, so switching tenant fits the new diagram instead
-    // of leaving you on the previous one's transform.
-    if (fitted.current !== erd.database && placed > 0 && placed === erd.model.tables.length) {
-      fitted.current = erd.database
+    if (fitted.current !== shape && placed > 0 && placed === erd.model.tables.length) {
+      fitted.current = shape
       fit()
     }
   })
@@ -48,7 +51,12 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
               Read the tables straight out of the database this project is connected to, and write
               the result next to your migrations as a dbml file you can commit.
             </div>
-            <button className="button button--primary" disabled={loading} onClick={onImport} type="button">
+            <button
+              className="button button--primary"
+              disabled={loading}
+              onClick={onImport}
+              type="button"
+            >
               {loading ? 'Reading…' : 'Import from MySQL'}
             </button>
             {erd.error === null ? null : <div className="erd__error">{erd.error}</div>}
