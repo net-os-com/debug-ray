@@ -47,8 +47,8 @@ export function toDbml(model: ErdModel): string {
     .filter((relation) => known.has(relation.from.table) && known.has(relation.to.table))
     .map(
     (relation) =>
-      `Ref: ${quote(relation.from.table)}.${quote(relation.from.column)} > ` +
-      `${quote(relation.to.table)}.${quote(relation.to.column)}` +
+      `Ref: ${quoteName(relation.from.table)}.${quoteName(relation.from.column)} > ` +
+      `${quoteName(relation.to.table)}.${quoteName(relation.to.column)}` +
       (relation.onDelete === '' ? '' : ` [delete: ${relation.onDelete}]`),
   )
 
@@ -62,7 +62,7 @@ function tableBlock(table: ErdTable): string {
     lines.push('', '  indexes {')
 
     for (const index of table.indexes) {
-      const columns = index.columns.map(quote).join(', ')
+      const columns = index.columns.map(quoteName).join(', ')
 
       lines.push(`    (${columns})${index.unique ? ' [unique]' : ''}`)
     }
@@ -70,7 +70,7 @@ function tableBlock(table: ErdTable): string {
     lines.push('  }')
   }
 
-  return `Table ${quote(table.name)} {\n${lines.join('\n')}\n}`
+  return `Table ${quoteName(table.name)} {\n${lines.join('\n')}\n}`
 }
 
 function columnLine(column: ErdColumn): string {
@@ -86,7 +86,7 @@ function columnLine(column: ErdColumn): string {
 
   settings.push(column.nullable ? 'null' : 'not null')
 
-  return `${quote(column.name)} ${type(column.type)} [${settings.join(', ')}]`
+  return `${quoteName(column.name)} ${quoteType(column.type)} [${settings.join(', ')}]`
 }
 
 /** A bare DBML type: a name, optionally with parenthesised arguments. */
@@ -98,16 +98,20 @@ const BARE_TYPE = /^[A-Za-z_][A-Za-z0-9_]*(\([^()]*\))?$/
  * hands back plenty of those, along with `double precision` and the rest. Those
  * are quoted, which DBML accepts for a type just as it does for a name.
  */
-function type(name: string): string {
+export function quoteType(name: string): string {
   return BARE_TYPE.test(name) ? name : `"${name.replace(/"/g, '\\"')}"`
 }
 
 /**
+ * Exported because the patcher has to spell a line exactly as this file would
+ * have generated it. Two code paths with their own quoting rules would mean a
+ * column named `order` is quoted when written and bare when edited.
+ *
  * dbdiagram.io accepts a double-quoted identifier anywhere a bare one is
  * allowed, so anything that is not plainly bare is quoted rather than guessed
  * at. A name carrying a quote of its own is escaped.
  */
-function quote(name: string): string {
+export function quoteName(name: string): string {
   if (BARE.test(name) && !RESERVED.has(name.toLowerCase())) {
     return name
   }
