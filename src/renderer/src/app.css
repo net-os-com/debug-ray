@@ -2940,16 +2940,29 @@ body.is-resizing {
   margin-left: auto;
 }
 
+/*
+ * `align-items: flex-start` is load-bearing. Stretched, the two columns take the
+ * scroll box's own height rather than the content's, and the textarea — which
+ * is `inset: 0` inside the field — ends up one screenful tall. Everything past
+ * that first screen then has no textarea over it at all: you scroll to line 400
+ * of a schema, click, and nothing takes the caret. Measured on a 752-line
+ * schema.dbml: content 15824px, textarea 750px, sitting at y = -14976 once
+ * scrolled. `min-height: 100%` keeps both columns filling the box when the file
+ * is shorter than it.
+ */
 .code-editor {
   flex: 1;
   min-height: 0;
   overflow: auto;
   display: flex;
+  align-items: flex-start;
   font-family: var(--font-mono);
 }
 
 .code-editor__numbers {
   flex: 0 0 auto;
+  min-height: 100%;
+  box-sizing: border-box;
   padding: 16px 10px 16px 16px;
   text-align: right;
   color: var(--t3);
@@ -2964,6 +2977,8 @@ body.is-resizing {
   position: relative;
   flex: 1 0 auto;
   min-width: 0;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 /*
@@ -6547,6 +6562,12 @@ body.is-resizing {
 .erd-line {
   fill: none;
   stroke: var(--line);
+  /*
+   * The stroke keeps its screen width at every zoom. Inside the scaled layer a
+   * 1.6px line is a third of a pixel at the 22% a thirty-five table schema fits
+   * at, which is the zoom you are actually looking at it from.
+   */
+  vector-effect: non-scaling-stroke;
 }
 
 .erd-line--cross {
@@ -7259,4 +7280,48 @@ body.is-resizing {
   line-height: 1.7;
   color: var(--t1);
   white-space: pre;
+}
+
+.erd-inspector__groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.erd-inspector__group {
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 99rem;
+  cursor: pointer;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--t2);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.erd-inspector__group:hover {
+  background: var(--app-surface-2);
+}
+
+.erd-inspector__group--on {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+  border-color: transparent;
+}
+
+.erd-inspector__group--new {
+  color: var(--t3);
+  border-style: dashed;
+  padding-left: 7px;
+}
+
+.erd-inspector__group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
 }

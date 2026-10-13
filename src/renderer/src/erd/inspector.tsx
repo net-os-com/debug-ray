@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { eloquentRelations, modelName } from './eloquent'
 import { CloseIcon, PlusIcon } from './icons'
-import { headerColorOf, SWATCHES, type ErdColumn, type ErdModel, type ErdTable } from './model'
+import { groupColorOf, headerColorOf, SWATCHES, type ErdColumn, type ErdModel, type ErdTable } from './model'
+import { setGroup } from './group-patch'
 import {
   addColumn,
   deleteColumn,
@@ -82,6 +83,9 @@ export function Inspector({
   }
 
   const lines = code.split('\n').length
+  // At most one, because DBML refuses a second; read from the model rather than
+  // tracked, so it follows the source when the editor is typed in directly.
+  const group = model.groups.find((one) => one.tables.includes(table.name))?.name ?? null
 
   return (
     <div className="erd-inspector" onPointerDown={(event) => event.stopPropagation()}>
@@ -135,6 +139,48 @@ export function Inspector({
                 Reset
               </button>
             )}
+          </div>
+        </section>
+
+        <section>
+          <div className="erd-inspector__heading">Table group</div>
+          <div className="erd-inspector__groups">
+            {[null, ...model.groups.map((one) => one.name)].map((name) => (
+              <button
+                className={
+                  name === group ? 'erd-inspector__group erd-inspector__group--on' : 'erd-inspector__group'
+                }
+                key={name ?? ''}
+                onClick={() => apply(setGroup(code, table.name, name))}
+                type="button"
+              >
+                {name === null ? (
+                  'No group'
+                ) : (
+                  <>
+                    <span
+                      className="erd-inspector__group-dot"
+                      style={{ background: colorOfGroup(model, name) }}
+                    />
+                    {name}
+                  </>
+                )}
+              </button>
+            ))}
+            <button
+              className="erd-inspector__group erd-inspector__group--new"
+              onClick={() => {
+                const name = window.prompt('Name the new group')?.trim()
+
+                if (name !== undefined && name !== '') {
+                  apply(setGroup(code, table.name, name))
+                }
+              }}
+              type="button"
+            >
+              <PlusIcon />
+              New group
+            </button>
           </div>
         </section>
 
@@ -427,4 +473,12 @@ function nextColumnName(table: ErdTable): string {
   }
 
   return `column_${index}`
+}
+
+/** The colour the canvas draws a group in, so the chip matches the rectangle. */
+function colorOfGroup(model: ErdModel, name: string): string {
+  const index = model.groups.findIndex((one) => one.name === name)
+  const group = model.groups[index]
+
+  return group === undefined ? 'var(--t3)' : groupColorOf(group, index)
 }

@@ -19,8 +19,8 @@ const LABEL = 24
  *
  * Built from the tables present rather than from the names the group lists: a
  * group may name a table that was deleted from the source, and a rectangle
- * drawn around nothing is worse than no rectangle. A table named by two groups
- * simply falls inside both.
+ * drawn around nothing is worse than no rectangle. A table belongs to at most
+ * one group — DBML refuses a second — so the rectangles never nest.
  */
 export function groupRects(model: ErdModel, layout: Layout): GroupRect[] {
   const rects: GroupRect[] = []

@@ -100,6 +100,7 @@
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 30px -8px rgba(0, 0, 0, 0.25), 0 2px 8px -2px rgba(0, 0, 0, 0.12);
   --shadow-focus: 0 0 6px 0.2px rgb(var(--color-brand-primary-200));
 }
 
@@ -116,6 +117,16 @@
   --t3: rgb(var(--color-gray-550));
   --app-rail: rgb(var(--color-brand-primary-600));
   --app-sel: rgb(var(--color-brand-primary-50));
+
+  /*
+   * The ERD canvas. `--line` draws the relations and `--sel-ring` the ring
+   * around a selected card; both were used by the stylesheet and declared
+   * nowhere, so `stroke: var(--line)` resolved to nothing and every relation
+   * was drawn with no stroke at all — fifty-three paths in the document and
+   * not one of them visible.
+   */
+  --line: rgb(var(--color-gray-400));
+  --sel-ring: rgb(var(--color-brand-primary-500));
 
   /* Dump syntax colours, keyed to the light ramp. */
   --dump-string: rgb(var(--color-green-700));
@@ -155,6 +166,10 @@
   --t3: rgb(var(--color-gray-450));
   --app-rail: rgb(var(--color-brand-primary-900));
   --app-sel: rgb(var(--color-brand-primary-900));
+
+  --line: rgb(var(--color-gray-500));
+  --sel-ring: rgb(139 181 248);
+  --shadow-lg: 0 10px 30px -8px rgba(0, 0, 0, 0.6), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
 
   --dump-string: rgb(var(--color-green-300));
   --dump-number: rgb(var(--color-yellow-300));
