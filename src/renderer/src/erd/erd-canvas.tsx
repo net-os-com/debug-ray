@@ -1,4 +1,5 @@
 import type { Layout, Point } from './arrange'
+import { groupRects } from './groups'
 import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel } from './model'
 import { RelationsLayer } from './relations-layer'
 import { TableCard } from './table-card'
@@ -111,6 +112,19 @@ export function ErdCanvas({
         className="erd-layer"
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}
       >
+        {groupRects(model, layout).map((rect) => (
+          <div
+            className="erd-group"
+            key={rect.name}
+            style={{
+              transform: `translate(${rect.x}px, ${rect.y}px)`,
+              width: `${rect.width}px`,
+              height: `${rect.height}px`,
+            }}
+          >
+            <span className="erd-group__name">{rect.name}</span>
+          </div>
+        ))}
         <RelationsLayer layout={layout} relations={model.relations} rowOf={rowOf} />
         {model.tables.map((table) => {
           const at = layout[table.name]
