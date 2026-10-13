@@ -99,8 +99,15 @@ export function ColumnEditor({ code, table, column, onCode, onRetarget, onClose 
         <button
           className="button"
           onClick={() => {
-            apply(deleteColumn(code, table, column.name))
-            onClose()
+            const result = deleteColumn(code, table, column.name)
+
+            apply(result)
+
+            // Closing on a refusal would unmount the form and take the reason
+            // with it: the column would still be there with nothing said.
+            if (result.ok) {
+              onClose()
+            }
           }}
           type="button"
         >

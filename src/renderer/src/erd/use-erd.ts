@@ -30,6 +30,8 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
   const [read, setRead] = useState(false)
   /** Set when an import is asked for; cleared when the tables that answer it land. */
   const [importing, setImporting] = useState(false)
+  /** The table list as it stood when the import was asked for. */
+  const asked = useRef<SchemaTable[] | null>(null)
 
   const parsed = useMemo(() => parseDbml(code), [code])
   const problems = useMemo(() => problemsOf(parsed), [parsed])
@@ -92,14 +94,26 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     // but the same tables, and re-arranging on that would be a jump for nothing.
   }, [read, names])
 
-  // The import completes here, when the tables it asked for have landed.
+  /**
+   * The import completes here, when the tables it asked for have landed.
+   *
+   * It waits for a *different* array than the one that was on screen when the
+   * request was made, not merely for a non-empty one: `loadTables` is started
+   * in the same handler, so the render right after the click still holds the
+   * previous list, and keying on emptiness re-imported that stale snapshot and
+   * then cleared the flag before the fresh tables arrived.
+   */
   useEffect(() => {
-    if (!importing || tables.length === 0) {
+    if (!importing || tables === asked.current) {
       return
     }
 
+    asked.current = null
     setImporting(false)
-    setCode(toDbml(schemaToModel(tables, tenant === '' ? 'central' : tenant, 'central')))
+
+    if (tables.length > 0) {
+      setCode(toDbml(schemaToModel(tables, tenant === '' ? 'central' : tenant, 'central')))
+    }
   }, [importing, tables, tenant])
 
   const save = useCallback(async (): Promise<void> => {
@@ -147,7 +161,10 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
      * into source here would read the set from before the load — the same stale
      * closure that made the tenant switch read the previous database.
      */
-    importFromMySql: useCallback(() => setImporting(true), []),
+    importFromMySql: useCallback(() => {
+      asked.current = tables
+      setImporting(true)
+    }, [tables]),
     move: useCallback((table: string, at: Point) => {
       setLayout((current) => ({ ...current, [table]: at }))
     }, []),

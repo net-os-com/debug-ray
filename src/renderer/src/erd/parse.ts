@@ -59,7 +59,12 @@ export function parseDbml(code: string): Parsed {
     const columns: Record<string, SourceRange> = {}
 
     for (const field of table.fields) {
-      columns[field.name] = { start: field.token.start.offset, end: field.token.end.offset }
+      // Extended back to the start of the line: the parser reports the first
+      // field from its first non-space character but later ones from their
+      // indent, so a rewrite that re-indents grew the line every time.
+      const start = code.lastIndexOf('\n', field.token.start.offset - 1) + 1
+
+      columns[field.name] = { start, end: field.token.end.offset }
     }
 
     const range = { start: table.token.start.offset, end: table.token.end.offset }

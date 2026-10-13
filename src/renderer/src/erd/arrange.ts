@@ -22,15 +22,11 @@ export function arrange(model: ErdModel, stored: Layout): Layout {
   const names = model.tables.map((table) => table.name)
   const present = new Set(names)
 
-  // A stored position for a table that no longer exists is dropped rather than
-  // carried, so a removed table cannot corrupt the file.
-  for (const name of names) {
-    const position = stored[name]
-
-    if (position) {
-      placed[name] = position
-    }
-  }
+  // Every stored position is carried, including for tables this parse did not
+  // see. Dropping them pruned the layout file on the next save, which is
+  // permanent — and a table can be invisible for reasons that are not its
+  // removal, such as living in a second DBML schema.
+  Object.assign(placed, stored)
 
   const remaining = names.filter((name) => !(name in placed))
 

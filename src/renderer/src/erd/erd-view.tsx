@@ -64,7 +64,11 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
     }
   })
 
-  if (erd.model.tables.length === 0) {
+  // Gated on the source, not on the model: a committed file that does not parse
+  // has no tables either, and showing the start screen for it hid the problem
+  // pane that explains why — while offering an import that would overwrite the
+  // very file you could not see.
+  if (erd.code.trim() === '') {
     return (
       <div className="erd">
         <div className="erd__empty">

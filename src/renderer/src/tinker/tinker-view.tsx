@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CodeEditor } from '../ui/code-editor'
 import { phpCompletion } from './php-completion'
 import { tokenize } from './php-tokens'
@@ -27,6 +27,8 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
   const { split, resize, reset } = useSplit()
   const side = useSideWidth()
   const classes = useClassIndex(tinker.container)
+  // Memoised: rebuilding it each keystroke would rebuild the editor's callbacks with it.
+  const completion = useMemo(() => phpCompletion(classes), [classes])
   const [menu, setMenu] = useState<Menu>(null)
 
   // Held in a ref so the shortcut is registered once instead of on every
@@ -163,7 +165,7 @@ export function TinkerView({ tinker, snippets }: TinkerViewProps) {
 
         <CodeEditor
           code={snippets.code}
-          completion={phpCompletion(classes)}
+          completion={completion}
           key={snippets.activeId}
           onChange={snippets.setCode}
           onRun={() => void tinker.run(snippets.code)}

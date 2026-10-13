@@ -140,7 +140,7 @@ export function CodeEditor({ code, tokenize, completion = null, onChange, onRun 
         element.selectionEnd = next.caret
       })
     },
-    [onChange, close],
+    [completion, onChange, close],
   )
 
   const onKeyDown = useCallback(
