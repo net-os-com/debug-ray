@@ -155,7 +155,12 @@ export function parseDbml(source: string): Parsed {
           typeof table.headerColor === 'string' && table.headerColor !== ''
             ? table.headerColor
             : null,
-        note: typeof table.note === 'string' && table.note !== '' ? table.note : null,
+        // The prepass' note wins: it only has one when the parser could not read
+      // the statement, and in that case the parser reports none at all.
+      note:
+        lifted.tableNotes[key] ??
+        lifted.tableNotes[table.name] ??
+        (typeof table.note === 'string' && table.note !== '' ? table.note : null),
         columns: table.fields.map((field): ErdColumn => ({
           name: field.name,
           type: field.type.type_name,
