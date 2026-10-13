@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import type { Layout, Point } from './arrange'
 import { groupRects } from './groups'
 import { GripIcon } from './icons'
 import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel, type ErdTable } from './model'
-import { RelationsLayer } from './relations-layer'
+import { RelationHighlight, RelationsLayer } from './relations-layer'
 import type { Sticky } from './stickies'
 import { StickyNote } from './sticky-note'
 import { TableCard } from './table-card'
@@ -75,6 +76,9 @@ export function ErdCanvas({
   onStickyMove,
   onGroupMove,
 }: ErdCanvasProps) {
+  const [hovered, setHovered] = useState<number | null>(null)
+  const hot = hovered === null ? null : (model.relations[hovered] ?? null)
+
   const rowOf = (table: string, column: string): number => {
     const found = model.tables.find((one) => one.name === table)
     const index = found?.columns.findIndex((one) => one.name === column) ?? -1
@@ -174,7 +178,9 @@ export function ErdCanvas({
         ))}
 
         <RelationsLayer
+          hovered={hovered}
           layout={layout}
+          onHover={setHovered}
           relations={model.relations}
           rowOf={rowOf}
           selected={selected}
@@ -207,6 +213,10 @@ export function ErdCanvas({
             />
           ) : null
         })}
+
+        {hot === null ? null : (
+          <RelationHighlight layout={layout} relation={hot} rowOf={rowOf} />
+        )}
       </div>
     </div>
   )

@@ -68,7 +68,7 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
   }
 
   const model = parsed.ok ? parsed.model : lastGood.current
-  const problems = useMemo(() => problemsOf(parsed, model), [parsed, model])
+  const problems = useMemo(() => problemsOf(parsed, model, code), [parsed, model, code])
   const names = model.tables.map((table) => table.name).join('\u0000')
   const previousNames = useRef(names)
 

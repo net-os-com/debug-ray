@@ -305,12 +305,20 @@ export function Inspector({
           <button
             className="button"
             onClick={() => onTinker(`${modelName(table)}::first();`)}
+            title={`Open ${modelName(table)}::first() in Tinker`}
             type="button"
           >
-            <span className="erd-inspector__mono">{modelName(table)}::first()</span> in Tinker
+            <span className="erd-inspector__mono">{modelName(table)}::first()</span>
+            <span className="erd-inspector__where">in Tinker</span>
           </button>
-          <button className="button" onClick={() => onRequests(table.name)} type="button">
-            Queries on {table.label} in Requests
+          <button
+            className="button"
+            onClick={() => onRequests(table.name)}
+            title={`Search the Requests view for ${table.label}`}
+            type="button"
+          >
+            <span className="erd-inspector__mono">{table.label}</span>
+            <span className="erd-inspector__where">in Requests</span>
           </button>
         </div>
       </div>

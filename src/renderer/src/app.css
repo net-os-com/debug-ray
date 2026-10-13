@@ -6274,6 +6274,7 @@ body.is-resizing {
 }
 
 .erd-editor__head {
+  position: relative;
   flex: 0 0 auto;
   height: 52px;
   box-sizing: border-box;
@@ -6297,6 +6298,8 @@ body.is-resizing {
 
 .erd-editor__badge {
   margin-left: auto;
+  border: 0;
+  cursor: pointer;
   height: 22px;
   padding: 0 9px;
   display: inline-flex;
@@ -6323,6 +6326,27 @@ body.is-resizing {
   color: var(--err-fg);
 }
 
+.erd-editor__badge:disabled {
+  cursor: default;
+}
+
+.erd-editor__popover {
+  position: absolute;
+  right: 12px;
+  top: 44px;
+  z-index: 25;
+  /* Bounded by the pane, not the window: at 420px it hung out over the table
+     list beside it. */
+  width: min(420px, calc(100% - 24px));
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--shadow-lg);
+}
+
 .erd-editor__code {
   flex: 1;
   min-height: 0;
@@ -6330,33 +6354,25 @@ body.is-resizing {
   overflow: hidden;
 }
 
-.erd-editor__problems {
-  flex: 0 0 auto;
-  max-height: 132px;
-  overflow: auto;
-  border-top: 1px solid var(--app-border);
-  background: var(--app-surface-2);
-}
-
-.erd-editor__clean {
-  padding: 10px 16px;
-  font-size: 12px;
-  color: var(--t3);
-}
-
 .erd-editor__problem {
   display: flex;
   gap: 10px;
-  padding: 7px 16px;
-  border-bottom: 1px solid var(--app-border-soft);
+  padding: 8px 10px;
+  border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--t2);
 }
 
+.erd-editor__problem + .erd-editor__problem {
+  border-top: 1px solid var(--app-border-soft);
+  border-radius: 0 0 8px 8px;
+}
+
 .erd-editor__line {
-  flex: 0 0 38px;
+  flex: 0 0 56px;
   font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
   color: var(--warn-fg);
 }
 
@@ -6579,6 +6595,46 @@ body.is-resizing {
   fill: var(--t3);
   font-family: ui-monospace, Menlo, monospace;
   font-size: 11px;
+  font-weight: 600;
+}
+
+/*
+ * The hit target. A 1.6px curve is almost impossible to put a pointer on, so a
+ * second copy at twelve takes the pointer and draws nothing. It sits under the
+ * cards in the stacking order, so it only ever catches the pointer in the gaps
+ * between them — a click meant for a card still reaches the card.
+ */
+.erd-line__hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* The hovered line, repeated above the cards so it is followable end to end. */
+.erd-lines--top {
+  z-index: 3;
+}
+
+.erd-line--hot {
+  stroke: var(--sel-ring);
+  stroke-width: 2.6;
+}
+
+.erd-line--hot.erd-line--cross {
+  stroke: var(--err-fg);
+}
+
+.erd-line__caption {
+  fill: var(--t1);
+  paint-order: stroke;
+  stroke: var(--app-canvas);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -7206,15 +7262,34 @@ body.is-resizing {
   gap: 8px;
 }
 
+/*
+ * The two labels carry a table name, and a long one — DeviceNotificationToken,
+ * device_notification_tokens — ran straight out of the 320px panel. The name
+ * truncates and the destination keeps its full width, so what gets shortened
+ * is the part you can still read from the panel's own heading.
+ */
 .erd-inspector__actions .button {
-  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
   justify-content: center;
   gap: 6px;
+  overflow: hidden;
 }
 
 .erd-inspector__mono {
+  min-width: 0;
   font-family: ui-monospace, Menlo, monospace;
   font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-inspector__where {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--t3);
 }
 
 /* --- the export modal ---------------------------------------------------- */
