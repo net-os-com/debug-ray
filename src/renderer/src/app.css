@@ -6212,3 +6212,141 @@ body.is-resizing {
   margin: 6px 0 16px;
   line-height: var(--lh-body);
 }
+
+/* The canvas and the source sit side by side; the source is the state. */
+.erd__split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.erd__split .erd-canvas-host {
+  position: relative;
+}
+
+.erd-editor {
+  flex: 0 0 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.erd-editor__code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Capped so a long list of problems cannot push the editor off screen. */
+.erd-editor__problems {
+  flex: 0 0 auto;
+  max-height: 132px;
+  overflow: auto;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+}
+
+.erd-editor__clean {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.erd-editor__problem {
+  display: flex;
+  gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--app-border-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.erd-editor__line {
+  flex: 0 0 38px;
+  font-family: var(--font-mono);
+  color: var(--t3);
+}
+
+.erd-editor__line--error {
+  color: var(--err-fg, rgb(185 28 28));
+}
+
+.erd-card__row--editable {
+  cursor: text;
+}
+
+.erd-card__row--editable:hover {
+  background: var(--app-sel);
+}
+
+.erd-colform {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  z-index: 2;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+.erd-colform__head {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.erd-colform__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.erd-colform__field .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.erd-colform__flags {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 99rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--t3);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.chip--on {
+  border-color: var(--sel-ring);
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+/* A refused patch says why, and the source stays as it was. */
+.erd-colform__refused {
+  font-size: 11.5px;
+  line-height: var(--lh-body);
+  color: var(--err-fg, rgb(185 28 28));
+}
+
+.erd-colform__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}

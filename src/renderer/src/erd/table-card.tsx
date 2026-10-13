@@ -8,10 +8,12 @@ type TableCardProps = {
   /** The canvas zoom, so a screen delta becomes a layer delta. */
   zoom: number
   onSelect: () => void
+  /** Opens the column form; null when editing is not offered. */
+  onColumn: ((column: string) => void) | null
   onMove: (point: Point) => void
 }
 
-export function TableCard({ table, at, selected, zoom, onSelect, onMove }: TableCardProps) {
+export function TableCard({ table, at, selected, zoom, onSelect, onMove, onColumn }: TableCardProps) {
   return (
     <div
       className={selected ? 'erd-card erd-card--selected' : 'erd-card'}
@@ -47,7 +49,18 @@ export function TableCard({ table, at, selected, zoom, onSelect, onMove }: Table
         <span className="erd-card__name">{table.name}</span>
       </div>
       {table.columns.map((column) => (
-        <div className="erd-card__row" key={column.name}>
+        <div
+          className={onColumn === null ? 'erd-card__row' : 'erd-card__row erd-card__row--editable'}
+          key={column.name}
+          onPointerDown={(event) => {
+            if (onColumn !== null) {
+              // Stops the card's own drag: clicking a row opens it, it does not
+              // pick the card up.
+              event.stopPropagation()
+              onColumn(column.name)
+            }
+          }}
+        >
           <span className="erd-card__col">{column.name}</span>
           <span className="erd-card__type">{column.type}</span>
           {column.primary ? <span className="erd-card__mark">pk</span> : null}

@@ -49,6 +49,7 @@ type ErdCanvasProps = {
   onView: (view: View) => void
   onSelect: (table: string | null) => void
   onMove: (table: string, at: Point) => void
+  onColumn: ((table: string, column: string) => void) | null
 }
 
 export function ErdCanvas({
@@ -59,6 +60,7 @@ export function ErdCanvas({
   onView,
   onSelect,
   onMove,
+  onColumn,
 }: ErdCanvasProps) {
   const rowOf = (table: string, column: string): number => {
     const found = model.tables.find((one) => one.name === table)
@@ -117,6 +119,7 @@ export function ErdCanvas({
             <TableCard
               at={at}
               key={table.name}
+              onColumn={onColumn === null ? null : (column) => onColumn(table.name, column)}
               onMove={(point) => onMove(table.name, point)}
               onSelect={() => onSelect(table.name)}
               selected={selected === table.name}
