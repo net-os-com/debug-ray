@@ -66,6 +66,7 @@ export function Inspector({
   onRequests,
 }: InspectorProps) {
   const [refused, setRefused] = useState<string | null>(null)
+  const [naming, setNaming] = useState(false)
   const relations = eloquentRelations(model, table)
   const crossDatabase = model.relations.some(
     (one) => one.crossDatabase && (one.from.table === table.name || one.to.table === table.name),
@@ -80,6 +81,16 @@ export function Inspector({
     }
 
     setRefused(result.reason)
+  }
+
+  const commitGroup = (value: string): void => {
+    const name = value.trim()
+
+    setNaming(false)
+
+    if (name !== '') {
+      apply(setGroup(code, table.name, name))
+    }
   }
 
   const lines = code.split('\n').length
@@ -167,20 +178,42 @@ export function Inspector({
                 )}
               </button>
             ))}
-            <button
-              className="erd-inspector__group erd-inspector__group--new"
-              onClick={() => {
-                const name = window.prompt('Name the new group')?.trim()
+            {naming ? (
+              // An input rather than window.prompt: Electron does not implement
+              // prompt() at all — it throws "prompt() is not supported." — so
+              // the button it was behind did nothing and said nothing.
+              <input
+                autoFocus
+                className="erd-inspector__group-input"
+                onBlur={(event) => commitGroup(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    commitGroup(event.currentTarget.value)
+                  }
 
-                if (name !== undefined && name !== '') {
-                  apply(setGroup(code, table.name, name))
-                }
-              }}
-              type="button"
-            >
-              <PlusIcon />
-              New group
-            </button>
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    setNaming(false)
+                  }
+                }}
+                placeholder="Group name"
+                spellCheck={false}
+              />
+            ) : (
+              <button
+                className="erd-inspector__group erd-inspector__group--new"
+                onClick={() => setNaming(true)}
+                type="button"
+              >
+                <PlusIcon />
+                New group
+              </button>
+            )}
+          </div>
+          <div className="erd-inspector__hint">
+            A group draws a labelled box around its tables on the canvas and
+            gives them a section in the list. A table can be in one group.
           </div>
         </section>
 
