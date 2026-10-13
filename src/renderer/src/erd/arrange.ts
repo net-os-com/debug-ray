@@ -7,6 +7,14 @@ const COLUMN_GAP = 96
 const ROW_GAP = 48
 /** How tall a column may grow before the next one starts. */
 const COLUMN_LIMIT = 1_400
+/**
+ * The space between one group's block of columns and the next.
+ *
+ * Wider than COLUMN_GAP because a group's rectangle is drawn 20px outside its
+ * cards on each side: at the plain column gap two neighbouring rectangles would
+ * meet in the middle and read as one box.
+ */
+const GROUP_GAP = 176
 
 /**
  * Places every table, keeping any position already stored.
@@ -41,23 +49,65 @@ export function arrange(model: ErdModel, stored: Layout): Layout {
   const heights = new Map(model.tables.map((table) => [table.name, cardHeight(table)]))
 
   let x = 0
-  let y = top
 
-  for (const name of layered(model, remaining, present)) {
-    const height = heights.get(name) ?? 0
+  // One block of columns per group, then everything ungrouped. Laid out cluster
+  // by cluster rather than in one run, because the rectangle a group draws is
+  // the bounding box of its cards: order them by relation depth alone and a
+  // group's members scatter across the diagram, and the box stretches over
+  // every unrelated table that happens to sit between them.
+  for (const cluster of clusters(model, layered(model, remaining, present))) {
+    let y = top
+    let widest = 0
 
-    // Each column is filled until it would run past the limit, so a card is
-    // never placed on top of the one above it however many columns it has.
-    if (y > top && y + height > top + COLUMN_LIMIT) {
-      x += CARD_WIDTH + COLUMN_GAP
-      y = top
+    for (const name of cluster) {
+      const height = heights.get(name) ?? 0
+
+      // Each column is filled until it would run past the limit, so a card is
+      // never placed on top of the one above it however many columns it has.
+      if (y > top && y + height > top + COLUMN_LIMIT) {
+        x += CARD_WIDTH + COLUMN_GAP
+        y = top
+      }
+
+      placed[name] = { x, y }
+      y += height + ROW_GAP
+      widest = x
     }
 
-    placed[name] = { x, y }
-    y += height + ROW_GAP
+    x = widest + CARD_WIDTH + GROUP_GAP
   }
 
   return placed
+}
+
+/**
+ * The tables to place, split into one run per group plus the ungrouped rest.
+ *
+ * The order inside a run is the order it was given, so the relation layering
+ * still decides which of a group's own tables comes first. A group naming a
+ * table this parse did not see contributes nothing, and an empty run is left
+ * out rather than consuming a column's width.
+ */
+function clusters(model: ErdModel, ordered: string[]): string[][] {
+  const taken = new Set<string>()
+  const runs: string[][] = []
+
+  for (const group of model.groups) {
+    const members = ordered.filter((name) => group.tables.includes(name) && !taken.has(name))
+
+    if (members.length > 0) {
+      members.forEach((name) => taken.add(name))
+      runs.push(members)
+    }
+  }
+
+  const rest = ordered.filter((name) => !taken.has(name))
+
+  if (rest.length > 0) {
+    runs.push(rest)
+  }
+
+  return runs
 }
 
 /**
