@@ -9,6 +9,8 @@ import { Clients } from './clients'
 import { EventLog } from './event-log'
 import { isIgnored } from './ignore-sources'
 import { Notifier } from './notifier'
+import type { ErdPoint } from '../shared/erd'
+import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
 import { McpPresence } from './mcp-status'
 import { applyMenu } from './menu'
@@ -201,6 +203,21 @@ app.whenReady().then(() => {
   // no CORS, every header is ours to set, and the socket's own events are the
   // only place the real phases of a request can be read.
   ipcMain.handle('api:send', (_event, options: ApiSend) => send(options))
+
+  ipcMain.handle('erd:read', (_event, containerId: string, workingDir: string) =>
+    readErd(containerId, workingDir),
+  )
+
+  ipcMain.handle(
+    'erd:save',
+    (
+      _event,
+      containerId: string,
+      workingDir: string,
+      dbml: string,
+      layout: Record<string, ErdPoint>,
+    ) => saveErd(containerId, workingDir, dbml, layout),
+  )
 
   // The files live in the application's repository and the package owns them,
   // so every read and write goes through its artisan command.

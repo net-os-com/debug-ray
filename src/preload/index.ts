@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { ErdPoint, ErdSaved, ErdStored } from '../shared/erd'
 import type {
   McpStatus,
   RayClient,
@@ -117,6 +118,19 @@ const api = {
 
   sendApiRequest(options: ApiSend): Promise<ApiResult> {
     return ipcRenderer.invoke('api:send', options)
+  },
+
+  readErd(containerId: string, workingDir: string): Promise<ErdStored> {
+    return ipcRenderer.invoke('erd:read', containerId, workingDir)
+  },
+
+  saveErd(
+    containerId: string,
+    workingDir: string,
+    dbml: string,
+    layout: Record<string, ErdPoint>,
+  ): Promise<ErdSaved> {
+    return ipcRenderer.invoke('erd:save', containerId, workingDir, dbml, layout)
   },
 
   listCollections(
