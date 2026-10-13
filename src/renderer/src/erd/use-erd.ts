@@ -9,7 +9,7 @@ import { parseDbml } from './parse'
 import { problemsOf } from './problems'
 import { schemaToModel } from './schema-to-model'
 
-const EMPTY: ErdModel = { tables: [], relations: [] }
+const EMPTY: ErdModel = { tables: [], relations: [], enums: [], groups: [] }
 
 /**
  * Owns the diagram. The DBML source is the state; the model is parsed from it.

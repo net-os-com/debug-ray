@@ -23,6 +23,10 @@ export function schemaToModel(
   return {
     tables: readable.map((table) => toTable(table, database)),
     relations: readable.flatMap((table) => toRelations(table, database, centralDatabase, known)),
+    // A live database has neither: an enum is a DBML declaration, and a group
+    // is a drawing instruction. Both arrive only from a hand-written source.
+    enums: [],
+    groups: [],
   }
 }
 
@@ -50,6 +54,7 @@ function toTable(table: SchemaTable, database: string): ErdTable {
   return {
     name: table.name,
     database,
+    note: null,
     columns: table.columns.map(
       (column): ErdColumn => ({
         name: column.name,

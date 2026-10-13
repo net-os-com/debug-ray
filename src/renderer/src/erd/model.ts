@@ -22,16 +22,26 @@ export function cardHeight(table: { columns: unknown[] }): number {
   return CARD_HEADER_HEIGHT + table.columns.length * COLUMN_ROW_HEIGHT
 }
 
+/** A named set of allowed values a column's type can point at. */
+export type ErdEnum = { name: string; values: string[] }
+
+/** A `TableGroup`: a label and the tables it gathers. */
+export type ErdGroup = { name: string; tables: string[] }
+
 /** What the canvas and the serialiser both read, so neither touches SchemaTable. */
 export type ErdModel = {
   tables: ErdTable[]
   relations: ErdRelation[]
+  enums: ErdEnum[]
+  groups: ErdGroup[]
 }
 
 export type ErdTable = {
   name: string
   /** Which database it came from, for the tenancy label on the card. */
   database: string
+  /** The table's own `Note:`, or null when it has none. */
+  note: string | null
   columns: ErdColumn[]
   indexes: ErdIndex[]
 }

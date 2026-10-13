@@ -28,10 +28,18 @@ type RawField = {
   not_null?: boolean
 }
 type RawIndex = { name?: string | null; columns: { value: string }[]; unique?: boolean; pk?: boolean }
-type RawTable = { token: RawToken; name: string; fields: RawField[]; indexes: RawIndex[] }
+type RawTable = {
+  token: RawToken
+  name: string
+  fields: RawField[]
+  indexes: RawIndex[]
+  note?: string | null
+}
+type RawEnum = { name: string; values: { name: string }[] }
+type RawGroup = { name: string; tables: { name: string }[] }
 type RawEndpoint = { tableName: string; fieldNames: string[]; relation: string }
 type RawRef = { onDelete?: string | null; endpoints: RawEndpoint[] }
-type RawSchema = { tables: RawTable[]; refs: RawRef[] }
+type RawSchema = { tables: RawTable[]; refs: RawRef[]; enums: RawEnum[]; tableGroups?: RawGroup[] }
 
 /**
  * Turns DBML source into the model the canvas draws, and the byte ranges a
@@ -49,7 +57,7 @@ export function parseDbml(code: string): Parsed {
   }
 
   if (schema === undefined) {
-    return { ok: true, model: { tables: [], relations: [] }, tables: {} }
+    return { ok: true, model: { tables: [], relations: [], enums: [], groups: [] }, tables: {} }
   }
 
   const tables: Record<string, ParsedTable> = {}
@@ -86,6 +94,7 @@ export function parseDbml(code: string): Parsed {
       // DBML carries no database; the canvas stopped reading this field when the
       // per-card badge was dropped.
       database: '',
+      note: typeof table.note === 'string' && table.note !== '' ? table.note : null,
       columns: table.fields.map(
         (field): ErdColumn => ({
           name: field.name,
@@ -106,7 +115,23 @@ export function parseDbml(code: string): Parsed {
     })
   }
 
-  return { ok: true, model: { tables: modelTables, relations: relations(schema) }, tables }
+  return {
+    ok: true,
+    model: {
+      tables: modelTables,
+      relations: relations(schema),
+      enums: schema.enums.map((one) => ({
+        name: one.name,
+        values: one.values.map((value) => value.name),
+      })),
+      // `tableGroups` is absent, not empty, on a schema that declares none.
+      groups: (schema.tableGroups ?? []).map((one) => ({
+        name: one.name,
+        tables: one.tables.map((table) => table.name),
+      })),
+    },
+    tables,
+  }
 }
 
 function relations(schema: RawSchema): ErdRelation[] {
