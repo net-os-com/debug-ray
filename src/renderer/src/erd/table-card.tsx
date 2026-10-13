@@ -5,11 +5,13 @@ type TableCardProps = {
   table: ErdTable
   at: Point
   selected: boolean
+  /** The canvas zoom, so a screen delta becomes a layer delta. */
+  zoom: number
   onSelect: () => void
   onMove: (point: Point) => void
 }
 
-export function TableCard({ table, at, selected, onSelect, onMove }: TableCardProps) {
+export function TableCard({ table, at, selected, zoom, onSelect, onMove }: TableCardProps) {
   return (
     <div
       className={selected ? 'erd-card erd-card--selected' : 'erd-card'}
@@ -23,10 +25,13 @@ export function TableCard({ table, at, selected, onSelect, onMove }: TableCardPr
         // The listeners go on the window rather than the card: a fast drag
         // leaves the card behind, and a listener bound to it stops receiving
         // moves the moment the pointer outruns it.
+        // The card sits inside the scaled layer, so the pointer's screen
+        // movement has to be divided by the zoom. Without it the card crawls
+        // behind the cursor when zoomed out and runs ahead when zoomed in.
         const move = (moved: PointerEvent): void =>
           onMove({
-            x: origin.x + (moved.clientX - start.x),
-            y: origin.y + (moved.clientY - start.y),
+            x: origin.x + (moved.clientX - start.x) / zoom,
+            y: origin.y + (moved.clientY - start.y) / zoom,
           })
         const up = (): void => {
           window.removeEventListener('pointermove', move)

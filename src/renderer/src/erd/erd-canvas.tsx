@@ -1,10 +1,8 @@
 import type { Layout, Point } from './arrange'
-import { CARD_WIDTH, COLUMN_ROW_HEIGHT, type ErdModel } from './model'
+import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel } from './model'
 import { RelationsLayer } from './relations-layer'
 import { TableCard } from './table-card'
 
-/** Tall enough to clear a card of a dozen columns when fitting. */
-const CARD_HEIGHT = 320
 const MIN_ZOOM = 0.2
 const MAX_ZOOM = 2
 
@@ -17,18 +15,20 @@ export type View = { x: number; y: number; z: number }
  * zoom to something unreadable and one of three hundred still lands on screen.
  */
 export function fitView(model: ErdModel, layout: Layout, width: number, height: number): View {
-  const points = model.tables
-    .map((table) => layout[table.name])
-    .filter((point): point is Point => point !== undefined)
+  const boxes = model.tables
+    .map((table) => ({ at: layout[table.name], height: cardHeight(table) }))
+    .filter((box): box is { at: Point; height: number } => box.at !== undefined)
 
-  if (points.length === 0 || width === 0 || height === 0) {
+  if (boxes.length === 0 || width === 0 || height === 0) {
     return { x: 0, y: 0, z: 1 }
   }
 
-  const left = Math.min(...points.map((point) => point.x))
-  const top = Math.min(...points.map((point) => point.y))
-  const right = Math.max(...points.map((point) => point.x)) + CARD_WIDTH
-  const bottom = Math.max(...points.map((point) => point.y)) + CARD_HEIGHT
+  const left = Math.min(...boxes.map((box) => box.at.x))
+  const top = Math.min(...boxes.map((box) => box.at.y))
+  const right = Math.max(...boxes.map((box) => box.at.x)) + CARD_WIDTH
+  // Measured per card: a twenty-four column table is far taller than a three
+  // column one, and a fixed height clipped it.
+  const bottom = Math.max(...boxes.map((box) => box.at.y + box.height))
   const z = Math.min(
     MAX_ZOOM,
     Math.max(MIN_ZOOM, Math.min(width / (right - left), height / (bottom - top)) * 0.9),
@@ -121,6 +121,7 @@ export function ErdCanvas({
               onSelect={() => onSelect(table.name)}
               selected={selected === table.name}
               table={table}
+              zoom={view.z}
             />
           ) : null
         })}

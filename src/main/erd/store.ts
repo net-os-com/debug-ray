@@ -16,17 +16,49 @@ async function run(
   input: string | null = null,
 ): Promise<Record<string, unknown>> {
   const result = await runDocker(
-    ['exec', '-i', '-w', workingDir, containerId, 'php', 'artisan', 'netos-debug:erd', action],
+    [
+      'exec',
+      '-i',
+      '-w',
+      workingDir || '/var/www/html',
+      containerId,
+      'php',
+      'artisan',
+      'netos-debug:erd',
+      action,
+      '--no-interaction',
+    ],
     input,
     ERD_TIMEOUT_MS,
-  )
+    // Without this, Docker missing from PATH rejects all the way through the
+    // IPC handler and the view reports nothing at all.
+  ).catch((error: Error) => ({ stdout: '', stderr: error.message, code: 1, timedOut: false }))
+
+  // The last JSON line, not the whole of stdout: a deprecation notice or an
+  // Xdebug banner ahead of the answer would otherwise turn it into an error.
+  const line = result.stdout
+    .split('\n')
+    .reverse()
+    .find((candidate) => candidate.trim().startsWith('{'))
+
+  if (line === undefined) {
+    return {
+      error:
+        result.stderr.trim() ||
+        result.stdout.trim() ||
+        'The erd command answered nothing. Is net-os/laravel-netos-debug installed?',
+    }
+  }
 
   try {
-    return JSON.parse(result.stdout.trim()) as Record<string, unknown>
+    const parsed: unknown = JSON.parse(line)
+
+    // `null`, `[]` and `3` all parse; reading a field off any of them throws.
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : { error: 'The erd command answered something unreadable.' }
   } catch {
-    // Artisan writes its own errors to stdout as prose; anything unparseable is
-    // reported as it arrived rather than swallowed into an empty diagram.
-    return { error: result.stderr.trim() || result.stdout.trim() || 'The command returned nothing.' }
+    return { error: result.stderr.trim() || 'The erd command answered something unreadable.' }
   }
 }
 
@@ -34,9 +66,12 @@ export async function readErd(containerId: string, workingDir: string): Promise<
   const data = await run(containerId, workingDir, 'read')
 
   return {
-    layout: (data.layout as Record<string, ErdPoint> | undefined) ?? {},
-    savedAt: (data.savedAt as string | null | undefined) ?? null,
-    error: (data.error as string | null | undefined) ?? null,
+    layout:
+      typeof data.layout === 'object' && data.layout !== null && !Array.isArray(data.layout)
+        ? (data.layout as Record<string, ErdPoint>)
+        : {},
+    savedAt: typeof data.savedAt === 'string' ? data.savedAt : null,
+    error: typeof data.error === 'string' ? data.error : null,
   }
 }
 
@@ -49,7 +84,7 @@ export async function saveErd(
   const data = await run(containerId, workingDir, 'save', JSON.stringify({ dbml, layout }))
 
   return {
-    files: (data.files as string[] | undefined) ?? [],
-    error: (data.error as string | null | undefined) ?? null,
+    files: Array.isArray(data.files) ? data.files.filter((one): one is string => typeof one === 'string') : [],
+    error: typeof data.error === 'string' ? data.error : null,
   }
 }

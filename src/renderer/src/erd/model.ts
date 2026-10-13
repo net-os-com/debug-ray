@@ -11,6 +11,17 @@ export const COLUMN_ROW_HEIGHT = 22
 /** Where the first column row starts, measured from the top of the card. */
 export const CARD_HEADER_HEIGHT = 34
 
+/**
+ * How tall a card actually is.
+ *
+ * A fixed pitch was wrong on this schema: `activities` has twenty-four columns,
+ * and anything past sixteen overlapped the card beneath it while Fit measured a
+ * box that clipped it.
+ */
+export function cardHeight(table: { columns: unknown[] }): number {
+  return CARD_HEADER_HEIGHT + table.columns.length * COLUMN_ROW_HEIGHT
+}
+
 /** What the canvas and the serialiser both read, so neither touches SchemaTable. */
 export type ErdModel = {
   tables: ErdTable[]

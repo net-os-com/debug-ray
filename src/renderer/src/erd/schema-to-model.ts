@@ -14,17 +14,27 @@ export function schemaToModel(
   database: string,
   centralDatabase: string,
 ): ErdModel {
-  const known = new Set(tables.map((table) => table.name))
+  // A table the reader could not introspect has no columns, and an empty
+  // `Table x { }` block makes the entire file unparseable. One unreadable table
+  // is not worth the other thirty-four.
+  const readable = tables.filter((table) => table.error === null && table.columns.length > 0)
+  const known = new Set(readable.map((table) => table.name))
 
   return {
-    tables: tables.map((table) => toTable(table, database)),
-    relations: tables.flatMap((table) => toRelations(table, database, centralDatabase, known)),
+    tables: readable.map((table) => toTable(table, database)),
+    relations: readable.flatMap((table) => toRelations(table, database, centralDatabase, known)),
   }
 }
 
 function toTable(table: SchemaTable, database: string): ErdTable {
   const primary = columnsIn(table.indexes, (index) => index.primary)
-  const unique = columnsIn(table.indexes, (index) => index.unique && !index.primary)
+  // Flattening is right for a primary key, which the spec asks for, and wrong
+  // for a unique index: `unique(role_id, user_id)` does not make `role_id`
+  // unique, and saying so would export a different schema than the real one.
+  const unique = columnsIn(
+    table.indexes,
+    (index) => index.unique && !index.primary && index.columns.length === 1,
+  )
   const references = new Map<string, { table: string; column: string }>()
 
   for (const key of table.keys) {

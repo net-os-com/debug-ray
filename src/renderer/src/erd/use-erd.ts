@@ -22,6 +22,8 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  /** Until the repository's layout has been read, there is nothing to keep. */
+  const [read, setRead] = useState(false)
 
   const database = tenant === '' ? 'central' : tenant
 
@@ -41,9 +43,10 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
 
     void window.ray.readErd(container.id, container.workingDir).then((stored) => {
       if (!cancelled) {
-        setLayout((current) => ({ ...stored.layout, ...current }))
+        setLayout(stored.layout)
         setSavedAt(stored.savedAt)
         setError(stored.error)
+        setRead(true)
       }
     })
 
@@ -52,11 +55,23 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     }
   }, [container])
 
-  // Re-arranging keeps every position it already has, so a new table appears
-  // without the rest of the diagram jumping.
+  /**
+   * Re-arranging keeps every position it already has, so a new table appears
+   * without the rest of the diagram jumping.
+   *
+   * It waits for the stored layout, and refuses to run on an empty model.
+   * `arrange` keeps only the tables it is given, so arranging before the read
+   * lands — or while the table list is briefly empty, which is exactly what
+   * switching tenant does — would throw away positions somebody placed by hand
+   * and the next Save would commit the loss.
+   */
   useEffect(() => {
+    if (!read || model.tables.length === 0) {
+      return
+    }
+
     setLayout((current) => arrange(model, current))
-  }, [model])
+  }, [read, model])
 
   const save = useCallback(async (): Promise<void> => {
     if (container === null) {
@@ -75,11 +90,14 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
 
       setSaved(result.files)
       setError(result.error)
-      setSavedAt(result.error === null ? new Date().toISOString() : savedAt)
+
+      if (result.error === null) {
+        setSavedAt(new Date().toISOString())
+      }
     } finally {
       setSaving(false)
     }
-  }, [container, model, layout, savedAt])
+  }, [container, model, layout])
 
   return {
     model,

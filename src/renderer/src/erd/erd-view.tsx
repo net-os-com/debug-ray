@@ -26,12 +26,14 @@ export function ErdView({ erd, tenants, tenant, loading, onTenant, onImport }: E
   // It waits for every table to have a position, not merely for tables to
   // exist: the layout is filled by its own effect, so fitting on the render
   // where the tables arrive measures a box that is still half empty.
-  const fitted = useRef(false)
+  const fitted = useRef('')
   const placed = erd.model.tables.filter((table) => erd.layout[table.name] !== undefined).length
 
   useEffect(() => {
-    if (!fitted.current && placed > 0 && placed === erd.model.tables.length) {
-      fitted.current = true
+    // Keyed on the database, so switching tenant fits the new diagram instead
+    // of leaving you on the previous one's transform.
+    if (fitted.current !== erd.database && placed > 0 && placed === erd.model.tables.length) {
+      fitted.current = erd.database
       fit()
     }
   })

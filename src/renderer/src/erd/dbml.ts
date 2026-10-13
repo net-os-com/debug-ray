@@ -39,7 +39,13 @@ const RESERVED = new Set([...DBML_KEYWORDS, ...SQL_KEYWORDS])
  */
 export function toDbml(model: ErdModel): string {
   const blocks = model.tables.map((table) => tableBlock(table))
-  const refs = model.relations.map(
+  const known = new Set(model.tables.map((table) => table.name))
+  // A reference whose target has no Table block — a cross-database key — makes
+  // the whole file unparseable, and the file is the deliverable. It is left out
+  // rather than allowed to cost every other table.
+  const refs = model.relations
+    .filter((relation) => known.has(relation.from.table) && known.has(relation.to.table))
+    .map(
     (relation) =>
       `Ref: ${quote(relation.from.table)}.${quote(relation.from.column)} > ` +
       `${quote(relation.to.table)}.${quote(relation.to.column)}` +

@@ -1,13 +1,12 @@
-import { CARD_WIDTH, type ErdModel } from './model'
+import { CARD_WIDTH, cardHeight, type ErdModel } from './model'
 
 export type Point = { x: number; y: number }
 export type Layout = Record<string, Point>
 
 const COLUMN_GAP = 96
 const ROW_GAP = 48
-/** Vertical pitch between cards — not the height of a row inside one. */
-const CARD_PITCH = 320
-const PER_LAYER = 4
+/** How tall a column may grow before the next one starts. */
+const COLUMN_LIMIT = 1_400
 
 /**
  * Places every table, keeping any position already stored.
@@ -39,14 +38,27 @@ export function arrange(model: ErdModel, stored: Layout): Layout {
     return placed
   }
 
-  for (const [index, name] of layered(model, remaining, present).entries()) {
-    const layer = Math.floor(index / PER_LAYER)
-    const row = index % PER_LAYER
+  // New cards start past everything already placed, so a table that appears
+  // after a migration does not land underneath one you positioned by hand.
+  const below = Object.values(placed).reduce((lowest, point) => Math.max(lowest, point.y), 0)
+  const top = Object.keys(placed).length > 0 ? below + COLUMN_LIMIT : 0
+  const heights = new Map(model.tables.map((table) => [table.name, cardHeight(table)]))
 
-    placed[name] = {
-      x: layer * (CARD_WIDTH + COLUMN_GAP),
-      y: row * (CARD_PITCH + ROW_GAP),
+  let x = 0
+  let y = top
+
+  for (const name of layered(model, remaining, present)) {
+    const height = heights.get(name) ?? 0
+
+    // Each column is filled until it would run past the limit, so a card is
+    // never placed on top of the one above it however many columns it has.
+    if (y > top && y + height > top + COLUMN_LIMIT) {
+      x += CARD_WIDTH + COLUMN_GAP
+      y = top
     }
+
+    placed[name] = { x, y }
+    y += height + ROW_GAP
   }
 
   return placed
