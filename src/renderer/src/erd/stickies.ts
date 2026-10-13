@@ -1,36 +1,44 @@
+import type { Layout, Point } from './arrange'
+import type { ErdModel, ErdNote } from './model'
+
 /**
- * Free notes on the canvas.
+ * A standalone note, placed on the canvas.
  *
- * These are the one thing in the design that cannot live in the DBML: a
- * standalone `Note name { … }` block does not parse in @dbml/core 10.3 —
- * measured, not assumed — and a table's own `Note:` is attached to that table
- * rather than to a spot on the canvas. So they go beside the layout, which is
- * already the file for what the format has no room for.
+ * The note itself lives in the DBML as `Note name { '…' }`, so it travels with
+ * the schema and shows up in a diff; only where it sits is in the layout file.
+ * That split is the same one the tables use, and it is why a note survives a
+ * re-import that replaces the whole source.
  *
- * The cost is that they do not travel to dbdiagram.io. The alternative was
- * writing them into the .dbml as comments, which the parser discards, so they
- * could never be read back.
+ * `@dbml/core` at this version cannot parse the block, so it is lifted out of
+ * the source before parsing and written back on save — see `prepass.ts`.
  */
-export type Sticky = { id: string; text: string; x: number; y: number }
+export type Sticky = { name: string; text: string; x: number; y: number }
 
-/** Tolerant on purpose: a layout file written before stickies existed has none. */
-export function readStickies(raw: unknown): Sticky[] {
-  if (!Array.isArray(raw)) {
-    return []
-  }
+/** The layout key a note's position is stored under, kept clear of table names. */
+export function stickyKey(name: string): string {
+  return `note:${name}`
+}
 
-  return raw.flatMap((one): Sticky[] => {
-    if (typeof one !== 'object' || one === null) {
-      return []
-    }
+/** Notes with a position, in declaration order. */
+export function stickies(model: ErdModel, layout: Layout): Sticky[] {
+  return model.notes.map((note, index) => {
+    const at = layout[stickyKey(note.name)] ?? fallback(index)
 
-    const value = one as Partial<Sticky>
-
-    return typeof value.id === 'string' &&
-      typeof value.text === 'string' &&
-      typeof value.x === 'number' &&
-      typeof value.y === 'number'
-      ? [{ id: value.id, text: value.text, x: value.x, y: value.y }]
-      : []
+    return { name: note.name, text: note.text, x: at.x, y: at.y }
   })
+}
+
+/**
+ * Where a note with no stored position goes.
+ *
+ * Off to the left of the first layout column rather than at the origin, so a
+ * note added to the source does not land on top of a table.
+ */
+function fallback(index: number): Point {
+  return { x: -320, y: index * 180 }
+}
+
+/** The source a note's text is edited into, as DBML. */
+export function renameNote(notes: ErdNote[], name: string, text: string): ErdNote[] {
+  return notes.map((note) => (note.name === name ? { ...note, text } : note))
 }

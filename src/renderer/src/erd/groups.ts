@@ -1,7 +1,14 @@
 import type { Layout } from './arrange'
-import { CARD_WIDTH, cardHeight, type ErdModel } from './model'
+import { CARD_WIDTH, cardHeight, groupColorOf, type ErdModel } from './model'
 
-export type GroupRect = { name: string; x: number; y: number; width: number; height: number }
+export type GroupRect = {
+  name: string
+  color: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 /** Breathing room so the border and the label clear the cards. */
 const PADDING = 20
@@ -18,7 +25,7 @@ const LABEL = 24
 export function groupRects(model: ErdModel, layout: Layout): GroupRect[] {
   const rects: GroupRect[] = []
 
-  for (const group of model.groups) {
+  model.groups.forEach((group, index) => {
     const boxes = group.tables
       .map((name) => {
         const table = model.tables.find((one) => one.name === name)
@@ -29,7 +36,7 @@ export function groupRects(model: ErdModel, layout: Layout): GroupRect[] {
       .filter((box): box is { at: { x: number; y: number }; height: number } => box !== null)
 
     if (boxes.length === 0) {
-      continue
+      return
     }
 
     const left = Math.min(...boxes.map((box) => box.at.x)) - PADDING
@@ -37,8 +44,15 @@ export function groupRects(model: ErdModel, layout: Layout): GroupRect[] {
     const right = Math.max(...boxes.map((box) => box.at.x)) + CARD_WIDTH + PADDING
     const bottom = Math.max(...boxes.map((box) => box.at.y + box.height)) + PADDING
 
-    rects.push({ name: group.name, x: left, y: top, width: right - left, height: bottom - top })
-  }
+    rects.push({
+      name: group.name,
+      color: groupColorOf(group, index),
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+    })
+  })
 
   return rects
 }

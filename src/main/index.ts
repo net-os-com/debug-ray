@@ -10,6 +10,7 @@ import { EventLog } from './event-log'
 import { isIgnored } from './ignore-sources'
 import { Notifier } from './notifier'
 import type { ErdPoint, ErdSticky } from '../shared/erd'
+import { schemaFromMigrations } from './erd/migrations'
 import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
 import { McpPresence } from './mcp-status'
@@ -203,6 +204,10 @@ app.whenReady().then(() => {
   // no CORS, every header is ours to set, and the socket's own events are the
   // only place the real phases of a request can be read.
   ipcMain.handle('api:send', (_event, options: ApiSend) => send(options))
+
+  ipcMain.handle('erd:migrations', (_event, containerId: string, workingDir: string) =>
+    schemaFromMigrations(containerId, workingDir),
+  )
 
   ipcMain.handle('erd:read', (_event, containerId: string, workingDir: string) =>
     readErd(containerId, workingDir),

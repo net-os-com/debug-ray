@@ -120,6 +120,13 @@ const api = {
     return ipcRenderer.invoke('api:send', options)
   },
 
+  erdFromMigrations(
+    containerId: string,
+    workingDir: string,
+  ): Promise<{ tables: SchemaTable[]; error: string | null }> {
+    return ipcRenderer.invoke('erd:migrations', containerId, workingDir)
+  },
+
   readErd(containerId: string, workingDir: string): Promise<ErdStored> {
     return ipcRenderer.invoke('erd:read', containerId, workingDir)
   },

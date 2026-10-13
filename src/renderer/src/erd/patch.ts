@@ -17,7 +17,8 @@ type Good = Extract<Parsed, { ok: true }>
 function patch(
   code: string,
   locate: (parsed: Good) => SourceRange | string,
-  render: () => string,
+  /** Given the text being replaced, so a rewrite can keep what it does not change. */
+  render: (current: string) => string,
 ): PatchResult {
   const before = parseDbml(code)
 
@@ -31,7 +32,8 @@ function patch(
     return { ok: false, reason: where }
   }
 
-  const next = code.slice(0, where.start) + render() + code.slice(where.end)
+  const next =
+    code.slice(0, where.start) + render(code.slice(where.start, where.end)) + code.slice(where.end)
   const after = parseDbml(next)
 
   if (!after.ok) {
@@ -61,6 +63,9 @@ type Change = {
   primary?: boolean
   unique?: boolean
   nullable?: boolean
+  /** null removes the setting; undefined leaves whatever the line says. */
+  defaultValue?: string | null
+  note?: string | null
 }
 
 /**
@@ -95,7 +100,21 @@ function rewriteColumnLine(original: string, change: Change): string {
   const name = change.name === undefined ? currentName : quoteName(change.name)
   const type = change.type === undefined ? currentType : quoteType(change.type)
 
-  const kept = existing.filter((one) => !OWNED.has(one.toLowerCase()))
+  // A keyed setting the caller names is dropped from what is kept, so the new
+  // value replaces it rather than sitting beside a stale one.
+  const named = new Set<string>()
+
+  if (change.defaultValue !== undefined) {
+    named.add('default')
+  }
+
+  if (change.note !== undefined) {
+    named.add('note')
+  }
+
+  const kept = existing.filter(
+    (one) => !OWNED.has(one.toLowerCase()) && !named.has(keyOf(one)),
+  )
   const flags: string[] = []
 
   // A flag the caller did not mention keeps whatever the line already said.
@@ -119,9 +138,39 @@ function rewriteColumnLine(original: string, change: Change): string {
     flags.push(change.nullable ? 'null' : 'not null')
   }
 
-  const settings = [...flags, ...kept]
+  const keyed: string[] = []
+
+  if (change.defaultValue !== undefined && change.defaultValue !== null) {
+    keyed.push(`default: ${quoteSetting(change.defaultValue)}`)
+  }
+
+  if (change.note !== undefined && change.note !== null && change.note !== '') {
+    keyed.push(`note: ${quoteSetting(change.note)}`)
+  }
+
+  const settings = [...flags, ...kept, ...keyed]
 
   return `${indent}${name} ${type}${settings.length > 0 ? ` [${settings.join(', ')}]` : ''}${trailing}`
+}
+
+/** The key of a `key: value` setting, lowercased; '' for a bare flag. */
+function keyOf(setting: string): string {
+  const colon = setting.indexOf(':')
+
+  return colon < 0 ? '' : setting.slice(0, colon).trim().toLowerCase()
+}
+
+/**
+ * A setting's value as DBML spells it.
+ *
+ * A number stays bare, because `default: 0` and `default: '0'` are different
+ * things to dbdiagram.io; anything else is single-quoted with its own quotes
+ * escaped.
+ */
+function quoteSetting(value: string): string {
+  return /^-?\d+(\.\d+)?$/.test(value)
+    ? value
+    : `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 }
 
 /** Splits on commas that are not inside quotes, so `note: 'a, b'` stays whole. */
@@ -262,6 +311,90 @@ export function setHeaderColor(code: string, table: string, color: string | null
 
       return open < 0 ? `Table ${table} has no body.` : { start: found.range.start, end: open }
     },
-    () => (color === null ? `Table ${quoteName(table)} ` : `Table ${quoteName(table)} [headercolor: ${color}] `),
+    // The head is rebuilt from what it already said, not from the name alone.
+    // Replacing the whole of `Table x [...] ` with a fresh `Table x [headercolor]`
+    // dropped a table's `note:` — the design's own `landlord.tenants` carries
+    // both — and the result still parsed, so nothing caught it.
+    //
+    // `qualified`, not `quoteName`: the table's key is `tenant.settings`, and
+    // quoting that as one identifier declares a table whose name contains a dot
+    // in the public schema. It parses, the card keeps drawing, and the scope is
+    // silently wrong from the next reparse on.
+    (current) => {
+      const open = current.indexOf('[')
+      const close = current.lastIndexOf(']')
+      const existing =
+        open > 0 && close > open
+          ? splitSettings(current.slice(open + 1, close)).filter(
+              (one) => keyOf(one) !== 'headercolor',
+            )
+          : []
+      const settings = color === null ? existing : [`headercolor: ${color}`, ...existing]
+
+      return `Table ${qualified(table)}${settings.length === 0 ? '' : ` [${settings.join(', ')}]`} `
+    },
   )
+}
+
+export function setColumnDefault(
+  code: string,
+  table: string,
+  column: string,
+  value: string | null,
+): PatchResult {
+  return editColumn(code, table, column, { defaultValue: value })
+}
+
+export function setColumnNote(
+  code: string,
+  table: string,
+  column: string,
+  note: string | null,
+): PatchResult {
+  return editColumn(code, table, column, { note })
+}
+
+/**
+ * Appends a new table to the source.
+ *
+ * Appended rather than inserted: there is no "right" place in a document
+ * somebody else wrote, and the end is the one spot that cannot land inside
+ * another block.
+ */
+export function addTable(code: string, name: string): PatchResult {
+  const parsed = parseDbml(code)
+
+  if (!parsed.ok) {
+    return { ok: false, reason: `Line ${parsed.line}: ${parsed.message}` }
+  }
+
+  if (parsed.tables[name] !== undefined) {
+    return { ok: false, reason: `There is already a table called ${name}.` }
+  }
+
+  const block = `Table ${qualified(name)} {\n  id bigint [pk, increment]\n}`
+  const next = `${code.replace(/\s*$/, '')}\n\n${block}\n`
+  const after = parseDbml(next)
+
+  return after.ok ? { ok: true, code: next } : { ok: false, reason: after.message }
+}
+
+/** Appends a standalone note block. */
+export function addNote(code: string, name: string, text: string): PatchResult {
+  const next = `${code.replace(/\s*$/, '')}\n\nNote ${quoteName(name)} {\n  '${text.replace(
+    /'/g,
+    "\\'",
+  )}'\n}\n`
+  const after = parseDbml(next)
+
+  return after.ok ? { ok: true, code: next } : { ok: false, reason: after.message }
+}
+
+/** Writes a qualified name as two quoted identifiers around the dot. */
+function qualified(name: string): string {
+  const dot = name.indexOf('.')
+
+  return dot < 0
+    ? quoteName(name)
+    : `${quoteName(name.slice(0, dot))}.${quoteName(name.slice(dot + 1))}`
 }

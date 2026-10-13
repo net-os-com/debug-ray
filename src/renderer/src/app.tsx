@@ -193,6 +193,18 @@ export function App() {
               // the database you just switched away from. setTenant clears the
               // tables, which puts the view back on its own import button.
               onTenant={schema.setTenant}
+              // The inspector's two links lead out of the ERD: a model into
+              // Tinker, and the table's name into the Requests search. Both go
+              // through the views that already own those, rather than the ERD
+              // growing a second way to run code or read queries.
+              onRequests={(table) => {
+                requests.setQuery(table)
+                setView('requests')
+              }}
+              onTinker={(snippet) => {
+                snippets.setCode(snippet)
+                setView('tinker')
+              }}
               tenant={schema.tenant}
               tenants={tinker.tenants}
             />

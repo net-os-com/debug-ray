@@ -1,4 +1,4 @@
-import type { ErdColumn, ErdModel, ErdTable } from './model'
+import type { ErdColumn, ErdEnum, ErdGroup, ErdModel, ErdNote, ErdTable } from './model'
 
 /** Anything that is not plainly `[A-Za-z_][A-Za-z0-9_]*` has to be quoted. */
 const BARE = /^[A-Za-z_][A-Za-z0-9_]*$/
@@ -17,14 +17,83 @@ const DBML_KEYWORDS = ['table', 'ref', 'enum', 'indexes', 'note', 'project', 'ta
  * two characters.
  */
 const SQL_KEYWORDS = [
-  'order', 'group', 'user', 'key', 'index', 'check', 'default', 'values', 'range', 'rank',
-  'row', 'rows', 'position', 'system', 'usage', 'zone', 'language', 'level', 'method',
-  'option', 'state', 'year', 'month', 'day', 'hour', 'minute', 'second', 'interval',
-  'primary', 'foreign', 'references', 'constraint', 'column', 'database', 'schema',
-  'select', 'from', 'where', 'having', 'limit', 'offset', 'union', 'join', 'left', 'right',
-  'inner', 'outer', 'on', 'by', 'distinct', 'insert', 'update', 'delete', 'create', 'drop',
-  'alter', 'desc', 'asc', 'null', 'true', 'false', 'and', 'or', 'not', 'in', 'is', 'like',
-  'between', 'case', 'when', 'then', 'else', 'end', 'to', 'with', 'using', 'natural',
+  'order',
+  'group',
+  'user',
+  'key',
+  'index',
+  'check',
+  'default',
+  'values',
+  'range',
+  'rank',
+  'row',
+  'rows',
+  'position',
+  'system',
+  'usage',
+  'zone',
+  'language',
+  'level',
+  'method',
+  'option',
+  'state',
+  'year',
+  'month',
+  'day',
+  'hour',
+  'minute',
+  'second',
+  'interval',
+  'primary',
+  'foreign',
+  'references',
+  'constraint',
+  'column',
+  'database',
+  'schema',
+  'select',
+  'from',
+  'where',
+  'having',
+  'limit',
+  'offset',
+  'union',
+  'join',
+  'left',
+  'right',
+  'inner',
+  'outer',
+  'on',
+  'by',
+  'distinct',
+  'insert',
+  'update',
+  'delete',
+  'create',
+  'drop',
+  'alter',
+  'desc',
+  'asc',
+  'null',
+  'true',
+  'false',
+  'and',
+  'or',
+  'not',
+  'in',
+  'is',
+  'like',
+  'between',
+  'case',
+  'when',
+  'then',
+  'else',
+  'end',
+  'to',
+  'with',
+  'using',
+  'natural',
 ]
 
 const RESERVED = new Set([...DBML_KEYWORDS, ...SQL_KEYWORDS])
@@ -46,13 +115,53 @@ export function toDbml(model: ErdModel): string {
   const refs = model.relations
     .filter((relation) => known.has(relation.from.table) && known.has(relation.to.table))
     .map(
-    (relation) =>
-      `Ref: ${quoteName(relation.from.table)}.${quoteName(relation.from.column)} > ` +
-      `${quoteName(relation.to.table)}.${quoteName(relation.to.column)}` +
-      (relation.onDelete === '' ? '' : ` [delete: ${relation.onDelete}]`),
-  )
+      (relation) =>
+        `Ref: ${qualifiedName(relation.from.table)}.${quoteName(relation.from.column)} > ` +
+        `${qualifiedName(relation.to.table)}.${quoteName(relation.to.column)}` +
+        (relation.onDelete === '' ? '' : ` [delete: ${relation.onDelete}]`),
+    )
 
-  return `${[...blocks, ...refs].join('\n\n')}\n`
+  const enums = model.enums.map(enumBlock)
+  const groups = model.groups.map(groupBlock)
+  const notes = model.notes.map(noteBlock)
+
+  return `${[...blocks, ...enums, ...refs, ...groups, ...notes].join('\n\n')}\n`
+}
+
+function enumBlock(declared: ErdEnum): string {
+  return `Enum ${quoteName(declared.name)} {\n${declared.values
+    .map((value) => `  ${quoteName(value)}`)
+    .join('\n')}\n}`
+}
+
+function groupBlock(group: ErdGroup): string {
+  // The colour is written back exactly as the design spells it, although the
+  // parser cannot read it: the prepass lifts it off again on the way in, so the
+  // setting survives a round-trip instead of being lost on the first save.
+  const settings = group.color === null ? '' : ` [color: ${group.color}]`
+
+  return `TableGroup ${quoteName(group.name)}${settings} {\n${group.tables
+    .map((table) => `  ${qualifiedName(table)}`)
+    .join('\n')}\n}`
+}
+
+function noteBlock(note: ErdNote): string {
+  return `Note ${quoteName(note.name)} {\n  ${quoteText(note.text)}\n}`
+}
+
+/**
+ * A qualified name is two identifiers around a dot, each quoted on its own.
+ *
+ * Quoting the whole of `landlord.tenants` would declare one table whose name
+ * contains a dot, in the `public` schema — which parses, and then draws the
+ * wrong diagram.
+ */
+function qualifiedName(name: string): string {
+  const dot = name.indexOf('.')
+
+  return dot < 0
+    ? quoteName(name)
+    : `${quoteName(name.slice(0, dot))}.${quoteName(name.slice(dot + 1))}`
 }
 
 function tableBlock(table: ErdTable): string {
@@ -70,7 +179,26 @@ function tableBlock(table: ErdTable): string {
     lines.push('  }')
   }
 
-  return `Table ${quoteName(table.name)} {\n${lines.join('\n')}\n}`
+  const settings: string[] = []
+
+  if (table.headerColor !== null) {
+    settings.push(`headercolor: ${table.headerColor}`)
+  }
+
+  if (table.note !== null) {
+    settings.push(`note: ${quoteText(table.note)}`)
+  }
+
+  const head = `Table ${qualifiedName(table.name)}${
+    settings.length === 0 ? '' : ` [${settings.join(', ')}]`
+  }`
+
+  return `${head} {\n${lines.join('\n')}\n}`
+}
+
+/** A DBML string setting: single-quoted, with its own quotes escaped. */
+function quoteText(text: string): string {
+  return `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 }
 
 function columnLine(column: ErdColumn): string {
@@ -80,11 +208,23 @@ function columnLine(column: ErdColumn): string {
     settings.push('pk')
   }
 
+  if (column.increment) {
+    settings.push('increment')
+  }
+
   if (column.unique) {
     settings.push('unique')
   }
 
   settings.push(column.nullable ? 'null' : 'not null')
+
+  if (column.defaultValue !== null) {
+    settings.push(`default: ${quoteText(column.defaultValue)}`)
+  }
+
+  if (column.note !== null) {
+    settings.push(`note: ${quoteText(column.note)}`)
+  }
 
   return `${quoteName(column.name)} ${quoteType(column.type)} [${settings.join(', ')}]`
 }

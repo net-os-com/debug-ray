@@ -16,11 +16,13 @@ export async function schemaTables(
   containerId: string,
   workingDir: string,
   tenant: string,
+  /** Reads this database instead of the one the connection points at. */
+  database = '',
 ): Promise<SchemaTable[]> {
   const root = workingDir || '/var/www/html'
   const result = await runDocker(
     ['exec', '-i', '-w', root, containerId, 'php'],
-    program(root, tenant),
+    program(root, tenant, database),
     SCHEMA_TIMEOUT_MS,
   )
 
@@ -40,9 +42,16 @@ export async function schemaTables(
   }
 }
 
-export function program(root: string, tenant: string): string {
+export function program(root: string, tenant: string, database = ''): string {
+  // Repointing the default connection rather than threading one through every
+  // call: the rest of the program asks Schema::getFacadeRoot() and
+  // DB::connection() with no argument, and both follow the default.
   const initialise =
-    tenant === ''
+    database !== ''
+      ? `$__name = config('database.default');
+config(['database.connections.' . $__name . '.database' => ${JSON.stringify(database)}]);
+Illuminate\\Support\\Facades\\DB::purge($__name);`
+      : tenant === ''
       ? ''
       : `$__model = config('tenancy.tenant_model');
 if (is_string($__model) && class_exists($__model)) {

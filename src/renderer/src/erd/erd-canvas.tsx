@@ -1,13 +1,14 @@
 import type { Layout, Point } from './arrange'
 import { groupRects } from './groups'
-import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel } from './model'
+import { GripIcon } from './icons'
+import { CARD_WIDTH, cardHeight, COLUMN_ROW_HEIGHT, type ErdModel, type ErdTable } from './model'
 import { RelationsLayer } from './relations-layer'
 import type { Sticky } from './stickies'
 import { StickyNote } from './sticky-note'
 import { TableCard } from './table-card'
 
-const MIN_ZOOM = 0.2
-const MAX_ZOOM = 2
+export const MIN_ZOOM = 0.2
+export const MAX_ZOOM = 2
 
 export type View = { x: number; y: number; z: number }
 
@@ -49,14 +50,15 @@ type ErdCanvasProps = {
   layout: Layout
   view: View
   selected: string | null
+  /** Which tables the search and the scope filter match; the rest are dimmed. */
+  matches: (table: ErdTable) => boolean
   onView: (view: View) => void
   onSelect: (table: string | null) => void
   onMove: (table: string, at: Point) => void
-  onColumn: ((table: string, column: string) => void) | null
+  onColumn: (table: string, column: string) => void
   stickies: Sticky[]
-  onStickyMove: (id: string, at: Point) => void
-  onStickyText: (id: string, text: string) => void
-  onStickyRemove: (id: string) => void
+  onStickyMove: (name: string, at: Point) => void
+  onGroupMove: (group: string, delta: Point) => void
 }
 
 export function ErdCanvas({
@@ -64,14 +66,14 @@ export function ErdCanvas({
   layout,
   view,
   selected,
+  matches,
   onView,
   onSelect,
   onMove,
   onColumn,
   stickies,
   onStickyMove,
-  onStickyText,
-  onStickyRemove,
+  onGroupMove,
 }: ErdCanvasProps) {
   const rowOf = (table: string, column: string): number => {
     const found = model.tables.find((one) => one.name === table)
@@ -107,15 +109,22 @@ export function ErdCanvas({
         window.addEventListener('pointerup', up)
       }}
       onWheel={(event) => {
-        // Zoom is applied around the layer's origin rather than the cursor.
-        // That is what Fit exists for; anchoring to the pointer is a
-        // refinement, not a requirement of this pass.
+        // Anchored on the pointer: zooming toward the middle of the viewport
+        // walks the table you are looking at off the edge on a wide schema.
+        const box = event.currentTarget.getBoundingClientRect()
+        const px = event.clientX - box.left
+        const py = event.clientY - box.top
         const next = Math.min(
           MAX_ZOOM,
           Math.max(MIN_ZOOM, view.z * (event.deltaY < 0 ? 1.1 : 1 / 1.1)),
         )
+        const ratio = next / view.z
 
-        onView({ ...view, z: next })
+        onView({
+          x: px - (px - view.x) * ratio,
+          y: py - (py - view.y) * ratio,
+          z: next,
+        })
       }}
     >
       <div
@@ -126,35 +135,70 @@ export function ErdCanvas({
           <div
             className="erd-group"
             key={rect.name}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+
+              const start = { x: event.clientX, y: event.clientY }
+              let last = { x: 0, y: 0 }
+              const move = (moved: PointerEvent): void => {
+                const now = {
+                  x: (moved.clientX - start.x) / view.z,
+                  y: (moved.clientY - start.y) / view.z,
+                }
+
+                onGroupMove(rect.name, { x: now.x - last.x, y: now.y - last.y })
+                last = now
+              }
+              const up = (): void => {
+                window.removeEventListener('pointermove', move)
+                window.removeEventListener('pointerup', up)
+              }
+
+              window.addEventListener('pointermove', move)
+              window.addEventListener('pointerup', up)
+            }}
             style={{
               transform: `translate(${rect.x}px, ${rect.y}px)`,
               width: `${rect.width}px`,
               height: `${rect.height}px`,
+              background: `${rect.color}14`,
+              borderColor: `${rect.color}55`,
             }}
+            title="Drag to move group"
           >
-            <span className="erd-group__name">{rect.name}</span>
+            <span className="erd-group__name" style={{ color: rect.color }}>
+              <GripIcon />
+              {rect.name}
+            </span>
           </div>
         ))}
-        <RelationsLayer layout={layout} relations={model.relations} rowOf={rowOf} />
+
+        <RelationsLayer
+          layout={layout}
+          relations={model.relations}
+          rowOf={rowOf}
+          selected={selected}
+        />
+
         {stickies.map((sticky) => (
           <StickyNote
-            key={sticky.id}
-            onMove={(at) => onStickyMove(sticky.id, at)}
-            onRemove={() => onStickyRemove(sticky.id)}
-            onText={(text) => onStickyText(sticky.id, text)}
+            key={sticky.name}
+            onMove={(at) => onStickyMove(sticky.name, at)}
             sticky={sticky}
             zoom={view.z}
           />
         ))}
+
         {model.tables.map((table) => {
           const at = layout[table.name]
 
           return at ? (
             <TableCard
               at={at}
+              dimmed={!matches(table)}
               enums={model.enums}
               key={table.name}
-              onColumn={onColumn === null ? null : (column) => onColumn(table.name, column)}
+              onColumn={(column) => onColumn(table.name, column)}
               onMove={(point) => onMove(table.name, point)}
               onSelect={() => onSelect(table.name)}
               selected={selected === table.name}
