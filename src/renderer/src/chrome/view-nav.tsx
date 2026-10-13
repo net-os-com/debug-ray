@@ -1,4 +1,4 @@
-export type View = 'stream' | 'requests' | 'tinker' | 'api' | 'tools' | 'settings'
+export type View = 'stream' | 'requests' | 'tinker' | 'api' | 'erd' | 'tools' | 'settings'
 
 type ViewNavProps = {
   view: View
@@ -10,6 +10,7 @@ const LABELS = {
   requests: 'Requests',
   tinker: 'Tinker',
   api: 'API',
+  erd: 'ERD',
   tools: 'Tools',
 } as const
 
@@ -17,7 +18,7 @@ const LABELS = {
 export function ViewNav({ view, onSelect }: ViewNavProps) {
   return (
     <div className="view-nav">
-      {(['stream', 'requests', 'tinker', 'api', 'tools'] as const).map((key) => (
+      {(['stream', 'requests', 'tinker', 'api', 'erd', 'tools'] as const).map((key) => (
         <button
           className={view === key ? 'view-nav__item view-nav__item--active' : 'view-nav__item'}
           key={key}

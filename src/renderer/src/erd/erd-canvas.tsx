@@ -46,8 +46,6 @@ type ErdCanvasProps = {
   layout: Layout
   view: View
   selected: string | null
-  /** The schema's own database, so a card from elsewhere can say so. */
-  database: string
   onView: (view: View) => void
   onSelect: (table: string | null) => void
   onMove: (table: string, at: Point) => void
@@ -58,7 +56,6 @@ export function ErdCanvas({
   layout,
   view,
   selected,
-  database,
   onView,
   onSelect,
   onMove,
@@ -119,7 +116,6 @@ export function ErdCanvas({
           return at ? (
             <TableCard
               at={at}
-              foreign={table.database !== database}
               key={table.name}
               onMove={(point) => onMove(table.name, point)}
               onSelect={() => onSelect(table.name)}

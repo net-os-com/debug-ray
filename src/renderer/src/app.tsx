@@ -13,6 +13,8 @@ import { SettingsProvider } from './settings-context'
 import { notificationFor } from './notification-text'
 import { ApiView } from './api/api-view'
 import { useApi } from './api/use-api'
+import { ErdView } from './erd/erd-view'
+import { useErd } from './erd/use-erd'
 import { RequestsView } from './requests/requests-view'
 import { useRequests } from './requests/use-requests'
 import { SettingsView } from './settings/settings-view'
@@ -58,6 +60,9 @@ export function App() {
   const logs = useLogs(tinker.container)
   const queues = useQueues(tinker.container)
   const schema = useSchema(tinker.container, tinker.tenants)
+  // Fed by the same schema the Tools view reads, so a tenant picked in one
+  // place cannot leave the other showing a different database.
+  const erd = useErd(tinker.container, schema.tables, schema.tenant)
   const scout = useScout(tinker.container, tinker.tenants)
   const tests = useTests(tinker.container)
   const [tool, setTool] = useState<ToolKey>('artisan')
@@ -174,6 +179,19 @@ export function App() {
                     }
                   : null
               }
+            />
+          ) : view === 'erd' ? (
+            <ErdView
+              erd={erd}
+              loading={schema.loading}
+              onImport={() => void schema.loadTables()}
+              // Only the tenant is set here: loadTables closes over the tenant
+              // it was created with, so calling it in the same tick would read
+              // the database you just switched away from. setTenant clears the
+              // tables, which puts the view back on its own import button.
+              onTenant={schema.setTenant}
+              tenant={schema.tenant}
+              tenants={tinker.tenants}
             />
           ) : view === 'tools' ? (
             <ToolsView

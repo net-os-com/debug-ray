@@ -5,13 +5,11 @@ type TableCardProps = {
   table: ErdTable
   at: Point
   selected: boolean
-  /** Shown on the card only when it differs from the schema's own database. */
-  foreign: boolean
   onSelect: () => void
   onMove: (point: Point) => void
 }
 
-export function TableCard({ table, at, selected, foreign, onSelect, onMove }: TableCardProps) {
+export function TableCard({ table, at, selected, onSelect, onMove }: TableCardProps) {
   return (
     <div
       className={selected ? 'erd-card erd-card--selected' : 'erd-card'}
@@ -42,7 +40,6 @@ export function TableCard({ table, at, selected, foreign, onSelect, onMove }: Ta
     >
       <div className="erd-card__head">
         <span className="erd-card__name">{table.name}</span>
-        {foreign ? <span className="erd-card__db">{table.database}</span> : null}
       </div>
       {table.columns.map((column) => (
         <div className="erd-card__row" key={column.name}>

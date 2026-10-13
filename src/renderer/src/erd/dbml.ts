@@ -80,9 +80,20 @@ function columnLine(column: ErdColumn): string {
 
   settings.push(column.nullable ? 'null' : 'not null')
 
-  // The type is left bare: `varchar(255)` and `decimal(8,2)` are valid DBML
-  // as written, and quoting them would wrap nearly every column for nothing.
-  return `${quote(column.name)} ${column.type} [${settings.join(', ')}]`
+  return `${quote(column.name)} ${type(column.type)} [${settings.join(', ')}]`
+}
+
+/** A bare DBML type: a name, optionally with parenthesised arguments. */
+const BARE_TYPE = /^[A-Za-z_][A-Za-z0-9_]*(\([^()]*\))?$/
+
+/**
+ * `varchar(255)` and `decimal(8,2)` are valid DBML as written, so they stay
+ * bare. `bigint unsigned` is not — the parser stops at the space — and MySQL
+ * hands back plenty of those, along with `double precision` and the rest. Those
+ * are quoted, which DBML accepts for a type just as it does for a name.
+ */
+function type(name: string): string {
+  return BARE_TYPE.test(name) ? name : `"${name.replace(/"/g, '\\"')}"`
 }
 
 /**

@@ -6067,6 +6067,13 @@ body.is-resizing {
   color: var(--err-fg, rgb(185 28 28));
 }
 
+/* Carries the measured box Fit reads; the canvas fills it. */
+.erd-canvas-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .erd-canvas {
   flex: 1;
   min-height: 0;
@@ -6145,11 +6152,6 @@ body.is-resizing {
   color: var(--t1);
 }
 
-.erd-card__db {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--t3);
-}
 
 .erd-card__row {
   display: flex;
