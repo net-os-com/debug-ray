@@ -7682,3 +7682,39 @@ body.is-resizing {
   line-height: 1.5;
   color: var(--t3);
 }
+
+.erd__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--t3);
+}
+
+/*
+ * Borderless on three sides and coloured on the fourth, spun: the plain way to
+ * draw a ring that is clearly turning without an image or a library.
+ */
+.erd__spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--app-border);
+  border-top-color: var(--t3);
+  animation: erd-spin 0.7s linear infinite;
+}
+
+@keyframes erd-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Honours the system setting: a spinner is decoration, not information. */
+@media (prefers-reduced-motion: reduce) {
+  .erd__spinner {
+    animation: none;
+  }
+}

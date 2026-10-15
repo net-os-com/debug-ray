@@ -7,6 +7,8 @@ export type TinkerState = ReturnType<typeof useTinker>
 
 export function useTinker(pinned: string) {
   const [containers, setContainers] = useState<TinkerContainer[]>([])
+  /** Whether Docker has answered yet; an empty list means both "none" and "not asked". */
+  const [containersRead, setContainersRead] = useState(false)
   const [containerId, setContainerId] = useState<string | null>(null)
   const [tenants, setTenants] = useState<string[]>([])
   const [tenant, setTenant] = useState('')
@@ -38,6 +40,7 @@ export function useTinker(pinned: string) {
         setContainerId((current) => (changed ? choose(found, pinned) : (current ?? choose(found, pinned))))
       })
       .catch((error: Error) => setProblem(error.message))
+      .finally(() => setContainersRead(true))
   }, [pinned])
 
   const container = useMemo(
@@ -117,6 +120,7 @@ export function useTinker(pinned: string) {
 
   return {
     containers,
+    containersRead,
     container,
     selectContainer: setContainerId,
     selectContainerByName: useCallback(

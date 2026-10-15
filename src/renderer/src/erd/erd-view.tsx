@@ -103,7 +103,11 @@ export function ErdView({
   // has no tables either, and showing the start screen for it hid the problem
   // pane that explains why — while offering an import that would overwrite the
   // very file you could not see.
-  const empty = erd.code.trim() === ''
+  //
+  // And only once the file has actually been read. An unread source is empty
+  // too, so the start screen used to flash on the way in and offer an import
+  // over a schema that was a moment from arriving.
+  const empty = !erd.loading && erd.code.trim() === ''
 
   return (
     <div className="erd" onClick={() => setMenu(null)}>
@@ -189,14 +193,6 @@ export function ErdView({
                   >
                     <span className="erd__item-label">From Laravel migrations</span>
                     <span className="erd__item-meta">run in a throwaway database</span>
-                  </button>
-                  <button
-                    className="erd__item"
-                    onClick={() => replacing('the example', erd.insertExample)}
-                    type="button"
-                  >
-                    <span className="erd__item-label">NetOS example</span>
-                    <span className="erd__item-meta">landlord, tenants, activities</span>
                   </button>
                 </div>
               ) : null}
@@ -366,6 +362,17 @@ export function ErdView({
               />
             )}
 
+            {erd.loading ? (
+              <div className="erd__empty">
+                <div className="erd__empty-inner">
+                  <div className="erd__loading">
+                    <span className="erd__spinner" />
+                    Reading schema.dbml
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {empty ? (
               <div className="erd__empty">
                 <div className="erd__empty-inner">
@@ -377,13 +384,6 @@ export function ErdView({
                   <div className="erd__empty-actions">
                     <button
                       className="button button--primary"
-                      onClick={() => replacing('the example', erd.insertExample)}
-                      type="button"
-                    >
-                      Insert NetOS example
-                    </button>
-                    <button
-                      className="button"
                       disabled={loading}
                       onClick={() => replacing('the live schema', onImport)}
                       type="button"

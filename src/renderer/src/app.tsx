@@ -66,7 +66,7 @@ export function App() {
   const schema = useSchema(tinker.container, tinker.tenants)
   // Fed by the same schema the Tools view reads, so a tenant picked in one
   // place cannot leave the other showing a different database.
-  const erd = useErd(tinker.container, schema.tables, schema.tenant)
+  const erd = useErd(tinker.container, schema.tables, schema.tenant, tinker.containersRead)
   const scout = useScout(tinker.container, tinker.tenants)
   const tests = useTests(tinker.container)
   const [tool, setTool] = useState<ToolKey>('artisan')

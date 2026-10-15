@@ -3,7 +3,6 @@ import type { TinkerContainer } from '../../../shared/tinker'
 import type { SchemaTable } from '../../../shared/tools'
 import { arrange, type Layout, type Point } from './arrange'
 import { toDbml } from './dbml'
-import { NETOS_EXAMPLE } from './example'
 import type { View } from './erd-canvas'
 import type { ErdModel, ErdTable } from './model'
 import { parseDbml } from './parse'
@@ -21,7 +20,13 @@ const EMPTY: ErdModel = { tables: [], relations: [], enums: [], groups: [], note
  * Tools view uses, and importing turns that into source rather than into a
  * diagram of its own.
  */
-export function useErd(container: TinkerContainer | null, tables: SchemaTable[], tenant: string) {
+export function useErd(
+  container: TinkerContainer | null,
+  tables: SchemaTable[],
+  tenant: string,
+  /** False until Docker has answered, so "no container" is told from "not asked". */
+  containersRead: boolean,
+) {
   const [code, setCode] = useState('')
   const [committed, setCommitted] = useState('')
   const [committedLayout, setCommittedLayout] = useState('{}')
@@ -76,6 +81,10 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     if (container === null) {
       return
     }
+
+    // Lowered again for a second container, or the next read would show the
+    // previous schema's result while it is still fetching.
+    setRead(false)
 
     let cancelled = false
 
@@ -210,6 +219,20 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
     setError,
     saving,
     save,
+    /**
+     * True while there is still something to wait for.
+     *
+     * The view cannot tell "no schema yet" from "not read yet" by looking at
+     * the source — both are empty — so without this the start screen flashed
+     * on the way in, offering to import over a file that was about to arrive.
+     *
+     * The container counts as waiting too. Gating on the read alone only moved
+     * the flash earlier: the container list arrives from Docker a moment after
+     * the window does, and until it has there is no container to read from, so
+     * the start screen showed in that gap instead. Once Docker has answered
+     * and there is genuinely no container, there is nothing to wait for.
+     */
+    loading: !containersRead || (container !== null && !read),
     toast,
     announce,
     /** True when the editor or the canvas holds something the repository does not. */
@@ -309,10 +332,6 @@ export function useErd(container: TinkerContainer | null, tables: SchemaTable[],
         setMigrating(false)
       }
     }, [container, announce]),
-    insertExample: useCallback(() => {
-      setCode(NETOS_EXAMPLE)
-      setError(null)
-    }, []),
     /**
      * Asks for an import rather than performing one.
      *
