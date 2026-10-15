@@ -1,4 +1,5 @@
 import { withImplicitReturn } from './implicit-return'
+import { phpBootstrap } from '../exec/bootstrap'
 
 /**
  * `use` at the top of a snippet, the way the design's examples are written.
@@ -47,9 +48,7 @@ export function buildProgram(root: string, tenant: string, code: string): Progra
     '<?php',
     ...imports,
     '',
-    `require ${quote(root)} . '/vendor/autoload.php';`,
-    `$__netosApp = require ${quote(root)} . '/bootstrap/app.php';`,
-    '$__netosApp->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();',
+    phpBootstrap(root),
     '',
     tenantSetup(tenant),
     walker(),

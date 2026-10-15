@@ -1,6 +1,7 @@
 import type { SchemaTable } from '../../shared/tools'
 import { runDocker } from '../exec/run-docker'
 import { schemaTables } from '../tools/schema'
+import { phpBootstrap } from '../exec/bootstrap'
 
 const MIGRATE_TIMEOUT_MS = 180_000
 
@@ -72,9 +73,7 @@ function php(
   body: string,
 ): Promise<{ stdout: string; stderr: string }> {
   const program = `<?php
-require ${JSON.stringify(root)} . '/vendor/autoload.php';
-$__app = require ${JSON.stringify(root)} . '/bootstrap/app.php';
-$__app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+${phpBootstrap(root)}
 
 ${body}
 `

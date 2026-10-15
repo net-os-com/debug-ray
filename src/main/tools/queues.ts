@@ -1,5 +1,6 @@
 import type { FailedJob, QueueReport, QueueRow, SupervisorRow } from '../../shared/tools'
 import { runDocker } from '../exec/run-docker'
+import { phpBootstrap } from '../exec/bootstrap'
 
 const QUEUE_TIMEOUT_MS = 60_000
 
@@ -60,9 +61,7 @@ function firstLine(text: string): string {
 /** Exported for the shape test; nothing else should need it. */
 export function program(root: string): string {
   return `<?php
-require ${JSON.stringify(root)} . '/vendor/autoload.php';
-$__app = require ${JSON.stringify(root)} . '/bootstrap/app.php';
-$__app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+${phpBootstrap(root)}
 
 $__report = [
     'horizon' => class_exists(Laravel\\Horizon\\Horizon::class),

@@ -1,5 +1,6 @@
 import type { SchemaTable } from '../../shared/tools'
 import { runDocker } from '../exec/run-docker'
+import { phpBootstrap } from '../exec/bootstrap'
 
 const SCHEMA_TIMEOUT_MS = 60_000
 
@@ -60,9 +61,7 @@ if (is_string($__model) && class_exists($__model)) {
 }`
 
   return `<?php
-require ${JSON.stringify(root)} . '/vendor/autoload.php';
-$__app = require ${JSON.stringify(root)} . '/bootstrap/app.php';
-$__app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+${phpBootstrap(root)}
 
 ${initialise}
 

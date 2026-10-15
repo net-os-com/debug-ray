@@ -31,6 +31,15 @@ export type TinkerContainer = {
   status: string
   workingDir: string
   running: boolean
+  /**
+   * Whether a Laravel application actually lives at `workingDir`.
+   *
+   * The picker offers every PHP container on the machine, and "PHP container"
+   * is not the same thing as "this application": a WordPress one answers to
+   * `/var/www/html` too, and running a program in it fails inside `require`.
+   * Unknown for a stopped container — nothing can be read from one.
+   */
+  laravel: boolean | null
 }
 
 /**

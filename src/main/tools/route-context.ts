@@ -1,5 +1,6 @@
 import type { RouteContext } from '../../shared/tools'
 import { runDocker } from '../exec/run-docker'
+import { phpBootstrap } from '../exec/bootstrap'
 
 const CONTEXT_TIMEOUT_MS = 90_000
 
@@ -61,9 +62,7 @@ export function forgetRouteContexts(): void {
 
 function program(root: string): string {
   return `<?php
-require ${JSON.stringify(root)} . '/vendor/autoload.php';
-$__app = require ${JSON.stringify(root)} . '/bootstrap/app.php';
-$__app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+${phpBootstrap(root)}
 
 $__rows = [];
 $__hasData = class_exists(Spatie\\LaravelData\\Data::class);

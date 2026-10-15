@@ -37,6 +37,10 @@ export async function listContainers(): Promise<TinkerContainer[]> {
   }
 
   const dirs = await workingDirs(rows.map((row) => row.ID as string))
+  const running = rows.filter((row) => (row.State ?? '') === 'running')
+  const laravel = await holdsLaravel(
+    running.map((row) => ({ id: row.ID as string, dir: dirs.get(row.ID as string) ?? '' })),
+  )
 
   const all = rows.map((row) => ({
     id: row.ID as string,
@@ -45,6 +49,7 @@ export async function listContainers(): Promise<TinkerContainer[]> {
     status: row.Status ?? '',
     workingDir: dirs.get(row.ID as string) ?? '',
     running: (row.State ?? '') === 'running',
+    laravel: (row.State ?? '') === 'running' ? (laravel.get(row.ID as string) ?? false) : null,
   }))
 
   const likely = all.filter(
@@ -57,7 +62,50 @@ export async function listContainers(): Promise<TinkerContainer[]> {
   // its containers something we did not think of.
   const shown = likely.length > 0 ? likely : all
 
-  return shown.sort((a, b) => Number(b.running) - Number(a.running) || a.name.localeCompare(b.name))
+  // Containers that hold this application come first, then the rest of the PHP
+  // ones. Sorting on `running` and the name alone put a WordPress container
+  // called houtstaet-wordpress-1 ahead of net-os_local-php-1, and the app
+  // picked it — the name tells you nothing about what is inside.
+  return shown.sort(
+    (a, b) =>
+      Number(b.running) - Number(a.running) ||
+      Number(b.laravel === true) - Number(a.laravel === true) ||
+      a.name.localeCompare(b.name),
+  )
+}
+
+const LARAVEL_PROBE_MS = 8_000
+
+/**
+ * Which running containers have a Laravel application where they start.
+ *
+ * `artisan` as well as the autoloader: a package with a `vendor` directory of
+ * its own is not an application you can boot. One exec per container, all at
+ * once, because a call each makes opening the picker crawl; a container that
+ * does not answer is simply not one we can say yes about.
+ */
+async function holdsLaravel(
+  containers: { id: string; dir: string }[],
+): Promise<Map<string, boolean>> {
+  const answers = await Promise.all(
+    containers.map(async ({ id, dir }) => {
+      const root = dir || '/var/www/html'
+      const result = await runDocker(
+        ['exec', id, 'sh', '-c', `test -f ${shellQuote(`${root}/artisan`)} && test -f ${shellQuote(`${root}/vendor/autoload.php`)} && echo yes`],
+        null,
+        LARAVEL_PROBE_MS,
+      ).catch(() => ({ stdout: '', stderr: '', code: 1, timedOut: false }))
+
+      return [id, result.stdout.includes('yes')] as const
+    }),
+  )
+
+  return new Map(answers)
+}
+
+/** A path inside a `sh -c` string, so a directory with a space still works. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\''`)}'`
 }
 
 /** One inspect for every container; a call each would make opening the picker crawl. */

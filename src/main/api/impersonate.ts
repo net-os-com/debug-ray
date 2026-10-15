@@ -1,5 +1,6 @@
 import type { ApiUser, MintedToken } from '../../shared/api'
 import { runDocker } from '../exec/run-docker'
+import { phpBootstrap } from '../exec/bootstrap'
 
 const USERS_TIMEOUT_MS = 30_000
 const MINT_TIMEOUT_MS = 30_000
@@ -111,9 +112,7 @@ function firstLine(text: string): string {
 /** Tenancy has to be initialised first: users live in the tenant's database. */
 function boot(root: string, tenant: string): string {
   return `<?php
-require ${JSON.stringify(root)} . '/vendor/autoload.php';
-$__app = require ${JSON.stringify(root)} . '/bootstrap/app.php';
-$__app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+${phpBootstrap(root)}
 
 $__model = config('tenancy.tenant_model');
 

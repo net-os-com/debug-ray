@@ -53,7 +53,7 @@ export function App() {
     slowMs: settings.slowRequestMs,
     collect: settings.collectRequests,
   })
-  const tinker = useTinker()
+  const tinker = useTinker(settings.container)
   const api = useApi(tinker.container)
   const snippets = useSnippets()
   const artisan = useArtisan(tinker.container)
@@ -239,6 +239,7 @@ export function App() {
               <section className="app__content">
                 {view === 'settings' ? (
                   <SettingsView
+                    containers={tinker.containers}
                     onClose={() => setView('stream')}
                     onSet={setSetting}
                     onToggle={toggleSetting}

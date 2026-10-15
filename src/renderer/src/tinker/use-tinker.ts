@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TinkerContainer, TinkerOutcome } from '../../../shared/tinker'
 import { branchPaths } from './value-tree'
 
 /** Everything the Tinker view needs, owned in App so a run outlives a view switch. */
 export type TinkerState = ReturnType<typeof useTinker>
 
-export function useTinker() {
+export function useTinker(pinned: string) {
   const [containers, setContainers] = useState<TinkerContainer[]>([])
   const [containerId, setContainerId] = useState<string | null>(null)
   const [tenants, setTenants] = useState<string[]>([])
@@ -16,15 +16,29 @@ export function useTinker() {
   const [search, setSearch] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
 
+  /**
+   * The setting as it stood when the selection was last made from it.
+   *
+   * Changing the setting has to override whatever is selected — otherwise
+   * choosing a container in Settings does nothing until a restart, which is
+   * the opposite of what the control says. A refresh of the list with the same
+   * setting must not, or it would undo a pick made in the view's own picker.
+   */
+  const applied = useRef<string | null>(null)
+
   useEffect(() => {
+    const changed = applied.current !== pinned
+
+    applied.current = pinned
+
     void window.ray
       .getContainers()
       .then((found) => {
         setContainers(found)
-        setContainerId((current) => current ?? found.find((one) => one.running)?.id ?? null)
+        setContainerId((current) => (changed ? choose(found, pinned) : (current ?? choose(found, pinned))))
       })
       .catch((error: Error) => setProblem(error.message))
-  }, [])
+  }, [pinned])
 
   const container = useMemo(
     () => containers.find((one) => one.id === containerId) ?? null,
@@ -130,4 +144,29 @@ export function useTinker() {
     clear: useCallback(() => setOutcome(null), []),
     run,
   }
+}
+
+/**
+ * Which container to run in.
+ *
+ * The pinned name wins when Docker still knows it, and a stopped container with
+ * that name is still the answer — the user chose it, and silently running
+ * somewhere else is how a query lands in the wrong database. Otherwise the
+ * first running container that holds a Laravel application, and only then any
+ * running one at all.
+ */
+function choose(found: TinkerContainer[], pinned: string): string | null {
+  if (pinned !== '') {
+    const named = found.find((one) => one.name === pinned)
+
+    if (named !== undefined) {
+      return named.id
+    }
+  }
+
+  return (
+    found.find((one) => one.running && one.laravel === true)?.id ??
+    found.find((one) => one.running)?.id ??
+    null
+  )
 }

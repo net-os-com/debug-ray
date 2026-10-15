@@ -31,6 +31,16 @@ export type Settings = {
   notificationSound: boolean
   notificationCoalesceMs: number
 
+  /**
+   * The Docker container every PHP feature runs in, by name.
+   *
+   * By name and not by id: an id changes every time the container is recreated,
+   * which `docker compose up` does routinely, and a setting that silently stops
+   * matching is worse than one that was never set. Empty means "pick one",
+   * which prefers a container that actually holds this application.
+   */
+  container: string
+
   // Sources
   ignoredSources: string[]
 
@@ -61,6 +71,8 @@ export const DEFAULTS: Settings = {
   notifyOnEvent: false,
   notificationSound: true,
   notificationCoalesceMs: 3_000,
+
+  container: '',
 
   ignoredSources: [],
 

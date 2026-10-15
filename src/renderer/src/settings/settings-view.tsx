@@ -1,4 +1,5 @@
 import type { ServerStatus } from '../../../shared/ray-event'
+import type { TinkerContainer } from '../../../shared/tinker'
 import type { EditorChoice, Settings, StartView } from '../use-settings'
 import { ClientsCard } from './clients-card'
 import { McpCard } from './mcp-card'
@@ -25,12 +26,34 @@ const EDITORS: { value: EditorChoice; label: string }[] = [
 type SettingsViewProps = {
   settings: Settings
   status: ServerStatus | null
+  /** Offered in the container picker; read once by the Tinker view. */
+  containers: TinkerContainer[]
   onSet: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onToggle: (key: keyof Settings) => void
   onClose: () => void
 }
 
-export function SettingsView({ settings, status, onSet, onToggle, onClose }: SettingsViewProps) {
+export function SettingsView({
+  settings,
+  status,
+  containers,
+  onSet,
+  onToggle,
+  onClose,
+}: SettingsViewProps) {
+  const containerOptions = [
+    { value: '', label: 'Pick one automatically' },
+    ...containers.map((one) => ({
+      value: one.name,
+      label: `${one.name}${one.laravel === true ? '' : one.running ? '  ·  no Laravel app' : '  ·  stopped'}`,
+    })),
+  ]
+  // A name the setting holds but Docker does not know any more: shown so the
+  // select has something to display, rather than silently falling back to the
+  // first entry and looking as though nothing was ever chosen.
+  const missing =
+    settings.container !== '' && !containers.some((one) => one.name === settings.container)
+
   return (
     <div className="settings">
       <div className="settings__inner">
@@ -43,6 +66,24 @@ export function SettingsView({ settings, status, onSet, onToggle, onClose }: Set
             Back to stream
           </button>
         </div>
+
+        <SettingsSection title="Docker">
+          <SettingsSelect
+            hint={
+              missing
+                ? `There is no container called ${settings.container} right now. Tinker, the API view, the ERD and Tools all use this one.`
+                : 'Where Tinker, the API view, the ERD and Tools run their PHP. Picking automatically prefers a container that holds this application.'
+            }
+            label="Container"
+            onChange={(value) => onSet('container', value)}
+            options={
+              missing
+                ? [...containerOptions, { value: settings.container, label: `${settings.container}  ·  not running` }]
+                : containerOptions
+            }
+            value={settings.container}
+          />
+        </SettingsSection>
 
         <SettingsSection title="Window">
           <SettingsToggle
