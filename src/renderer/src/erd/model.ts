@@ -28,20 +28,36 @@ export function cardHeight(table: { columns: unknown[] }): number {
 /**
  * Which database a table lives in, as DBML's schema prefix spells it.
  *
- * `landlord.tenants` and `tenant.users` are the two this application has, and
+ * `central.tenants` and `tenant.users` are the two this application has, and
  * an unqualified table lands in `public`. It drives the card's header colour
  * and the badge on it, and it is what makes a reference between two of them
  * cross-database.
  */
 export type ErdScope = string
 
-export const LANDLORD = 'landlord'
+export const CENTRAL = 'central'
 export const TENANT = 'tenant'
 export const PUBLIC = 'public'
 
+/** What the central schema used to be called, and still is in committed files. */
+const LEGACY_CENTRAL = 'landlord'
+
+/**
+ * The scope a schema name stands for.
+ *
+ * `landlord` was the old spelling and is still written in every schema.dbml
+ * committed before the rename. Left as it was it would be an unknown scope:
+ * no colour, no match in the scope filter, and the migrations export would
+ * take those tables for a tenant's. Reading it as central costs one map and
+ * means an existing file keeps working; saving writes the new spelling.
+ */
+export function scopeOf(name: string): ErdScope {
+  return name === LEGACY_CENTRAL ? CENTRAL : name
+}
+
 /** The design's header colours, by scope. */
 export const SCOPE_COLORS: Record<string, string> = {
-  [LANDLORD]: '#0A2D51',
+  [CENTRAL]: '#0A2D51',
   [TENANT]: '#404040',
   [PUBLIC]: '#595959',
 }
@@ -83,7 +99,7 @@ export type ErdModel = {
 
 export type ErdTable = {
   /**
-   * The qualified name — `landlord.tenants` — which is the key everything else
+   * The qualified name — `central.tenants` — which is the key everything else
    * uses: the layout, the relation endpoints and the group membership. Two
    * schemas may each hold a `users`, so the bare name is not a key.
    */

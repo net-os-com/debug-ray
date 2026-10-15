@@ -118,7 +118,7 @@ function findBlock(code: string, group: string): Block | null {
   return null
 }
 
-/** `landlord.tenants` is two identifiers around a dot, each quoted on its own. */
+/** `central.tenants` is two identifiers around a dot, each quoted on its own. */
 function qualified(name: string): string {
   const dot = name.indexOf('.')
 
@@ -156,7 +156,7 @@ function commit(code: string): PatchResult {
  * Puts a table in one group, or in none.
  *
  * One call rather than a remove and an add, because DBML allows a table in at
- * most one group — "Table landlord.admins is already in group landlord", which
+ * most one group — "Table central.admins is already in group central", which
  * the parser says and this would otherwise hit on every move. So the control is
  * a choice, not a set of switches, and the old membership goes first.
  */

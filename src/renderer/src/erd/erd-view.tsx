@@ -5,7 +5,7 @@ import { ErdSidebar } from './erd-sidebar'
 import { toMigrations, toSql } from './exports'
 import { ChevronIcon, MinusIcon, PanelIcon, PlusIcon } from './icons'
 import { Inspector } from './inspector'
-import { LANDLORD, SCOPE_COLORS, TENANT } from './model'
+import { CENTRAL, SCOPE_COLORS, TENANT } from './model'
 import type { ErdState } from './use-erd'
 
 type Modal = { title: string; subtitle: string; text: string }
@@ -217,14 +217,14 @@ export function ErdView({
                     onClick={() =>
                       openExport(
                         'Laravel migrations',
-                        `${erd.model.tables.length} tables · landlord tables use the landlord connection`,
+                        `${erd.model.tables.length} tables · central tables use the central connection`,
                         toMigrations(erd.model),
                       )
                     }
                     type="button"
                   >
                     <span className="erd__item-label">Laravel migrations</span>
-                    <span className="erd__item-meta">split into landlord/ and tenant/</span>
+                    <span className="erd__item-meta">split into central/ and tenant/</span>
                   </button>
                   <button
                     className="erd__item"
@@ -327,8 +327,8 @@ export function ErdView({
             {erd.model.tables.length > 0 ? (
               <div className="erd__legend" onPointerDown={(event) => event.stopPropagation()}>
                 <span>
-                  <span className="erd__chip" style={{ background: SCOPE_COLORS[LANDLORD] }} />
-                  Landlord · central database
+                  <span className="erd__chip" style={{ background: SCOPE_COLORS[CENTRAL] }} />
+                  Central · the shared database
                 </span>
                 <span>
                   <span className="erd__chip" style={{ background: SCOPE_COLORS[TENANT] }} />
@@ -378,8 +378,8 @@ export function ErdView({
                 <div className="erd__empty-inner">
                   <div className="erd__empty-title">Start your schema</div>
                   <div className="erd__empty-hint">
-                    Write DBML on the left and the diagram draws itself. Use the landlord schema for
-                    the central database and tenant for tables every tenant database gets.
+                    Write DBML on the left and the diagram draws itself. Use the central schema for
+                    the shared database and tenant for tables every tenant database gets.
                   </div>
                   <div className="erd__empty-actions">
                     <button

@@ -3,6 +3,7 @@ import { prepass } from './prepass'
 import {
   PUBLIC,
   qualify,
+  scopeOf,
   type ErdColumn,
   type ErdModel,
   type ErdRelation,
@@ -90,7 +91,7 @@ export function parseDbml(source: string): Parsed {
       schemas: RawSchema[]
     }
 
-    // Every schema, not the first. `Table landlord.tenants` and
+    // Every schema, not the first. `Table central.tenants` and
     // `Table tenant.users` land in two schemas of their own and `schemas[0]` is
     // `public`, which on a fully qualified document holds nothing at all — so
     // reading only that one drew an empty canvas for the design's own example.
@@ -105,14 +106,16 @@ export function parseDbml(source: string): Parsed {
   const groups: ErdModel['groups'] = schemas.flatMap((one) =>
     (one.tableGroups ?? []).map((group) => ({
       name: group.name,
-      tables: group.tables.map((member) => qualify(member.schema?.name ?? PUBLIC, member.name)),
+      tables: group.tables.map((member) =>
+        qualify(scopeOf(member.schema?.name ?? PUBLIC), member.name),
+      ),
       color: lifted.colors[group.name] ?? null,
     })),
   )
 
   for (const schema of schemas) {
     for (const table of schema.tables) {
-      const scope = table.schema?.name ?? schema.name ?? PUBLIC
+      const scope = scopeOf(table.schema?.name ?? schema.name ?? PUBLIC)
       const key = qualify(scope, table.name)
       const columns: Record<string, SourceRange> = {}
 
@@ -227,7 +230,7 @@ function withReferences(model: ErdModel): ErdModel {
 
 function relations(schemas: RawSchema[], tables: ErdTable[]): ErdRelation[] {
   const out: ErdRelation[] = []
-  const scopeOf = new Map(tables.map((table) => [table.name, table.scope]))
+  const scopeByName = new Map(tables.map((table) => [table.name, table.scope]))
 
   for (const ref of schemas.flatMap((one) => one.refs)) {
     // Endpoints are [many, one]; the many side is the one holding the key.
@@ -238,8 +241,8 @@ function relations(schemas: RawSchema[], tables: ErdTable[]): ErdRelation[] {
       continue
     }
 
-    const fromTable = qualify(many.schemaName ?? PUBLIC, many.tableName)
-    const toTable = qualify(one.schemaName ?? PUBLIC, one.tableName)
+    const fromTable = qualify(scopeOf(many.schemaName ?? PUBLIC), many.tableName)
+    const toTable = qualify(scopeOf(one.schemaName ?? PUBLIC), one.tableName)
 
     many.fieldNames.forEach((field, index) => {
       const target = one.fieldNames[index]
@@ -250,7 +253,7 @@ function relations(schemas: RawSchema[], tables: ErdTable[]): ErdRelation[] {
           to: { table: toTable, column: target },
           onDelete: ref.onDelete ?? '',
           // Two different databases, which MySQL cannot enforce a key across.
-          crossDatabase: scopeOf.get(fromTable) !== scopeOf.get(toTable),
+          crossDatabase: scopeByName.get(fromTable) !== scopeByName.get(toTable),
         })
       }
     })

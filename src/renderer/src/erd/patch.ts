@@ -313,7 +313,7 @@ export function setHeaderColor(code: string, table: string, color: string | null
     },
     // The head is rebuilt from what it already said, not from the name alone.
     // Replacing the whole of `Table x [...] ` with a fresh `Table x [headercolor]`
-    // dropped a table's `note:` — the design's own `landlord.tenants` carries
+    // dropped a table's `note:` — the design's own `central.tenants` carries
     // both — and the result still parsed, so nothing caught it.
     //
     // `qualified`, not `quoteName`: the table's key is `tenant.settings`, and

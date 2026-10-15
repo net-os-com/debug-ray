@@ -5,7 +5,7 @@ import { groupColorOf, type ErdModel, type ErdTable } from './model'
 /** The scopes the filter offers, in the design's order. */
 const SCOPES: { key: string; label: string }[] = [
   { key: '', label: 'All' },
-  { key: 'landlord', label: 'Landlord' },
+  { key: 'central', label: 'Central' },
   { key: 'tenant', label: 'Tenant' },
 ]
 

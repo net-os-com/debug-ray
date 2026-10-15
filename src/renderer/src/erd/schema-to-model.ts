@@ -1,6 +1,6 @@
 import type { SchemaIndex, SchemaKey, SchemaTable } from '../../../shared/tools'
 import {
-  LANDLORD,
+  CENTRAL,
   qualify,
   TENANT,
   type ErdColumn,
@@ -27,11 +27,11 @@ export function schemaToModel(
   // is not worth the other thirty-four.
   const readable = tables.filter((table) => table.error === null && table.columns.length > 0)
   const known = new Set(readable.map((table) => table.name))
-  // The design names the two databases rather than numbering them: the central
-  // one is the landlord, and anything else is a tenant database. That name is
-  // what DBML writes as the schema prefix, so an import round-trips as
-  // `Table landlord.users` rather than losing which database a table came from.
-  const scope = database === centralDatabase || database === '' ? LANDLORD : TENANT
+  // The two databases are named rather than numbered: one central, and
+  // anything else a tenant's. That name is what DBML writes as the schema
+  // prefix, so an import round-trips as `Table central.users` rather than
+  // losing which database a table came from.
+  const scope = database === centralDatabase || database === '' ? CENTRAL : TENANT
 
   return {
     tables: readable.map((table) => toTable(table, scope)),
@@ -121,10 +121,10 @@ function toRelations(
         {
           from: { table: qualify(scope, table.name), column },
           // A key whose target this reader never saw points at the central
-          // database, so it is qualified as the landlord's rather than as one
-          // of ours.
+          // database, so it is qualified as the central one's rather than as
+          // one of ours.
           to: {
-            table: qualify(crossDatabase ? LANDLORD : scope, key.table),
+            table: qualify(crossDatabase ? CENTRAL : scope, key.table),
             column: foreign,
           },
           onDelete: key.onDelete,

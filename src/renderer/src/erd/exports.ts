@@ -1,4 +1,4 @@
-import { LANDLORD, type ErdColumn, type ErdModel, type ErdTable } from './model'
+import { CENTRAL, type ErdColumn, type ErdModel, type ErdTable } from './model'
 
 /**
  * The schema as Laravel migrations, and as SQL.
@@ -14,12 +14,12 @@ export function toMigrations(model: ErdModel): string {
 }
 
 function migration(table: ErdTable, model: ErdModel): string {
-  const file = `database/migrations/${table.scope === LANDLORD ? 'landlord' : 'tenant'}/xxxx_xx_xx_create_${bare(
+  const file = `database/migrations/${table.scope === CENTRAL ? 'central' : 'tenant'}/xxxx_xx_xx_create_${bare(
     table.name,
   )}_table.php`
   const connection =
-    table.scope === LANDLORD
-      ? "    protected ?string $connection = 'landlord';\n\n"
+    table.scope === CENTRAL
+      ? "    protected ?string $connection = 'central';\n\n"
       : ''
   const lines = table.columns.map((column) => `            ${blueprint(column)}`)
 

@@ -86,7 +86,7 @@ function isPivot(table: ErdTable, model: ErdModel): boolean {
   return outgoing.length === 2 && !table.columns.some((column) => column.primary)
 }
 
-/** `landlord.tenants` is the `tenants` table; the schema is not part of the name. */
+/** `central.tenants` is the `tenants` table; the schema is not part of the name. */
 function bare(name: string): string {
   const dot = name.indexOf('.')
 

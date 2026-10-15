@@ -152,7 +152,7 @@ function noteBlock(note: ErdNote): string {
 /**
  * A qualified name is two identifiers around a dot, each quoted on its own.
  *
- * Quoting the whole of `landlord.tenants` would declare one table whose name
+ * Quoting the whole of `central.tenants` would declare one table whose name
  * contains a dot, in the `public` schema — which parses, and then draws the
  * wrong diagram.
  */
