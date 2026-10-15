@@ -8,6 +8,7 @@ import { McpCard } from './mcp-card'
 import { SettingsList } from './settings-list'
 import { SettingsNumber } from './settings-number'
 import { SettingsSection } from './settings-section'
+import { SettingsNotifications } from './settings-notifications'
 import { SettingsSelect } from './settings-select'
 import { SettingsText } from './settings-text'
 import { SettingsTheme } from './settings-theme'
@@ -216,9 +217,7 @@ export function SettingsView({
             on={settings.notifyOnError}
             onToggle={() => onToggle('notifyOnError')}
           />
-          <SettingsToggle
-            hint="Post a macOS notification when an event arrives while the window is in the background."
-            label="Show notifications"
+          <SettingsNotifications
             on={settings.notifyOnEvent}
             onToggle={() => onToggle('notifyOnEvent')}
           />

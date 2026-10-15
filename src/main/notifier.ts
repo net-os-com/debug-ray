@@ -48,6 +48,46 @@ export class Notifier {
     this.openWindow()
   }
 
+  /**
+   * Posts one banner on purpose and reports what macOS did with it.
+   *
+   * Two things make this worth having rather than waiting for a real event.
+   * It asks for authorisation at a moment the person is looking — macOS puts
+   * its prompt up the first time an app posts, and until then every notify is
+   * refused with UNErrorCodeNotificationsNotAllowed. And it is the only way to
+   * find out: Electron exposes no authorisation status, only a `failed` event
+   * on a notification that was actually sent.
+   *
+   * Focus is ignored here, unlike `notify`. The window is focused when you
+   * flip the toggle, which is exactly when this runs.
+   *
+   * Silence is the answer: `failed` arrives within milliseconds when it is
+   * coming at all, so no failure by the deadline means the banner went out.
+   */
+  test(): Promise<{ ok: boolean; error: string | null }> {
+    if (!Notification.isSupported()) {
+      return Promise.resolve({ ok: false, error: 'This system does not support notifications.' })
+    }
+
+    return new Promise((resolve) => {
+      const notification = new Notification({
+        title: 'NetOS Debug',
+        body: 'Notifications are on. This is what an event looks like.',
+        silent: !this.options.sound(),
+      })
+
+      const timer = setTimeout(() => resolve({ ok: true, error: null }), 1_500)
+
+      notification.on('failed', (_event, error) => {
+        clearTimeout(timer)
+        resolve({ ok: false, error: String(error) })
+      })
+
+      notification.on('click', () => this.options.onActivate())
+      notification.show()
+    })
+  }
+
   /** Called on quit so a pending summary cannot fire against a dead window. */
   stop(): void {
     if (this.timer) {

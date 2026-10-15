@@ -282,6 +282,10 @@ const api = {
   notify(title: string, body: string): void {
     ipcRenderer.send('ray:notify', title, body)
   },
+  /** Posts one banner now and says whether macOS let it through. */
+  testNotification(): Promise<{ ok: boolean; error: string | null }> {
+    return ipcRenderer.invoke('ray:notify-test') as Promise<{ ok: boolean; error: string | null }>
+  },
 
   /** Opens a file at a line in the configured editor. False when none is set. */
   openInEditor(file: string, line: number): Promise<boolean> {

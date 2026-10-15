@@ -363,6 +363,8 @@ app.whenReady().then(() => {
   // Backs the "Show notifications" setting. The renderer builds the headline,
   // because eventTitle() lives there; main owns the decision to show it, so the
   // focus check and the burst rate limit have a single home.
+  ipcMain.handle('ray:notify-test', () => notifier.test())
+
   ipcMain.on('ray:notify', (_event, title: string, body: string) => {
     notifier.notify(title, body)
   })
