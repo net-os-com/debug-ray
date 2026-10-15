@@ -95,8 +95,13 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'true'
+        # The heap is raised because the renderer bundle carries @dbml/core,
+        # the DBML parser the ERD reads schemas with. It is a very large
+        # dependency, and at the runner's default heap the build died with
+        # "JavaScript heap out of memory" and exit 134 — which it had not done
+        # before the ERD existed.
         run: |
-          npx electron-vite build
+          NODE_OPTIONS=--max-old-space-size=8192 npx electron-vite build
           npx electron-builder --mac --arm64 \
             --config.mac.notarize=true \
             --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
@@ -108,7 +113,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           echo "::warning::No MACOS_CERTIFICATE secret; building unsigned. Downloads will need 'xattr -dr com.apple.quarantine'."
-          npx electron-vite build
+          NODE_OPTIONS=--max-old-space-size=8192 npx electron-vite build
           npx electron-builder --mac --arm64 \
             --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
 
