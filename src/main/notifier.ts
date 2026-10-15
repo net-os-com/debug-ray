@@ -72,7 +72,11 @@ export class Notifier {
     return new Promise((resolve) => {
       const notification = new Notification({
         title: 'NetOS Debug',
-        body: 'Notifications are on. This is what an event looks like.',
+        // The rule is in the words, because this banner breaks it: the window
+        // is focused when you flip the switch, so the test has to ignore the
+        // check the real ones obey. Without saying so, one banner on a focused
+        // window reads as "it always notifies".
+        body: 'Notifications are on. Events show here while the window is in the background.',
         silent: !this.options.sound(),
       })
 
@@ -108,6 +112,14 @@ export class Notifier {
 
       const count = this.suppressed
       this.suppressed = 0
+
+      // Focus is checked again, not just when the burst started. Events arrive
+      // while you are elsewhere, the first one banners and opens this window,
+      // and then you come to the app to read them — at which point the summary
+      // would have fired over the very screen showing what it was summarising.
+      if (this.options.isFocused()) {
+        return
+      }
 
       this.show('NetOS Debug', `${count} more event${count === 1 ? '' : 's'}`)
       // Another window opens behind the summary, so a burst that outlasts one
