@@ -1,11 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 import { OUT_OF_STREAM, type RayEvent } from '../../shared/ray-event'
 import { buildKindOptions, buildLabelOptions, buildSourceOptions } from './build-filters'
+import { ModuleHeader } from './chrome/module-header'
+import { NavRail } from './chrome/nav-rail'
 import { Sidebar } from './chrome/sidebar'
-import { TitleRail } from './chrome/title-rail'
 import { Toolbar } from './chrome/toolbar'
 import { UpdateBanner } from './chrome/update-banner'
 import type { View } from './chrome/view-nav'
+import { buildCommands } from './palette/commands'
+import { CommandPalette } from './palette/command-palette'
+import { usePalette } from './palette/use-palette'
 import { DetailPanel } from './detail/detail-panel'
 import { usePanelWidth } from './detail/use-panel-width'
 import { ALL, filterEvents, type Filters } from './filter-events'
@@ -139,24 +143,79 @@ export function App() {
   const kinds = useMemo(() => buildKindOptions(events), [events])
   const labelOptions = useMemo(() => buildLabelOptions(events, labels, colors), [events, labels, colors])
 
+  const palette = usePalette(setView)
+
+  /**
+   * What the palette offers, rebuilt as the app changes.
+   *
+   * Everything in it comes from state this component already holds, so the
+   * palette never reaches into a view — it is handed the few things each view
+   * can do and knows nothing else about them.
+   */
+  const commands = useMemo(
+    () =>
+      buildCommands({
+        onSelectView: setView,
+        snippets: snippets.all.map((one) => ({
+          id: one.id,
+          name: one.name,
+          open: () => {
+            snippets.select(one.id)
+            setView('tinker')
+          },
+        })),
+        requests: Object.entries(api.saved).flatMap(([collection, list]) =>
+          list.map((one) => ({
+            id: `${collection}:${one.method} ${one.path}`,
+            label: `${one.method} ${one.path}`,
+            open: () => {
+              api.openSaved(one)
+              setView('api')
+            },
+          })),
+        ),
+        tables: erd.model.tables.map((one) => ({
+          name: one.name,
+          open: () => {
+            erd.setSelected(one.name)
+            setView('erd')
+          },
+        })),
+        actions: [
+          { id: 'clear-stream', label: 'Clear stream', where: 'Stream', key: '⌘⌫', run: () => { clear(); setView('stream') } },
+          { id: 'pause-stream', label: paused ? 'Resume the stream' : 'Pause the stream', where: 'Stream', run: () => { setPaused((current) => !current); setView('stream') } },
+          { id: 'erd-save', label: 'Save schema.dbml', where: 'ERD', run: () => { setView('erd'); void erd.save() } },
+          { id: 'erd-arrange', label: 'Auto-arrange the diagram', where: 'ERD', run: () => { setView('erd'); erd.rearrange() } },
+          { id: 'erd-mysql', label: 'Import the schema from MySQL', where: 'ERD', run: () => { setView('erd'); erd.importFromMySql(); void schema.loadTables() } },
+          { id: 'erd-migrations', label: 'Import the schema from migrations', where: 'ERD', run: () => { setView('erd'); void erd.importFromMigrations() } },
+          { id: 'settings', label: 'Open settings', where: 'App', run: () => setView('settings') },
+          { id: 'theme', label: theme === 'light' ? 'Switch to dark' : 'Switch to light', where: 'App', run: () => toggleTheme(false) },
+        ],
+      }),
+    [snippets, api, erd, schema, clear, paused, theme, toggleTheme],
+  )
+
   const target = status ? `${status.host}:${status.port}` : 'starting…'
   const project = firstProject(events)
 
   return (
     <SettingsProvider settings={settings}>
       <div className="app" data-app={theme}>
-        <TitleRail
-          onOpenSettings={() => setView('settings')}
-          onSelectView={setView}
-          onToggleTheme={toggleTheme}
-          subtitle={project ? `${project} · ${target}` : target}
-          theme={theme}
-          view={view}
-        />
+        <NavRail onOpenSettings={() => setView('settings')} onSelect={setView} view={view} />
 
-        <UpdateBanner status={update} />
+        <div className="app__body">
+          <ModuleHeader
+            listening={status?.listening ?? false}
+            onOpenPalette={palette.show}
+            onToggleTheme={toggleTheme}
+            subtitle={project ? `${project} · ${target}` : target}
+            theme={theme}
+            view={view}
+          />
 
-        <div className="app__main">
+          <UpdateBanner status={update} />
+
+          <div className="app__main">
 
           {view === 'requests' ? (
             <RequestsView requests={requests} />
@@ -292,6 +351,12 @@ export function App() {
             </>
           )}
         </div>
+
+        </div>
+
+        {palette.open ? (
+          <CommandPalette groups={commands} onClose={palette.hide} />
+        ) : null}
 
         <ConfettiOverlay trigger={confettiAt} />
       </div>

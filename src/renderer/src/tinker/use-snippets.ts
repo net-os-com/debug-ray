@@ -137,6 +137,8 @@ export function useSnippets() {
 
   return {
     shown,
+    /** Every snippet, unfiltered — the palette has a search of its own. */
+    all: saved,
     active,
     activeId: active.id,
     select: setActiveId,

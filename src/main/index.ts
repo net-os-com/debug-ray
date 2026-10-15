@@ -98,7 +98,12 @@ function createWindow(): BrowserWindow {
     icon: windowIcon(),
     // The brand rail is the title bar; macOS keeps its buttons floating over it.
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 18, y: 17 },
+    // Inside the rail, which now carries them. The rail is inset 8px from the
+    // window edge with a 16px corner radius, and the three lights are about
+    // 52px wide: x centres them in the 64px rail, y clears the rounded corner
+    // and lands on the rail's own 12px top padding. At y 14 they sat in the
+    // corner cut, half on the canvas behind.
+    trafficLightPosition: { x: 14, y: 20 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true,
