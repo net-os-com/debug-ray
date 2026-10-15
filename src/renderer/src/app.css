@@ -378,8 +378,20 @@ body {
   outline: none;
   background: transparent;
   font-family: var(--font-body);
-  font-size: 15px;
+  /* The same size as the header's search box, which is what you click to get
+     here: at 15px the words grew the moment the panel opened. */
+  font-size: 13.5px;
   color: var(--t1);
+}
+
+/*
+ * No focus ring. The field is the only thing in the panel that takes typing
+ * and it is focused the instant the panel opens, so the global ring marks
+ * nothing — it just draws a glow around a box that is already the subject.
+ */
+.palette__input:focus,
+.palette__input:focus-visible {
+  box-shadow: none;
 }
 
 .palette__body {
