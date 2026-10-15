@@ -98,15 +98,10 @@ body {
   -webkit-app-region: drag;
 }
 
-/* The mark sits below the traffic lights; in full screen there are none. */
 .nav-rail__mark {
-  margin: 22px 0 10px;
+  margin: 2px 0 10px;
   color: #fff;
   display: flex;
-}
-
-.nav-rail--full-screen .nav-rail__mark {
-  margin-top: 4px;
 }
 
 .nav-rail__group {
@@ -192,12 +187,27 @@ body {
 
 /* ── Module header ──────────────────────────────────────── */
 
+/*
+ * The header carries the window controls, so it is a drag region and its own
+ * controls opt out. The left gutter is the room they need; macOS takes them
+ * away in full screen, and the gutter goes with them.
+ */
 .module-head {
   flex: 0 0 56px;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 16px 0 20px;
+  padding: 0 16px 0 84px;
+  -webkit-app-region: drag;
+}
+
+.module-head--full-screen {
+  padding-left: 20px;
+}
+
+.module-head__search,
+.module-head__theme {
+  -webkit-app-region: no-drag;
 }
 
 .module-head__what {

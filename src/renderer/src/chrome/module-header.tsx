@@ -1,3 +1,4 @@
+import { useFullScreen } from '../use-full-screen'
 import type { Theme } from '../use-theme'
 import { MoonIcon, SearchIcon } from '../ui/icons'
 import { moduleFor, type View } from './view-nav'
@@ -30,9 +31,10 @@ export function ModuleHeader({
   onToggleTheme,
 }: ModuleHeaderProps) {
   const module = moduleFor(view)
+  const fullScreen = useFullScreen()
 
   return (
-    <header className="module-head">
+    <header className={fullScreen ? 'module-head module-head--full-screen' : 'module-head'}>
       <div className="module-head__what">
         <span className="module-head__label">{module?.label ?? 'Settings'}</span>
         <span className="module-head__hint">{module?.hint ?? 'Applies to this machine only'}</span>
