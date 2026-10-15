@@ -1,6 +1,5 @@
 import { useFullScreen } from '../use-full-screen'
-import type { Theme } from '../use-theme'
-import { MoonIcon, SearchIcon } from '../ui/icons'
+import { SearchIcon } from '../ui/icons'
 import { moduleFor, type View } from './view-nav'
 
 type ModuleHeaderProps = {
@@ -8,9 +7,7 @@ type ModuleHeaderProps = {
   /** The project and target the receiver is listening on. */
   subtitle: string
   listening: boolean
-  theme: Theme
   onOpenPalette: () => void
-  onToggleTheme: (shift: boolean) => void
 }
 
 /**
@@ -26,9 +23,7 @@ export function ModuleHeader({
   view,
   subtitle,
   listening,
-  theme,
   onOpenPalette,
-  onToggleTheme,
 }: ModuleHeaderProps) {
   const module = moduleFor(view)
   const fullScreen = useFullScreen()
@@ -47,15 +42,6 @@ export function ModuleHeader({
       </button>
 
       <div className="module-head__right">
-        <button
-          className="module-head__theme"
-          onClick={(event) => onToggleTheme(event.shiftKey)}
-          title="Shift-click for something older"
-          type="button"
-        >
-          <MoonIcon />
-          {theme === 'light' ? 'Dark' : 'Light'}
-        </button>
         <span className="module-head__status" title={subtitle}>
           <span
             className={listening ? 'module-head__dot module-head__dot--up' : 'module-head__dot'}

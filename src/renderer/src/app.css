@@ -205,8 +205,7 @@ body {
   padding-left: 20px;
 }
 
-.module-head__search,
-.module-head__theme {
+.module-head__search {
   -webkit-app-region: no-drag;
 }
 
@@ -288,25 +287,6 @@ body {
   gap: 8px;
 }
 
-.module-head__theme {
-  height: 30px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--radius-full);
-  background: var(--app-surface);
-  color: var(--t2);
-  font-family: var(--font-display);
-  font-weight: var(--fw-medium);
-  font-size: 12.5px;
-  cursor: pointer;
-}
-
-.module-head__theme:hover {
-  background: var(--app-surface-2);
-}
 
 .module-head__status {
   height: 30px;
@@ -4356,8 +4336,7 @@ body.is-resizing {
   color: rgb(6 14 8);
 }
 
-[data-app='phosphor'] .nav-rail__mark,
-[data-app='phosphor'] .module-head__theme {
+[data-app='phosphor'] .nav-rail__mark {
   color: var(--p-hot);
 }
 

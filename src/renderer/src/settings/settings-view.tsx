@@ -1,6 +1,7 @@
 import type { ServerStatus } from '../../../shared/ray-event'
 import type { TinkerContainer } from '../../../shared/tinker'
 import type { StreamOrder } from '../filter-events'
+import type { Theme } from '../use-theme'
 import type { EditorChoice, Settings, StartView } from '../use-settings'
 import { ClientsCard } from './clients-card'
 import { McpCard } from './mcp-card'
@@ -9,6 +10,7 @@ import { SettingsNumber } from './settings-number'
 import { SettingsSection } from './settings-section'
 import { SettingsSelect } from './settings-select'
 import { SettingsText } from './settings-text'
+import { SettingsTheme } from './settings-theme'
 import { SettingsToggle } from './settings-toggle'
 
 const VIEWS: { value: StartView; label: string }[] = [
@@ -34,6 +36,8 @@ type SettingsViewProps = {
   status: ServerStatus | null
   /** Offered in the container picker; read once by the Tinker view. */
   containers: TinkerContainer[]
+  theme: Theme
+  onToggleTheme: (shift: boolean) => void
   onSet: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onToggle: (key: keyof Settings) => void
   onClose: () => void
@@ -43,8 +47,10 @@ export function SettingsView({
   settings,
   status,
   containers,
+  theme,
   onSet,
   onToggle,
+  onToggleTheme,
   onClose,
 }: SettingsViewProps) {
   const containerOptions = [
@@ -92,6 +98,7 @@ export function SettingsView({
         </SettingsSection>
 
         <SettingsSection title="Window">
+          <SettingsTheme onToggle={onToggleTheme} theme={theme} />
           <SettingsToggle
             hint="Float the window above other applications."
             label="Keep on top"

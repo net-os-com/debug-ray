@@ -210,9 +210,7 @@ export function App() {
           <ModuleHeader
             listening={status?.listening ?? false}
             onOpenPalette={palette.show}
-            onToggleTheme={toggleTheme}
             subtitle={project ? `${project} · ${target}` : target}
-            theme={theme}
             view={view}
           />
 
@@ -305,8 +303,10 @@ export function App() {
                     onClose={() => setView('stream')}
                     onSet={setSetting}
                     onToggle={toggleSetting}
+                    onToggleTheme={toggleTheme}
                     settings={settings}
                     status={status}
+                    theme={theme}
                   />
                 ) : (
                   <>
