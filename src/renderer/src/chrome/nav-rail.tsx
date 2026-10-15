@@ -37,7 +37,7 @@ export function NavRail({ view, onSelect, onOpenSettings }: NavRailProps) {
               title={`${one.label} · ⌘${MODULES.indexOf(one) + 1}`}
               type="button"
             >
-              <ModuleIcon module={one.key} />
+              <ModuleIcon module={one.key} size={12} />
               <span className="nav-rail__item-label">{one.label}</span>
             </button>
           ))}

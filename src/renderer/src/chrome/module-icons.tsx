@@ -34,7 +34,10 @@ export function StrokeIcon({ path, size = 20 }: StrokeIconProps) {
       stroke="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="1.5"
+      // The stroke is a screen width, not a drawing one: 1.5 on the 24 grid is
+      // 1.5px at 24 and 0.75px at 12, which goes faint exactly where the icon
+      // is already small. Kept at 1.5px whatever the icon is scaled to.
+      strokeWidth={(1.5 * 24) / size}
       viewBox="0 0 24 24"
       width={size}
     >
