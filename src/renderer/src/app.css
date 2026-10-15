@@ -15,6 +15,47 @@ body {
   font-weight: var(--fw-regular);
 }
 
+/*
+ * The scrollbar.
+ *
+ * Styled rather than left native because the native one is a light grey
+ * however dark the surface behind it, which on this app's dark theme reads as
+ * a strip of daylight down the edge of every pane.
+ *
+ * It costs no layout: these are already classic scrollbars taking 15px of
+ * width — measured, not assumed — so narrowing them to 10 hands space back.
+ *
+ * The thumb is drawn inside a transparent border with background-clip, which
+ * is what makes it read as a slim bar with air around it rather than a block
+ * filling the gutter.
+ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: padding-box;
+}
+
+/* Both bars meeting in a corner; without it that square is a pale notch. */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 *:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
