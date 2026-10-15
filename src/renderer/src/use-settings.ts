@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { StreamOrder } from './filter-events'
 import { readPreference, writePreference } from './preferences'
 import { SLOW_QUERY_MS, SLOW_REQUEST_MS } from './requests/types'
 
@@ -13,6 +14,8 @@ export type Settings = {
   defaultView: StartView
 
   // Stream
+  /** Which end of the stream the newest events sit at. */
+  streamOrder: StreamOrder
   autoscroll: boolean
   hideVendorFrames: boolean
   relativeTime: boolean
@@ -56,6 +59,7 @@ export const DEFAULTS: Settings = {
   closeToBackground: false,
   defaultView: 'stream',
 
+  streamOrder: 'newest',
   autoscroll: true,
   hideVendorFrames: true,
   relativeTime: true,

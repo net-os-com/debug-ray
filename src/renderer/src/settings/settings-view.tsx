@@ -1,5 +1,6 @@
 import type { ServerStatus } from '../../../shared/ray-event'
 import type { TinkerContainer } from '../../../shared/tinker'
+import type { StreamOrder } from '../filter-events'
 import type { EditorChoice, Settings, StartView } from '../use-settings'
 import { ClientsCard } from './clients-card'
 import { McpCard } from './mcp-card'
@@ -13,6 +14,11 @@ import { SettingsToggle } from './settings-toggle'
 const VIEWS: { value: StartView; label: string }[] = [
   { value: 'stream', label: 'Stream' },
   { value: 'requests', label: 'Requests' },
+]
+
+const ORDERS: { value: StreamOrder; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
 ]
 
 const EDITORS: { value: EditorChoice; label: string }[] = [
@@ -114,6 +120,13 @@ export function SettingsView({
         </SettingsSection>
 
         <SettingsSection title="Stream">
+          <SettingsSelect
+            hint="Which end new events arrive at. The toolbar flips it while you read; this is where it starts."
+            label="Order"
+            onChange={(value) => onSet('streamOrder', value)}
+            options={ORDERS}
+            value={settings.streamOrder}
+          />
           <SettingsToggle
             hint="Jump back to the newest event as it arrives."
             label="Follow new events"

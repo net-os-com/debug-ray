@@ -136,7 +136,10 @@ export function App() {
     onEvent,
   })
 
-  const shown = useMemo(() => filterEvents(events, filters, labels), [events, filters, labels])
+  const shown = useMemo(
+    () => filterEvents(events, filters, labels, settings.streamOrder),
+    [events, filters, labels, settings.streamOrder],
+  )
   const selected = shown.find((event) => event.id === selectedId) ?? null
 
   const sources = useMemo(() => buildSourceOptions(events), [events])
@@ -310,6 +313,8 @@ export function App() {
                     <Toolbar
                       listening={status?.listening ?? false}
                       onClear={clear}
+                      onOrder={(order) => setSetting('streamOrder', order)}
+                      order={settings.streamOrder}
                       onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
                       onTogglePause={() => setPaused((current) => !current)}
                       paused={paused}
@@ -330,6 +335,7 @@ export function App() {
                           events={shown}
                           labels={labels}
                           onSelect={setSelectedId}
+                          order={settings.streamOrder}
                           selectedId={selectedId}
                         />
                       )}
