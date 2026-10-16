@@ -15,6 +15,7 @@ import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
 import { saveFile, type SaveRequest } from './save-file'
 import { McpPresence } from './mcp-status'
+import { sendToWindow } from './send-to-window'
 import { applyMenu } from './menu'
 import { Preferences } from './preferences'
 import { readSettings } from './settings'
@@ -77,8 +78,8 @@ const streams = new Streams(() => mainWindow)
 // connect-src refuses it, and the token it authorizes with should never
 // reach a page that renders other applications' payloads.
 const realtime = new RealtimeSession({
-  frame: (frame) => mainWindow?.webContents.send('realtime:frame', frame),
-  status: (status, detail) => mainWindow?.webContents.send('realtime:status', status, detail),
+  frame: (frame) => sendToWindow(mainWindow, 'realtime:frame', frame),
+  status: (status, detail) => sendToWindow(mainWindow, 'realtime:status', status, detail),
 })
 const notifier = new Notifier({
   isFocused: () => mainWindow?.isFocused() ?? false,
@@ -466,19 +467,19 @@ app.whenReady().then(() => {
       log.record(events)
 
       for (const event of events) {
-        mainWindow?.webContents.send('ray:event', event)
+        sendToWindow(mainWindow, 'ray:event', event)
       }
     },
   })
 
   server.on('listening', () => {
     status = { ...status, listening: true, error: null }
-    mainWindow?.webContents.send('ray:status', status)
+    sendToWindow(mainWindow, 'ray:status', status)
   })
 
   server.on('error', (error: Error) => {
     status = { ...status, listening: false, error: error.message }
-    mainWindow?.webContents.send('ray:status', status)
+    sendToWindow(mainWindow, 'ray:status', status)
   })
 
   app.on('activate', () => {
@@ -506,6 +507,9 @@ app.on('before-quit', () => {
   environments?.flush()
   streams.stopAll()
   notifier.stop()
+  // The socket outlived the window otherwise, and a frame arriving in that gap
+  // was an uncaught exception on the way out.
+  realtime.close()
 })
 
 app.on('window-all-closed', () => {

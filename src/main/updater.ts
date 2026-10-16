@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import electronUpdater from 'electron-updater'
 import type { UpdateStatus } from '../shared/ray-event'
+import { sendToWindow } from './send-to-window'
 
 /**
  * electron-updater ships as CommonJS, so under this project's ESM it has to be
@@ -117,7 +118,7 @@ export class Updater {
 
   private set(state: UpdateStatus): void {
     this.state = state
-    this.window()?.webContents.send('ray:update', state)
+    sendToWindow(this.window(), 'ray:update', state)
   }
 
   private stopResetting(): void {

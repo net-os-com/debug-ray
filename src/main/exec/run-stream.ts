@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import type { BrowserWindow } from 'electron'
+import { sendToWindow } from '../send-to-window'
 import { dockerPath } from './docker-path'
 
 /**
@@ -91,7 +92,7 @@ export class Streams {
   }
 
   private send(id: string, chunk: string, stream: 'out' | 'err'): void {
-    this.window()?.webContents.send('exec:data', { id, chunk, stream })
+    sendToWindow(this.window(), 'exec:data', { id, chunk, stream })
   }
 
   private finish(id: string, code: number | null): void {
@@ -99,6 +100,6 @@ export class Streams {
       return
     }
 
-    this.window()?.webContents.send('exec:end', { id, code })
+    sendToWindow(this.window(), 'exec:end', { id, code })
   }
 }
