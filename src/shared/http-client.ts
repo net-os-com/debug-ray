@@ -57,11 +57,22 @@ const KINDS = new Set(['request', 'queue', 'console', 'unknown'])
  * that is missing or the wrong shape makes for a duller row rather than a
  * crash in the middle of the list.
  */
+/**
+ * A verb, and nothing else.
+ *
+ * Payloads arrive over a socket this app listens on, so `method` is not
+ * something to be trusted because Laravel usually sends `GET`. It ends up in a
+ * cURL command somebody is invited to paste into a terminal, and
+ * `GET'; rm -rf ~; echo '` would read as three commands there. A method that is
+ * not letters is not a method.
+ */
+const METHOD = /^[A-Za-z]{1,20}$/
+
 export function toOutgoingCall(content: Record<string, unknown>, id: string): OutgoingCall | null {
   const method = text(content.method)
   const url = text(content.url)
 
-  if (method === '' || url === '') {
+  if (!METHOD.test(method) || url === '') {
     return null
   }
 
