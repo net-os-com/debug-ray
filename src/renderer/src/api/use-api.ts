@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  ApiAuth,
   ApiEnvironment,
   CollectionSummary,
   SavedRequest,
@@ -48,10 +49,64 @@ export function blankRequest(): ApiRequest {
     form: [],
     auth: { mode: 'none', variable: 'token', userId: '', userLabel: '' },
     routeUri: '',
+    folder: '',
   }
 }
 
-export function useApi(container: TinkerContainer | null) {
+/**
+ * Who requests are sent as, which is a property of the session rather than of
+ * any one request.
+ *
+ * Picking somebody to impersonate costs a search against the container and a
+ * minted token; having that thrown away by clicking the next route in the
+ * sidebar made it something you set once per call instead of once per sitting.
+ * So it is remembered here, and across restarts — the choice is remembered, the
+ * token never is.
+ */
+export type ApiActor = ApiAuth
+
+/** The part of a saved request that decides whether the file is out of date. */
+function fingerprint(one: SavedRequest): string {
+  return JSON.stringify([
+    one.name,
+    one.method,
+    one.path,
+    one.pathParams,
+    one.query,
+    one.headers,
+    one.bodyMode,
+    one.json,
+    one.auth,
+    one.folder,
+  ])
+}
+
+/**
+ * How the package keys one request inside a collection, worked out on this side
+ * as well so the row that is open can be found without waiting for a re-read.
+ */
+export function operationIdOf(method: string, path: string): string {
+  const slug = `${method}${path}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug === '' ? 'request' : slug
+}
+
+/** Where the request on screen came from, when it came from a file. */
+type Origin = {
+  collection: string
+  operationId: string
+  /** What the file held at the moment it was opened or written. */
+  snapshot: string
+}
+
+export function useApi(
+  container: TinkerContainer | null,
+  actor: ApiActor,
+  onActor: (actor: ApiActor) => void,
+) {
   const [environments, setEnvironments] = useState<ApiEnvironment[]>(() =>
     window.ray.readEnvironments(),
   )
@@ -64,7 +119,21 @@ export function useApi(container: TinkerContainer | null) {
   const [query, setQuery] = useState('')
   /** Dev-tool packages register more routes than the application does. */
   const [appOnly, setAppOnly] = useState(true)
-  const [request, setRequest] = useState<ApiRequest>(blankRequest)
+  const [request, setRequest] = useState<ApiRequest>(() => ({
+    ...blankRequest(),
+    auth: actor,
+  }))
+  const [origin, setOrigin] = useState<Origin | null>(null)
+  /**
+   * Which saved requests are being written to disk, by `collection/operationId`.
+   *
+   * Every one of these goes through a `docker exec` that boots the framework —
+   * about a second and a half — so a row has to be able to say it is busy. The
+   * alternative is what this used to do: nothing, for three seconds, and then
+   * the row is gone.
+   */
+  const [writing, setWriting] = useState<string[]>([])
+  const [writeError, setWriteError] = useState<string | null>(null)
   const [result, setResult] = useState<ApiResult | null>(null)
   const [sending, setSending] = useState(false)
 
@@ -108,7 +177,8 @@ export function useApi(container: TinkerContainer | null) {
     void loadCollections()
   }, [loadCollections])
 
-  const environment = environments.find((one) => one.id === environmentId) ?? environments[0] ?? null
+  const environment =
+    environments.find((one) => one.id === environmentId) ?? environments[0] ?? null
 
   const patch = useCallback((change: Partial<ApiRequest>) => {
     setRequest((current) => ({ ...current, ...change }))
@@ -135,15 +205,22 @@ export function useApi(container: TinkerContainer | null) {
   const openRoute = useCallback((route: AppRoute) => {
     setResult(null)
     setRoute(route)
+    setOrigin(null)
     setRequest((current) => ({
       ...blankRequest(),
       // Headers you have set are yours, and re-picking a route should not undo
-      // them; everything else belongs to the route.
+      // them; everything else belongs to the route. The same goes for who the
+      // request is sent as: that is a property of the sitting, not the route.
       headers: current.headers,
+      auth: current.auth,
       name: route.name || route.uri,
       method: route.methods[0] ?? 'GET',
       path: route.uri.startsWith('/') ? route.uri : `/${route.uri}`,
-      pathParams: pathParamNames(route.uri).map((key) => ({ key, value: '', enabled: true })),
+      pathParams: pathParamNames(route.uri).map((key) => ({
+        key,
+        value: '',
+        enabled: true,
+      })),
       routeUri: route.uri,
     }))
   }, [])
@@ -154,11 +231,26 @@ export function useApi(container: TinkerContainer | null) {
     )
   }, [request.auth.userId])
 
+  // Whoever the request on screen is sent as becomes whoever the next one is
+  // sent as, here and after a restart.
+  const latestActor = useRef(onActor)
+  latestActor.current = onActor
+
+  useEffect(() => {
+    latestActor.current(request.auth)
+  }, [request.auth])
+
   const url = useMemo(
     () =>
       environment === null
         ? ''
-        : buildUrl(environment.host, request.path, request.pathParams, request.query, environment.variables),
+        : buildUrl(
+            environment.host,
+            request.path,
+            request.pathParams,
+            request.query,
+            environment.variables,
+          ),
     [environment, request.path, request.pathParams, request.query],
   )
 
@@ -173,7 +265,10 @@ export function useApi(container: TinkerContainer | null) {
     try {
       const headers = request.headers
         .filter((header) => header.enabled && header.key.trim() !== '')
-        .map((header) => ({ key: header.key, value: resolve(header.value, environment.variables) }))
+        .map((header) => ({
+          key: header.key,
+          value: resolve(header.value, environment.variables),
+        }))
 
       const authorization = await authorize()
 
@@ -214,7 +309,14 @@ export function useApi(container: TinkerContainer | null) {
         headers: [],
         body: '',
         size: 0,
-        timing: { dns: 0, connect: 0, tls: 0, firstByte: 0, download: 0, total: 0 },
+        timing: {
+          dns: 0,
+          connect: 0,
+          tls: 0,
+          firstByte: 0,
+          download: 0,
+          total: 0,
+        },
         debugId: '',
         error:
           error instanceof Error
@@ -293,6 +395,7 @@ export function useApi(container: TinkerContainer | null) {
       // id in a committed file is somebody's data in somebody else's git log.
       auth: request.auth.mode,
       summary: '',
+      folder: request.folder,
     }),
     [request],
   )
@@ -300,6 +403,82 @@ export function useApi(container: TinkerContainer | null) {
   const shownRoutes = useMemo(
     () => filterRoutes(appOnly ? ours : routes, query),
     [appOnly, ours, routes, query],
+  )
+
+  /**
+   * Puts a changed request where it now belongs in the list the sidebar is
+   * drawing, so a move shows the moment the container says it happened rather
+   * than one read later.
+   *
+   * A collection this app has not seen yet is left to the read that follows:
+   * there is no row to put it in, and inventing one would mean inventing its
+   * file name too.
+   */
+  const refile = useCallback(
+    (from: string, operationId: string, next: SavedRequest, into: string) => {
+      const filed = { ...next, operationId }
+
+      setSaved((current) => {
+        const without = (current[from] ?? []).filter(
+          (one) => (one.operationId ?? operationIdOf(one.method, one.path)) !== operationId,
+        )
+
+        if (into === from) {
+          return { ...current, [from]: [...without, filed] }
+        }
+
+        return {
+          ...current,
+          [from]: without,
+          ...(current[into] === undefined ? {} : { [into]: [...current[into], filed] }),
+        }
+      })
+
+      if (into === from) {
+        return
+      }
+
+      setCollections((current) =>
+        current.map((one) =>
+          one.name === into ? { ...one, operations: one.operations + 1 } : one,
+        ),
+      )
+    },
+    [],
+  )
+
+  /**
+   * Takes one request out of the list the sidebar is drawing, so a removal shows
+   * the moment the container says it happened rather than one read later.
+   */
+  const drop = useCallback((collection: string, operationId: string) => {
+    setSaved((current) => ({
+      ...current,
+      [collection]: (current[collection] ?? []).filter(
+        (one) => (one.operationId ?? operationIdOf(one.method, one.path)) !== operationId,
+      ),
+    }))
+    setCollections((current) =>
+      current
+        .map((one) =>
+          one.name === collection ? { ...one, operations: Math.max(0, one.operations - 1) } : one,
+        )
+        // A collection with nothing left in it is a file the package deletes.
+        .filter((one) => one.operations > 0),
+    )
+  }, [])
+
+  /**
+   * Whether what is on screen still matches the file it came from.
+   *
+   * Only requests that have a file are ever dirty: a request built from a route
+   * has nothing to differ from, and marking it unsaved from the first keystroke
+   * would make the marker mean "a request exists" rather than "this one has
+   * changed".
+   */
+  const dirty = useMemo(
+    () => origin !== null && fingerprint(asSaved('')) !== origin.snapshot,
+    [asSaved, origin],
   )
 
   return {
@@ -328,18 +507,40 @@ export function useApi(container: TinkerContainer | null) {
     saved,
     collectionsError,
     loadCollections,
+    /** The collection and operation this request came from, when it came from one. */
+    origin,
+    dirty,
+    /** `collection/operationId` of every saved request being written right now. */
+    writing,
+    writeError,
     saveTo: useCallback(
-      async (collection: string, name: string) => {
+      async (collection: string, name: string, folder: string) => {
         if (container === null) {
           return null
         }
 
+        const written = { ...asSaved(name), folder }
         const answer = await window.ray.saveToCollection(
           container.id,
           container.workingDir,
           collection,
-          asSaved(name),
+          written,
         )
+
+        if (answer.error === null) {
+          // What is on screen now matches what is on disk now, which is what
+          // the unsaved marker is the absence of.
+          setRequest((current) => ({
+            ...current,
+            name: written.name,
+            folder: written.folder,
+          }))
+          setOrigin({
+            collection,
+            operationId: operationIdOf(written.method, written.path),
+            snapshot: fingerprint(written),
+          })
+        }
 
         await loadCollections()
 
@@ -353,21 +554,171 @@ export function useApi(container: TinkerContainer | null) {
           return
         }
 
-        await window.ray.forgetInCollection(
+        const key = `${collection}/${operationId}`
+
+        setWriting((current) => [...current, key])
+        setWriteError(null)
+
+        try {
+          const answer = await window.ray.forgetInCollection(
+            container.id,
+            container.workingDir,
+            collection,
+            operationId,
+          )
+
+          if (answer.error !== null) {
+            setWriteError(answer.error)
+
+            return
+          }
+
+          // The row goes now, from what we already know. Reading the files again
+          // is another second and a half of container and it says the same
+          // thing, so it happens behind this rather than in front of it.
+          drop(collection, operationId)
+          setOrigin((current) =>
+            current !== null &&
+            current.collection === collection &&
+            current.operationId === operationId
+              ? null
+              : current,
+          )
+          void loadCollections()
+        } catch (error) {
+          setWriteError(
+            error instanceof Error ? error.message : 'That request could not be removed.',
+          )
+        } finally {
+          setWriting((current) => current.filter((one) => one !== key))
+        }
+      },
+      [container, drop, loadCollections],
+    ),
+    /**
+     * Writing a whole import into a collection.
+     *
+     * The reading and converting happened in this app — the file is on this
+     * machine — so all that is left is the one thing the container owns: the
+     * collection file in the repository, written once for however many requests
+     * arrived.
+     */
+    importRequests: useCallback(
+      async (collection: string, requests: SavedRequest[]) => {
+        if (container === null) {
+          return null
+        }
+
+        const answer = await window.ray.importIntoCollection(
           container.id,
           container.workingDir,
           collection,
-          operationId,
+          requests,
         )
+
         await loadCollections()
+
+        return answer
       },
       [container, loadCollections],
     ),
-    /** Opening a saved request puts every box back the way it was saved. */
-    openSaved: useCallback((one: SavedRequest) => {
+    /**
+     * Renaming a saved request, or moving it to another folder or collection,
+     * without opening it.
+     *
+     * A move is a save under the new address followed by a forget of the old
+     * one: the package keys an operation by its verb and path, so a request that
+     * only changed folder is the same operation written again, and one that
+     * changed collection is a different file.
+     */
+    updateSaved: useCallback(
+      async (
+        collection: string,
+        one: SavedRequest,
+        change: Partial<SavedRequest>,
+        into: string,
+      ): Promise<string | null> => {
+        if (container === null) {
+          return 'No container is selected, so there is nowhere to write.'
+        }
+
+        const operationId = one.operationId ?? operationIdOf(one.method, one.path)
+        const key = `${collection}/${operationId}`
+        const next = { ...one, ...change }
+
+        setWriting((current) => [...current, key])
+        setWriteError(null)
+
+        try {
+          const answer = await window.ray.saveToCollection(
+            container.id,
+            container.workingDir,
+            into,
+            next,
+          )
+
+          if (answer.error !== null) {
+            return answer.error
+          }
+
+          if (into !== collection) {
+            const gone = await window.ray.forgetInCollection(
+              container.id,
+              container.workingDir,
+              collection,
+              operationId,
+            )
+
+            if (gone.error !== null) {
+              // The copy landed and the original did not go. Say which half
+              // happened, rather than leaving two rows and no explanation.
+              return `Copied into ${into}, but it could not be removed from ${collection}: ${gone.error}`
+            }
+
+            drop(collection, operationId)
+          }
+
+          refile(collection, operationId, next, into)
+
+          // What is on screen came from this request, and it has just moved.
+          setOrigin((current) =>
+            current !== null &&
+            current.collection === collection &&
+            current.operationId === operationId
+              ? { ...current, collection: into, snapshot: fingerprint(next) }
+              : current,
+          )
+          setRequest((current) =>
+            origin !== null &&
+            origin.collection === collection &&
+            origin.operationId === operationId
+              ? { ...current, name: next.name, folder: next.folder }
+              : current,
+          )
+
+          void loadCollections()
+
+          return null
+        } catch (error) {
+          return error instanceof Error ? error.message : 'That request could not be changed.'
+        } finally {
+          setWriting((current) => current.filter((item) => item !== key))
+        }
+      },
+      [container, drop, loadCollections, origin, refile],
+    ),
+    /**
+     * Opening a saved request puts every box back the way it was saved.
+     *
+     * Every box except who it is sent as: the file carries the mode, because a
+     * request saved as deliberately unauthenticated is worth keeping that way,
+     * but never the person — their name and id in a committed file is somebody
+     * else's data in somebody else's git log. The person comes from the sitting.
+     */
+    openSaved: useCallback((one: SavedRequest, collection: string) => {
       setResult(null)
       setRoute(null)
-      setRequest({
+      setRequest((current) => ({
         ...blankRequest(),
         name: one.name,
         method: one.method,
@@ -377,7 +728,13 @@ export function useApi(container: TinkerContainer | null) {
         headers: one.headers,
         bodyMode: one.bodyMode,
         json: one.json,
-        auth: { mode: one.auth, variable: 'token', userId: '', userLabel: '' },
+        auth: { ...current.auth, mode: one.auth },
+        folder: one.folder,
+      }))
+      setOrigin({
+        collection,
+        operationId: one.operationId ?? operationIdOf(one.method, one.path),
+        snapshot: fingerprint(one),
       })
     }, []),
     container,
@@ -403,9 +760,10 @@ export function useApi(container: TinkerContainer | null) {
     tab,
     setTab,
     reset: useCallback(() => {
-      setRequest(blankRequest())
+      setRequest((current) => ({ ...blankRequest(), auth: current.auth }))
       setResult(null)
       setRoute(null)
+      setOrigin(null)
     }, []),
     /** Turns the DTO's shape into a starting body, and switches to it. */
     fillBody: useCallback(

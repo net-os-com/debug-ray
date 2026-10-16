@@ -26,10 +26,19 @@ const LINE_HEIGHT = Math.round(FONT_SIZE * 1.65)
 const PAD_TOP = 16
 const PAD_LEFT = 8
 
+/** A line the caller wants called out, by 1-based line number. */
+export type EditorMark = 'error' | 'warning'
+
 type CodeEditorProps = {
   code: string
   /** Highlights one line; the shell knows nothing about the language. */
   tokenize: (line: string) => EditorToken[]
+  /**
+   * Lines to flag, 1-based. Painted as a tint on the line and a colour on its
+   * number, so a reported problem can be found by looking rather than by
+   * counting down the gutter.
+   */
+  marks?: Map<number, EditorMark>
   completion?: Completion | null
   onChange: (code: string) => void
   onRun?: () => void
@@ -56,7 +65,14 @@ type Suggestion = {
  * position is arithmetic, so the completion popup can be placed without asking
  * the browser where anything is.
  */
-export function CodeEditor({ code, tokenize, completion = null, onChange, onRun }: CodeEditorProps) {
+export function CodeEditor({
+  code,
+  tokenize,
+  marks,
+  completion = null,
+  onChange,
+  onRun,
+}: CodeEditorProps) {
   const area = useRef<HTMLTextAreaElement>(null)
   const ruler = useRef<HTMLSpanElement>(null)
   const [charWidth, setCharWidth] = useState(0)
@@ -233,7 +249,11 @@ export function CodeEditor({ code, tokenize, completion = null, onChange, onRun 
     >
       <div className="code-editor__numbers">
         {lines.map((_, index) => (
-          <div key={index} style={{ height: `${LINE_HEIGHT}px` }}>
+          <div
+            className={markClass(marks, index + 1, 'code-editor__number')}
+            key={index}
+            style={{ height: `${LINE_HEIGHT}px` }}
+          >
             {index + 1}
           </div>
         ))}
@@ -246,7 +266,11 @@ export function CodeEditor({ code, tokenize, completion = null, onChange, onRun 
 
         <div aria-hidden="true" className="code-editor__paint">
           {lines.map((line, index) => (
-            <div key={index} style={{ height: `${LINE_HEIGHT}px` }}>
+            <div
+              className={markClass(marks, index + 1, 'code-editor__line')}
+              key={index}
+              style={{ height: `${LINE_HEIGHT}px` }}
+            >
               {tokenize(line).map((token, position) => (
                 <span
                   key={position}
@@ -281,4 +305,15 @@ export function CodeEditor({ code, tokenize, completion = null, onChange, onRun 
       </div>
     </div>
   )
+}
+
+/** The class for one line, with its mark when it has one. */
+function markClass(
+  marks: Map<number, EditorMark> | undefined,
+  line: number,
+  base: string,
+): string {
+  const mark = marks?.get(line)
+
+  return mark === undefined ? base : `${base} ${base}--${mark}`
 }

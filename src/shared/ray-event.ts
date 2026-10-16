@@ -6,6 +6,12 @@
 export const REQUEST_PAYLOAD_TYPE = 'netos_request'
 
 /**
+ * The payload type one outgoing HTTP call arrives under: a call the application
+ * made, rather than one it answered.
+ */
+export const HTTP_CLIENT_PAYLOAD_TYPE = 'netos_http_client'
+
+/**
  * Payloads that annotate another event rather than being one: `ray()->label()`,
  * `->color()`, `->confetti()`. They carry no headline of their own.
  */
@@ -23,7 +29,14 @@ export const ANNOTATION_TYPES = new Set(['label', 'color', 'confetti'])
  * Shared because the main process' buffer and the renderer both filter on it,
  * and two copies of this list would drift.
  */
-export const OUT_OF_STREAM = new Set([...ANNOTATION_TYPES, REQUEST_PAYLOAD_TYPE])
+export const OUT_OF_STREAM = new Set([
+  ...ANNOTATION_TYPES,
+  REQUEST_PAYLOAD_TYPE,
+  // Outgoing calls have a view of their own for the same reason collected
+  // requests do: one page load can make a dozen of them, and a stream that
+  // buries a dump under them is a stream nobody reads.
+  HTTP_CLIENT_PAYLOAD_TYPE,
+])
 
 /** The `origin` block every ray payload carries: where the ray() call sat. */
 export type RayOrigin = {

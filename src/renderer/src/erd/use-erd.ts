@@ -8,8 +8,17 @@ import type { ErdModel, ErdTable } from './model'
 import { parseDbml } from './parse'
 import { problemsOf } from './problems'
 import { schemaToModel } from './schema-to-model'
-import { addNote, addTable } from './patch'
+import { addNote, addTable, setNoteText } from './patch'
 import { stickies as stickiesOf, stickyKey } from './stickies'
+
+/** Long enough that a pause in typing is a pause, not a gap between words. */
+const AUTO_SAVE_AFTER_MS = 1_200
+
+/** Typing within this window joins the step before it. */
+const UNDO_COALESCE_MS = 600
+
+/** Deep enough to walk back a session, shallow enough to stay cheap. */
+const MAX_UNDO = 200
 
 const EMPTY: ErdModel = { tables: [], relations: [], enums: [], groups: [], notes: [] }
 
@@ -26,9 +35,92 @@ export function useErd(
   tenant: string,
   /** False until Docker has answered, so "no container" is told from "not asked". */
   containersRead: boolean,
+  /** Writes a moment after you stop typing, when the file parses. */
+  autoSave: boolean,
 ) {
-  const [code, setCode] = useState('')
+  const [code, writeCode] = useState('')
+  /**
+   * The source's own undo stack.
+   *
+   * The textarea has a native one, but it only knows about typing — the
+   * patches that add a table, rename a column or drop a note replace the
+   * source from outside it, and a native undo would step back over an edit it
+   * never saw. One stack that records every change is the only way the two
+   * kinds of edit can be undone in the order they happened.
+   */
+  const history = useRef<{ past: string[]; future: string[]; at: number; last: string }>({
+    past: [],
+    future: [],
+    at: 0,
+    last: '',
+  })
+  const [depth, setDepth] = useState({ past: 0, future: 0 })
   const [committed, setCommitted] = useState('')
+
+  /** Replaces the source and remembers what it replaced. */
+  const setCode = useCallback((next: string): void => {
+    const current = history.current
+
+    if (next === current.last) {
+      return
+    }
+
+    // Consecutive keystrokes collapse into one step, so undo moves by a word
+    // or a line rather than by a character.
+    if (current.at === 0 || Date.now() - current.at > UNDO_COALESCE_MS) {
+      current.past.push(current.last)
+
+      if (current.past.length > MAX_UNDO) {
+        current.past.shift()
+      }
+    }
+
+    current.at = Date.now()
+    current.future = []
+    current.last = next
+
+    writeCode(next)
+    setDepth({ past: current.past.length, future: 0 })
+  }, [])
+
+  /** Replaces the source without recording it: a read is not an edit. */
+  const resetCode = useCallback((next: string): void => {
+    history.current = { past: [], future: [], at: 0, last: next }
+    writeCode(next)
+    setDepth({ past: 0, future: 0 })
+  }, [])
+
+  const undo = useCallback((): void => {
+    const current = history.current
+    const previous = current.past.pop()
+
+    if (previous === undefined) {
+      return
+    }
+
+    current.future.push(current.last)
+    current.last = previous
+    // Zeroed so the next keystroke starts a fresh step rather than merging
+    // into the one just undone.
+    current.at = 0
+    writeCode(previous)
+    setDepth({ past: current.past.length, future: current.future.length })
+  }, [])
+
+  const redo = useCallback((): void => {
+    const current = history.current
+    const next = current.future.pop()
+
+    if (next === undefined) {
+      return
+    }
+
+    current.past.push(current.last)
+    current.last = next
+    current.at = 0
+    writeCode(next)
+    setDepth({ past: current.past.length, future: current.future.length })
+  }, [])
   const [committedLayout, setCommittedLayout] = useState('{}')
   const [toast, setToast] = useState<string | null>(null)
   /** Which column's form is open in the inspector. */
@@ -90,7 +182,7 @@ export function useErd(
 
     void window.ray.readErd(container.id, container.workingDir).then((stored) => {
       if (!cancelled) {
-        setCode(stored.dbml)
+        resetCode(stored.dbml)
         setCommitted(stored.dbml)
         setLayout(stored.layout)
         setCommittedLayout(JSON.stringify(stored.layout))
@@ -196,9 +288,37 @@ export function useErd(
     }
   }, [container, code, layout, announce])
 
+  /**
+   * Writes on your behalf, a pause after the last keystroke.
+   *
+   * Two guards, both deliberate. It waits for the source to parse, because a
+   * half-typed table is a file that the next read cannot open — autosaving it
+   * would turn a transient mistake into a committed one. And it only runs when
+   * there is something to write, so idling in this view does not rewrite the
+   * file on a timer.
+   */
+  const dirty = code !== committed || JSON.stringify(layout) !== committedLayout
+
+  const latestSave = useRef(save)
+  latestSave.current = save
+
+  useEffect(() => {
+    if (!autoSave || !dirty || saving || !parsed.ok) {
+      return
+    }
+
+    const timer = setTimeout(() => void latestSave.current(), AUTO_SAVE_AFTER_MS)
+
+    return () => clearTimeout(timer)
+  }, [autoSave, dirty, saving, parsed.ok, code, layout])
+
   return {
     code,
     setCode,
+    undo,
+    redo,
+    canUndo: depth.past > 0,
+    canRedo: depth.future > 0,
     model,
     /** Which tables the search and the scope match; the rest are dimmed. */
     matches,
@@ -236,7 +356,7 @@ export function useErd(
     toast,
     announce,
     /** True when the editor or the canvas holds something the repository does not. */
-    dirty: code !== committed || JSON.stringify(layout) !== committedLayout,
+    dirty,
     stickies,
     /** A note is DBML, so adding one is a patch of the source. */
     addNote: useCallback(() => {
@@ -282,6 +402,24 @@ export function useErd(
       setError(null)
       setCode(result.code)
     }, [code, model.tables]),
+    /**
+     * Writes a note's text from the canvas.
+     *
+     * A refusal is swallowed rather than shown: this runs on every keystroke,
+     * and a half-typed note that momentarily will not parse is the normal way
+     * through to one that does. The next keystroke patches again, and the
+     * editor's own problem badge is what reports a source that stays broken.
+     */
+    editNote: useCallback(
+      (name: string, text: string) => {
+        const result = setNoteText(code, name, text)
+
+        if (result.ok) {
+          setCode(result.code)
+        }
+      },
+      [code, setCode],
+    ),
     moveSticky: useCallback((name: string, at: Point) => {
       setLayout((current) => ({ ...current, [stickyKey(name)]: at }))
     }, []),

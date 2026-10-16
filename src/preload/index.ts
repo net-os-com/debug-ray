@@ -22,6 +22,8 @@ import type {
   MintedToken,
   SavedRequest,
 } from '../shared/api'
+import type { ImportedFile } from '../shared/import/documents'
+import type { BroadcastOutcome, PusherCredentials, RealtimeFrame } from '../shared/realtime'
 import type {
   AppRoute,
   ArtisanCommand,
@@ -152,6 +154,26 @@ const api = {
     return ipcRenderer.invoke('api:collection', containerId, workingDir, name)
   },
 
+  /** Opens the picker and reads whatever was chosen; never throws at the renderer. */
+  importFile(): Promise<ImportedFile> {
+    return ipcRenderer.invoke('api:import:file')
+  },
+
+  importIntoCollection(
+    containerId: string,
+    workingDir: string,
+    name: string,
+    requests: SavedRequest[],
+  ): Promise<{
+    file: string
+    operations: number
+    added: number
+    replaced: number
+    error: string | null
+  }> {
+    return ipcRenderer.invoke('api:collection:import', containerId, workingDir, name, requests)
+  },
+
   saveToCollection(
     containerId: string,
     workingDir: string,
@@ -190,6 +212,103 @@ const api = {
 
   revokeApiTokens(containerId: string, workingDir: string, tenant: string): Promise<number> {
     return ipcRenderer.invoke('api:revoke', containerId, workingDir, tenant)
+  },
+
+  realtimeCredentials(containerId: string, workingDir: string): Promise<PusherCredentials> {
+    return ipcRenderer.invoke('realtime:credentials', containerId, workingDir)
+  },
+
+  realtimeOpen(context: {
+    url: string
+    containerId: string
+    workingDir: string
+    host: string
+    tenant: string
+    actorId: string
+    insecure: boolean
+  }): Promise<void> {
+    return ipcRenderer.invoke('realtime:open', context)
+  },
+
+  realtimeSubscribe(channel: string): Promise<void> {
+    return ipcRenderer.invoke('realtime:subscribe', channel)
+  },
+
+  realtimeUnsubscribe(channel: string): Promise<void> {
+    return ipcRenderer.invoke('realtime:unsubscribe', channel)
+  },
+
+  realtimeWhisper(channel: string, event: string, data: unknown): Promise<boolean> {
+    return ipcRenderer.invoke('realtime:whisper', channel, event, data)
+  },
+
+  realtimeClose(): Promise<void> {
+    return ipcRenderer.invoke('realtime:close')
+  },
+
+  onRealtimeFrame(listener: (frame: RealtimeFrame) => void): () => void {
+    const handler = (_: unknown, frame: RealtimeFrame): void => listener(frame)
+
+    ipcRenderer.on('realtime:frame', handler)
+
+    return () => {
+      ipcRenderer.off('realtime:frame', handler)
+    }
+  },
+
+  onRealtimeStatus(listener: (status: string, detail: string) => void): () => void {
+    const handler = (_: unknown, status: string, detail: string): void =>
+      listener(status, detail)
+
+    ipcRenderer.on('realtime:status', handler)
+
+    return () => {
+      ipcRenderer.off('realtime:status', handler)
+    }
+  },
+
+  realtimeBroadcast(
+    containerId: string,
+    workingDir: string,
+    tenant: string,
+    channel: string,
+    event: string,
+    payload: string,
+  ): Promise<BroadcastOutcome> {
+    return ipcRenderer.invoke(
+      'realtime:broadcast',
+      containerId,
+      workingDir,
+      tenant,
+      channel,
+      event,
+      payload,
+    )
+  },
+
+  realtimeEvents(containerId: string, workingDir: string): Promise<string[]> {
+    return ipcRenderer.invoke('realtime:events', containerId, workingDir)
+  },
+
+  saveErdFile(request: {
+    name: string
+    what: string
+    extension: string
+    data: string
+    base64: boolean
+  }): Promise<{ path: string | null; error: string | null }> {
+    return ipcRenderer.invoke('erd:save-file', request)
+  },
+
+  realtimeOccupied(
+    containerId: string,
+    workingDir: string,
+  ): Promise<{ channels: string[]; error: string | null }> {
+    return ipcRenderer.invoke('realtime:occupied', containerId, workingDir)
+  },
+
+  appVersion(): string {
+    return ipcRenderer.sendSync('ray:version') as string
   },
 
   readEnvironments(): ApiEnvironment[] {

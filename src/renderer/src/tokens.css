@@ -119,6 +119,31 @@
   --app-sel: rgb(var(--color-brand-primary-50));
 
   /*
+   * Form fields, which the canvas now gives their own pair rather than
+   * borrowing the surface. In light they sit on white like everything else; in
+   * dark they are deliberately lighter than the panel behind them, so a field
+   * reads as somewhere you can type instead of as another dark rectangle.
+   */
+  --field-bg: rgb(var(--color-white));
+
+  /*
+   * The phases of one call, as a ramp rather than as five unrelated colours:
+   * waiting is the loud one, the handshakes lead up to it, and the download is
+   * done. Declared by the canvas for the HTTP page; the request timeline next
+   * door uses semantic colours instead, because its bands mean different kinds
+   * of work rather than steps of the same one.
+   */
+  --tm-1: rgb(var(--color-gray-300));
+  --tm-2: rgb(var(--color-brand-primary-200));
+  --tm-3: rgb(var(--color-brand-primary-400));
+  --tm-4: rgb(var(--color-brand-primary-600));
+  --tm-5: rgb(var(--color-green-600));
+  --field-border: var(--border-form-field);
+
+  /* The tint on a row this app sent, rather than received. */
+  --out-bg: rgb(var(--color-brand-primary-50) / 0.35);
+
+  /*
    * The ERD canvas. `--line` draws the relations and `--sel-ring` the ring
    * around a selected card; both were used by the stylesheet and declared
    * nowhere, so `stroke: var(--line)` resolved to nothing and every relation
@@ -175,6 +200,25 @@
   --app-rail: rgb(var(--color-brand-primary-900));
   --app-sel: rgb(var(--color-brand-primary-900));
 
+  --field-bg: rgb(var(--color-gray-850));
+  --field-border: rgb(var(--color-gray-800));
+
+  --tm-1: rgb(var(--color-gray-600));
+  --tm-2: rgb(var(--color-brand-primary-400));
+  --tm-3: rgb(var(--color-brand-primary-200));
+  --tm-4: rgb(255 255 255);
+  --tm-5: rgb(110 231 183);
+  --out-bg: rgb(var(--color-brand-primary-900) / 0.4);
+
+  /*
+   * Declared here because it was not, and `:root`'s light value — a near-white
+   * 217,217,217 — was being drawn on a 26,26,26 surface. Every select and text
+   * field in the dark theme wore a bright outline that nothing else in the
+   * window had; the ERD's tenant picker is simply where it was most obvious.
+   */
+  --border-form-field: rgb(var(--color-gray-800));
+  --border-form-field-active: rgb(var(--color-gray-650));
+
   --line: rgb(var(--color-gray-500));
   --sel-ring: rgb(139 181 248);
 
@@ -217,6 +261,13 @@
   --p-mid: rgb(94 224 140);
   --p-hot: rgb(178 255 200);
 
+  /* The same ramp as the other themes, in the only colour this one has. */
+  --tm-1: rgb(24 58 34);
+  --tm-2: rgb(34 96 56);
+  --tm-3: var(--p-dim);
+  --tm-4: var(--p-hot);
+  --tm-5: var(--p-mid);
+
   --app-canvas: var(--p-bg);
   --app-surface: rgb(9 20 12);
   --app-surface-2: rgb(13 28 17);
@@ -230,6 +281,12 @@
   --t3: var(--p-dim);
   --app-rail: rgb(9 24 13);
   --app-sel: rgb(20 52 30);
+
+  /* The canvas has no phosphor, so these follow its rule rather than its
+     values: a field one step lighter than the panel it sits on. */
+  --field-bg: rgb(13 30 18);
+  --field-border: rgb(30 72 42);
+  --out-bg: rgb(20 52 30 / 0.45);
 
   --dump-string: var(--p-mid);
   --dump-number: rgb(190 255 140);

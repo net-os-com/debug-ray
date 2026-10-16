@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { ApiAuthMode } from '../../shared/api'
 import type { StreamOrder } from './filter-events'
 import { readPreference, writePreference } from './preferences'
 import { SLOW_QUERY_MS, SLOW_REQUEST_MS } from './requests/types'
@@ -44,6 +45,71 @@ export type Settings = {
    */
   container: string
 
+  /**
+   * What the Realtime view connects with, when it should not be what the
+   * application is configured with.
+   *
+   * Empty means "read it from the container", which is the normal case. Set
+   * them to point the debugger at another stack's Pusher application without
+   * editing that stack's .env. Only the key and the cluster, both of which
+   * travel in the socket's own URL: the secret is never needed here, because a
+   * broadcast is dispatched by the application itself.
+   */
+  realtimeKey: string
+  realtimeCluster: string
+
+  /**
+   * The database the ERD and the schema tools last read.
+   *
+   * Remembered because picking it again on every launch is a step that teaches
+   * nothing. Empty means the central database. A tenant that no longer exists
+   * falls back to the first one rather than leaving the view empty.
+   *
+   * Paired with its own flag rather than treating empty as "never picked":
+   * central *is* the empty string, so without this, choosing central would be
+   * indistinguishable from never having chosen and would be overwritten by the
+   * first tenant on the next launch.
+   */
+  erdTenant: string
+  erdTenantChosen: boolean
+
+  /**
+   * The newest release described in `changelog/` at the last time the modal
+   * was opened. The badge is on whenever a newer one exists, and one look
+   * clears it — the point is to say "there is something new", not to keep a
+   * reading record per entry.
+   */
+  changelogSeen: string
+
+  /** Writes schema.dbml a moment after you stop typing, when it parses. */
+  erdAutoSave: boolean
+
+  /**
+   * Outgoing HTTP calls: how many are kept, and whether they are kept at all.
+   *
+   * Separate from the request buffer because the two fill at different rates —
+   * one page load can make a dozen outgoing calls — and because somebody
+   * debugging an upstream wants a long tail of them while somebody debugging
+   * their own endpoints does not want them collected at all.
+   */
+  httpClientBuffer: number
+  collectHttpClient: boolean
+
+  /**
+   * Who the API tab sends as, which outlives any one request and any one
+   * launch: picking somebody to impersonate costs a search and a minted token,
+   * and having it reset by clicking the next route made it a step you repeated
+   * all afternoon.
+   *
+   * The choice is remembered. The token is not: it is minted at send time, held
+   * in the main process for as long as the app runs, and good for fifteen
+   * minutes wherever it is used.
+   */
+  apiAuthMode: ApiAuthMode
+  apiAuthVariable: string
+  apiActorId: string
+  apiActorLabel: string
+
   // Sources
   ignoredSources: string[]
 
@@ -77,6 +143,18 @@ export const DEFAULTS: Settings = {
   notificationCoalesceMs: 3_000,
 
   container: '',
+  realtimeKey: '',
+  realtimeCluster: '',
+  erdTenant: '',
+  erdTenantChosen: false,
+  changelogSeen: '',
+  erdAutoSave: false,
+  httpClientBuffer: 300,
+  collectHttpClient: true,
+  apiAuthMode: 'none',
+  apiAuthVariable: 'token',
+  apiActorId: '',
+  apiActorLabel: '',
 
   ignoredSources: [],
 

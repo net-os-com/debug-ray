@@ -30,71 +30,80 @@ export function RequestPane({ api }: { api: ApiState }) {
 
   return (
     <section className="api-request">
+      {/* Two rows rather than one: at this pane's width six controls on a line
+          left the path — the one thing being typed — squeezed to "/des". The
+          call is on top, and what the call is sent with sits under it. */}
       <div className="api-request__head">
-        <EnvPicker api={api} />
+        <div className="api-request__line">
+          <select
+            className="api-request__method"
+            onChange={(event) => api.patch({ method: event.target.value })}
+            style={{ color: methodColor(request.method) }}
+            value={request.method}
+          >
+            {METHODS.map((method) => (
+              <option key={method} value={method}>
+                {method}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="api-request__method"
-          onChange={(event) => api.patch({ method: event.target.value })}
-          style={{ color: methodColor(request.method) }}
-          value={request.method}
-        >
-          {METHODS.map((method) => (
-            <option key={method} value={method}>
-              {method}
-            </option>
-          ))}
-        </select>
+          <input
+            className="api-request__path"
+            onChange={(event) => api.patch({ path: event.target.value })}
+            placeholder="/desks"
+            value={request.path}
+          />
 
-        <input
-          className="api-request__path"
-          onChange={(event) => api.patch({ path: event.target.value })}
-          placeholder="/desks"
-          value={request.path}
-        />
+          <button
+            className="button button--primary api-request__send"
+            disabled={api.sending || api.environment === null}
+            onClick={() => void api.send()}
+            type="button"
+          >
+            {api.sending ? 'Sending' : 'Send'}
+            <span className="api-request__shortcut" title="⌘ R, or ⌘ Enter">
+              ⌘R
+            </span>
+          </button>
+        </div>
 
-        <SaveMenu api={api} />
+        <div className="api-request__line api-request__line--with">
+          <EnvPicker api={api} />
 
-        <button
-          className="api-request__actor"
-          onClick={() => api.setTab('auth')}
-          title="Who this request is sent as"
-          type="button"
-        >
-          {api.request.auth.mode === 'impersonate' && api.request.auth.userLabel !== '' ? (
-            <>
-              <span className="api-request__initials">{initials(api.request.auth.userLabel)}</span>
-              {api.request.auth.userLabel}
-            </>
-          ) : api.request.auth.mode === 'impersonate' ? (
-            // A saved request keeps the mode but not who, so this is the state
-            // a reopened one lands in — and it should say so rather than claim
-            // the request carries no authentication at all.
-            'impersonate · pick someone'
-          ) : api.request.auth.mode === 'bearer' ? (
-            // "token · token" says one thing twice; the variable is only worth
-            // naming when it is not the obvious one.
-            api.request.auth.variable === 'token' ? (
-              'bearer token'
+          <button
+            className="api-request__actor"
+            onClick={() => api.setTab('auth')}
+            title="Who this request is sent as"
+            type="button"
+          >
+            {api.request.auth.mode === 'impersonate' && api.request.auth.userLabel !== '' ? (
+              <>
+                <span className="api-request__initials">
+                  {initials(api.request.auth.userLabel)}
+                </span>
+                {api.request.auth.userLabel}
+              </>
+            ) : api.request.auth.mode === 'impersonate' ? (
+              // Impersonation with nobody chosen yet: the mode can come from a
+              // saved request, which never carries a person. It should say so
+              // rather than claim the request carries no authentication at all.
+              'impersonate · pick someone'
+            ) : api.request.auth.mode === 'bearer' ? (
+              // "token · token" says one thing twice; the variable is only worth
+              // naming when it is not the obvious one.
+              api.request.auth.variable === 'token' ? (
+                'bearer token'
+              ) : (
+                `bearer · ${api.request.auth.variable}`
+              )
             ) : (
-              `bearer · ${api.request.auth.variable}`
-            )
-          ) : (
-            'no auth'
-          )}
-        </button>
+              'no auth'
+            )}
+          </button>
 
-        <button
-          className="button button--primary api-request__send"
-          disabled={api.sending || api.environment === null}
-          onClick={() => void api.send()}
-          type="button"
-        >
-          {api.sending ? 'Sending' : 'Send'}
-          <span className="api-request__shortcut" title="⌘ Enter">
-            ⌘↵
-          </span>
-        </button>
+          <SaveMenu api={api} />
+        </div>
       </div>
 
       <div className="api-request__url">
@@ -223,7 +232,11 @@ function BodyTab({ api }: { api: ApiState }) {
               form: pairs.map((pair) => ({ ...pair, file: false })),
             })
           }
-          pairs={request.form.map(({ key, value, enabled }) => ({ key, value, enabled }))}
+          pairs={request.form.map(({ key, value, enabled }) => ({
+            key,
+            value,
+            enabled,
+          }))}
           valuePlaceholder="value"
         />
       ) : null}

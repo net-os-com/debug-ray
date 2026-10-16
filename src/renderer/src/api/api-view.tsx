@@ -19,9 +19,17 @@ export function ApiView({ api, onOpenInRequests }: ApiViewProps) {
   const latest = useRef(() => {})
   latest.current = () => void api.send()
 
+  // Cmd+R sends, anywhere in the view. The menu already gave up that
+  // accelerator so Tinker could run a snippet with it, and sending a request is
+  // the same gesture one tab over. Cmd+Enter keeps working: it is what this was
+  // before, and it is still what the editor's own chip suggests elsewhere.
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      if (!event.metaKey && !event.ctrlKey) {
+        return
+      }
+
+      if (event.key === 'Enter' || event.key.toLowerCase() === 'r') {
         event.preventDefault()
         latest.current()
       }

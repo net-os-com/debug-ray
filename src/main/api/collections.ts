@@ -60,9 +60,12 @@ export async function listCollections(
   workingDir: string,
 ): Promise<{ collections: CollectionSummary[]; directory: string; error: string | null }> {
   const answer = await run(containerId, workingDir, ['list'])
+  const collections = Array.isArray(answer.collections)
+    ? (answer.collections as CollectionSummary[])
+    : []
 
   return {
-    collections: Array.isArray(answer.collections) ? (answer.collections as CollectionSummary[]) : [],
+    collections: collections.map((one) => ({ ...one, requests: filed(one.requests) })),
     directory: typeof answer.directory === 'string' ? answer.directory : '',
     error: typeof answer.error === 'string' ? answer.error : null,
   }
@@ -75,7 +78,22 @@ export async function readCollection(
 ): Promise<SavedRequest[]> {
   const answer = await run(containerId, workingDir, ['read', name])
 
-  return Array.isArray(answer.requests) ? (answer.requests as SavedRequest[]) : []
+  return filed(Array.isArray(answer.requests) ? (answer.requests as SavedRequest[]) : [])
+}
+
+/**
+ * Every request has a folder, even when the package that answered has never
+ * heard of folders.
+ *
+ * The app and the package are versioned separately and the app is the one that
+ * updates itself, so it will meet an older one. A missing field is the root of
+ * the collection, not a sidebar that throws while drawing it.
+ */
+function filed(requests: SavedRequest[] | undefined): SavedRequest[] {
+  return (requests ?? []).map((one) => ({
+    ...one,
+    folder: typeof one.folder === 'string' ? one.folder : '',
+  }))
 }
 
 export async function saveToCollection(
@@ -89,6 +107,30 @@ export async function saveToCollection(
   return {
     file: typeof answer.file === 'string' ? answer.file : '',
     operations: typeof answer.operations === 'number' ? answer.operations : 0,
+    error: typeof answer.error === 'string' ? answer.error : null,
+  }
+}
+
+/**
+ * Many requests at once, as an import produced them.
+ *
+ * One command rather than one per request: an import is fifty of them more
+ * often than it is one, and each call here boots the framework in the
+ * container.
+ */
+export async function importIntoCollection(
+  containerId: string,
+  workingDir: string,
+  name: string,
+  requests: SavedRequest[],
+): Promise<{ file: string; operations: number; added: number; replaced: number; error: string | null }> {
+  const answer = await run(containerId, workingDir, ['import', name], JSON.stringify(requests))
+
+  return {
+    file: typeof answer.file === 'string' ? answer.file : '',
+    operations: typeof answer.operations === 'number' ? answer.operations : 0,
+    added: typeof answer.added === 'number' ? answer.added : 0,
+    replaced: typeof answer.replaced === 'number' ? answer.replaced : 0,
     error: typeof answer.error === 'string' ? answer.error : null,
   }
 }

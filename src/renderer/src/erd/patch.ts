@@ -390,6 +390,65 @@ export function addNote(code: string, name: string, text: string): PatchResult {
   return after.ok ? { ok: true, code: next } : { ok: false, reason: after.message }
 }
 
+/**
+ * The same block the prepass lifts, so what is matched here is what was read
+ * there. Kept as its own constant rather than imported because the two serve
+ * opposite directions and a shared one would invite an edit for one to quietly
+ * change the other.
+ */
+const NOTE_BLOCK = /^([ \t]*Note[ \t]+)("[^"]*"|[A-Za-z_]\w*)([ \t]*\{)([\s\S]*?)(^[ \t]*\})/gm
+
+/**
+ * Rewrites one standalone note's text, leaving its name and position alone.
+ *
+ * The body is replaced rather than the whole block rebuilt, so a note written
+ * by hand keeps whatever the author did with it — the spacing around it, the
+ * blank line before it, the order it sits in.
+ */
+export function setNoteText(code: string, name: string, text: string): PatchResult {
+  let found = false
+
+  const next = code.replace(
+    NOTE_BLOCK,
+    (whole, open: string, named: string, brace: string, _body: string, close: string) => {
+      if (unquoteName(named) !== name) {
+        return whole
+      }
+
+      found = true
+
+      return `${open}${named}${brace}\n  '${escapeNote(text)}'\n${close}`
+    },
+  )
+
+  if (!found) {
+    return { ok: false, reason: `There is no note called ${name} in the source.` }
+  }
+
+  const after = parseDbml(next)
+
+  return after.ok ? { ok: true, code: next } : { ok: false, reason: after.message }
+}
+
+/**
+ * Puts the text inside a single-quoted DBML string.
+ *
+ * Newlines are the reason this is not a one-liner: a note is a paragraph, and
+ * a raw newline inside a quoted string ends the string and breaks the file. A
+ * backslash has to go first, or it would escape the escapes added after it.
+ */
+function escapeNote(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r\n?/g, '\n')
+    .replace(/\n/g, '\\n')
+}
+
+function unquoteName(named: string): string {
+  return named.startsWith('"') ? named.slice(1, -1) : named
+}
+
 /** Writes a qualified name as two quoted identifiers around the dot. */
 function qualified(name: string): string {
   const dot = name.indexOf('.')

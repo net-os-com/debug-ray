@@ -18,11 +18,13 @@
   "dependencies": {
     "@dbml/core": "^10.3.1",
     "electron-updater": "^6.8.9",
+    "js-yaml": "^4.3.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@modelcontextprotocol/server": "^2.1.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

@@ -61,6 +61,7 @@ body {
   box-shadow: var(--shadow-focus);
 }
 
+
 .app {
   height: 100vh;
   min-height: 600px;
@@ -201,8 +202,17 @@ body {
   font-size: 10px;
 }
 
-.nav-rail__settings {
+/* The foot owns the push to the bottom, so the buttons inside it stay
+   stacked against each other. */
+.nav-rail__foot {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-rail__settings {
   width: 36px;
   height: 36px;
   display: flex;
@@ -4257,18 +4267,15 @@ body.is-resizing {
 }
 
 /*
- * A field whose border sits on a wrapper has to catch the focus ring there as
- * well. Left to the input, the glow traces the bare inner box — a rectangle
- * floating inside a rounded one — which is what set these two apart from the
- * fields that are a plain input.
+ * A field whose border sits on a wrapper moves that border instead: the input
+ * inside has none of its own, so there is nothing there to change.
  */
 .search:focus-within,
-.snippets__search:focus-within {
-  box-shadow: var(--shadow-focus);
-}
-
-.search input:focus-visible,
-.snippets__search input:focus-visible {
+.snippets__search:focus-within,
+.erd-side__search:focus-within,
+.realtime__search:focus-within,
+.realtime__whisper:focus-within {
+  border-color: var(--border-form-field-active);
   box-shadow: none;
 }
 
@@ -5083,13 +5090,19 @@ body.is-resizing {
 
 .api-side__search:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
 }
 
 .api-side__body {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /*
+   * The room for the scrollbar is held whether or not there is one. Opening a
+   * group used to push every row left by its width and shut it again to push
+   * them back, so the list jumped sideways while you were reading it.
+   */
+  scrollbar-gutter: stable;
   padding-bottom: 12px;
 }
 
@@ -5126,11 +5139,64 @@ body.is-resizing {
   background: var(--app-surface-2);
 }
 
+/* An icon, not a ▾: at this size the character renders as a speck. Shut points
+   right, open points down, which is the one convention every file tree keeps. */
 .api-side__caret {
   flex: none;
-  width: 10px;
-  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
   color: var(--t3);
+}
+
+.api-side__caret--shut {
+  transform: rotate(-90deg);
+}
+
+/* A heading that opens and closes what is under it. It keeps the heading's own
+   type, so it reads as the label it replaced rather than as a control. */
+.api-side__section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.api-side__section:hover {
+  color: var(--t2);
+}
+
+/* A folder inside a collection. Lighter than the collection above it: the
+   collection is a file, the folder is a way of reading it. */
+.api-side__folder {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.api-side__folder:hover {
+  background: var(--app-surface-2);
+}
+
+.api-side__folder .api-side__prefix {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--t2);
 }
 
 .api-side__prefix {
@@ -5200,10 +5266,23 @@ body.is-resizing {
 
 .api-request__head {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--app-border-soft);
+}
+
+/* The call on the first line, what it is sent with on the second. */
+.api-request__line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Save sits at the far end: it is about the request, not about sending it. */
+.api-request__line--with .api-save {
+  margin-left: auto;
 }
 
 .api-request__method {
@@ -5231,7 +5310,7 @@ body.is-resizing {
 
 .api-request__path:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
 }
 
 .api-request__send {
@@ -5396,7 +5475,7 @@ body.is-resizing {
 .api-pairs__key:focus,
 .api-pairs__value:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
 }
 
 .api-pairs__remove,
@@ -5469,7 +5548,7 @@ body.is-resizing {
 
 .api-body__json:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
 }
 
 .api-env {
@@ -5728,6 +5807,77 @@ body.is-resizing {
 
 .api-response__tree .json-tree {
   max-height: none;
+}
+
+/* The framed response. White underneath because a page that sets no background
+   of its own expects one, and dark-on-dark would be a blank panel. */
+.api-response__html {
+  width: 100%;
+  height: calc(100% - 34px);
+  min-height: 260px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+
+/* The JSONPath box under the body. A footer rather than a header: it belongs to
+   what is above it, and it is out of the way until a response is long enough to
+   need it. */
+.api-filter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+}
+
+.api-filter__input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-form-field);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+}
+
+.api-filter__input:focus {
+  outline: none;
+  border-color: var(--border-form-field-active);
+}
+
+.api-filter__input::placeholder {
+  color: var(--t3);
+}
+
+.api-filter__note {
+  flex: none;
+  max-width: 48%;
+  font-size: 11.5px;
+  color: var(--t3);
+  overflow-wrap: anywhere;
+}
+
+.api-filter__note--bad {
+  color: var(--err-fg);
+}
+
+.api-filter__clear {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.api-filter__clear:hover {
+  color: var(--t1);
 }
 
 .api-problem {
@@ -6008,8 +6158,9 @@ body.is-resizing {
   display: flex;
   align-items: center;
   gap: 7px;
-  flex: none;
-  max-width: 190px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 240px;
   border: 1px solid var(--app-border);
   border-radius: 999px;
   background: var(--app-surface-2);
@@ -6040,7 +6191,10 @@ body.is-resizing {
   font-family: var(--font-display);
   font-weight: var(--fw-medium);
   font-size: 9.5px;
-  color: #fff;
+  /* The fill is the accent *foreground* colour, which is white in the dark
+     theme — so the letters are the surface behind it, not white again. They
+     were invisible: a blank disc where somebody's initials should be. */
+  color: var(--app-surface);
 }
 
 .api-auth {
@@ -6176,7 +6330,7 @@ body.is-resizing {
 
 .api-env__var-input:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
   text-align: left;
 }
 
@@ -6238,6 +6392,88 @@ body.is-resizing {
   color: var(--err-fg);
 }
 
+/* Move or rename, which is not a removal: the × keeps the red hover, this does
+   not. */
+.api-side__edit:hover {
+  color: var(--t1);
+}
+
+/* A row whose file is being written. The container has to boot the framework to
+   do it — about a second and a half — so the row says so instead of sitting
+   there looking untouched and then vanishing. */
+.api-side__saved--busy {
+  opacity: 0.55;
+}
+
+.api-side__spinner {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--app-border);
+  border-top-color: var(--t3);
+  animation: erd-spin 0.7s linear infinite;
+}
+
+.api-side__busy {
+  margin-right: 12px;
+}
+
+/* Removing a saved request is removing a file from the repository, so it asks
+   first — in the row itself, where the thing being removed still is. */
+.api-side__confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--app-surface-2);
+}
+
+.api-side__confirm-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-side__confirm-no,
+.api-side__confirm-yes {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.api-side__confirm-no {
+  color: var(--t3);
+}
+
+.api-side__confirm-no:hover {
+  color: var(--t1);
+}
+
+.api-side__confirm-yes {
+  color: var(--err-fg);
+  font-weight: var(--fw-medium);
+}
+
+/* A write that failed. The list stays: it is still true, and the message is
+   about the one thing that did not happen to it. */
+.api-side__problem {
+  margin: 0 10px 6px;
+  border-radius: var(--radius-md);
+  background: var(--err-bg);
+  padding: 6px 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--err-fg);
+}
+
 .api-save {
   position: relative;
   flex: none;
@@ -6254,6 +6490,28 @@ body.is-resizing {
   background: var(--app-surface);
   box-shadow: 0 12px 32px rgb(0 0 0 / 14%);
   padding: 12px;
+}
+
+/* A problem with a file somebody picked: it needs dismissing, because nothing
+   else in the sidebar will clear it. */
+.api-side__dismiss {
+  display: block;
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 11.5px;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.api-save__menu--row {
+  position: static;
+  width: auto;
+  margin: 2px 10px 8px;
 }
 
 .api-save__head {
@@ -6294,7 +6552,7 @@ body.is-resizing {
 
 .api-save__field input:focus {
   outline: none;
-  border-color: var(--app-accent-fg);
+  border-color: var(--border-form-field-active);
 }
 
 .api-save__note {
@@ -6309,12 +6567,62 @@ body.is-resizing {
   color: var(--var-fg);
 }
 
-.api-save__result {
+/* Why the save did not happen. Red, because it is the one thing in this panel
+   that needs reading before anything else is tried. */
+.api-save__problem {
   margin-bottom: 8px;
-  font-family: var(--font-mono);
+  border-radius: var(--radius-md);
+  background: var(--err-bg);
+  padding: 6px 8px;
   font-size: 11.5px;
-  color: var(--t2);
+  line-height: 1.5;
+  color: var(--err-fg);
   overflow-wrap: anywhere;
+}
+
+/* The file that now exists, as git will show it. */
+.api-save__file {
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+  overflow-wrap: anywhere;
+}
+
+.api-save__head--done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ok-fg);
+}
+
+.api-save__button--done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ok-fg);
+}
+
+/* A request that came from a collection file and no longer matches it. A dot
+   rather than a word: it has to be noticeable without reading as a warning,
+   and it appears in the two places that have to agree about it. */
+.api-save__button--dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-save__dot,
+.api-side__unsaved {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn-fg);
+}
+
+.api-side__unsaved {
+  margin-left: 6px;
 }
 
 .api-save__actions {
@@ -6792,7 +7100,6 @@ body.is-resizing {
 }
 
 .erd__zoomer {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -7076,7 +7383,6 @@ body.is-resizing {
   border-radius: 12px;
   background: var(--warn-bg);
   border: 1px solid var(--warn-line);
-  cursor: grab;
 }
 
 .erd-sticky__name {
@@ -7755,7 +8061,8 @@ body.is-resizing {
 
 /* Honours the system setting: a spinner is decoration, not information. */
 @media (prefers-reduced-motion: reduce) {
-  .erd__spinner {
+  .erd__spinner,
+  .api-side__spinner {
     animation: none;
   }
 }
@@ -7781,4 +8088,2071 @@ body.is-resizing {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 11.5px;
   opacity: 0.8;
+}
+
+/* ---------------------------------------------------------------------------
+   Realtime
+   Three columns the canvas draws as one: channels on the left, the message
+   stream in the middle and the composer pinned under it. The stream is the
+   only part that scrolls, so the composer never walks off the bottom while a
+   busy channel is filling the list.
+   --------------------------------------------------------------------------- */
+
+.realtime {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  background: var(--app-canvas);
+  position: relative;
+}
+
+/*
+ * min-width: 0 is load-bearing. A flex item defaults to min-width: auto, and
+ * the "Auth as" select's longest option — a name followed by six role names —
+ * is its intrinsic width, which dragged this pane from 280px to over 700 and
+ * squeezed the composer into wrapping.
+ */
+.realtime__aside {
+  flex: 0 0 280px;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+}
+
+.realtime__head {
+  padding: 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+/* ── Transport tabs ─────────────────────────────────────── */
+
+.realtime__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-surface);
+}
+
+.realtime__tab {
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.realtime__tab--on {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+}
+
+.realtime__tab-count,
+.realtime__tab-soon {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* MQTT is drawn, not hidden: the canvas has two transports and leaving one
+   out would make the view look finished when it is not. */
+.realtime__tab--soon {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Connection card ────────────────────────────────────── */
+
+.realtime__connection {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface);
+}
+
+.realtime__conn-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.realtime__conn-state {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  color: var(--t1);
+}
+
+.realtime__conn-uptime {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+}
+
+/* The URL and the socket id are both long and both worth reading in full, so
+   they wrap on any character rather than being cut off with an ellipsis. */
+.realtime__conn-line,
+.realtime__conn-meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.realtime__conn-line {
+  color: var(--t2);
+}
+
+.realtime__conn-meta {
+  color: var(--t3);
+}
+
+.realtime__conn-warn {
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 11.5px;
+  line-height: var(--lh-body);
+}
+
+.realtime__conn-warn code {
+  font-family: var(--font-mono);
+}
+
+.realtime__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--t3);
+  flex: 0 0 auto;
+}
+
+.realtime__dot--connected,
+.realtime__dot--live {
+  background: var(--ok-fg);
+}
+
+.realtime__dot--connecting,
+.realtime__dot--reconnecting,
+.realtime__dot--paused {
+  background: var(--warn-fg);
+}
+
+.realtime__dot--failed {
+  background: var(--err-fg);
+}
+
+.realtime__actor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--app-border-soft);
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.realtime__actor select {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--field-bg);
+  color: var(--t1);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* ── Channels ───────────────────────────────────────────── */
+
+.realtime__list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 6px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.realtime__follow {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: var(--fw-regular);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.realtime__follow input {
+  margin: 0;
+  accent-color: var(--brand-primary);
+}
+
+.realtime__follow-error {
+  margin: 0 12px 6px;
+  font-size: 11px;
+  line-height: var(--lh-body);
+  color: var(--err-fg);
+}
+
+.realtime__channels {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+}
+
+.realtime__none {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 11.5px;
+  line-height: var(--lh-body);
+  color: var(--t3);
+}
+
+.realtime__none code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.realtime__channel {
+  margin-bottom: 4px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+}
+
+/* A muted channel stays in the list and stops reaching the stream, so you can
+   see it is still subscribed rather than wondering where it went. */
+.realtime__channel--muted {
+  background: transparent;
+  opacity: 0.55;
+}
+
+.realtime__channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
+}
+
+.realtime__swatch {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 3px;
+}
+
+/* The chip and the message title carry the smaller one. */
+.realtime__swatch--sm {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 2px;
+}
+
+.realtime__channel-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.realtime__channel-name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime__channel-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.realtime__kind {
+  height: 16px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  background: var(--app-surface-3);
+  color: var(--t2);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10px;
+}
+
+.realtime__kind--presence {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.realtime__kind--private {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.realtime__kind--refused {
+  background: var(--err-bg);
+  color: var(--err-fg);
+}
+
+.realtime__icon {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t3);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.realtime__icon:hover {
+  background: var(--app-border-soft);
+  color: var(--t1);
+}
+
+.realtime__icon--drop:hover {
+  color: var(--err-fg);
+}
+
+.realtime__refused {
+  padding: 0 10px 10px 26px;
+  font-size: 11px;
+  line-height: var(--lh-body);
+  color: var(--err-fg);
+}
+
+.realtime__members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 10px 26px;
+}
+
+.realtime__member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.realtime__initials {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: var(--fw-medium);
+}
+
+.realtime__member-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime__you {
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--app-sel);
+  font-size: 9.5px;
+  color: var(--t3);
+}
+
+/* ── Subscribe ──────────────────────────────────────────── */
+
+.realtime__add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--app-border);
+}
+
+.realtime__add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.realtime__add-row input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--field-bg);
+  outline: none;
+  color: var(--t1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.realtime__add-row button {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.realtime__add-row button:hover {
+  background: var(--brand-primary-hover);
+}
+
+.realtime__add-hint {
+  font-size: 10.5px;
+  line-height: var(--lh-body);
+  color: var(--t3);
+}
+
+.realtime__add-hint code {
+  font-family: var(--font-mono);
+}
+
+/* ── Stream ─────────────────────────────────────────────── */
+
+.realtime__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.realtime__bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.realtime__bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The search is a pill holding its own icon, so the box is the control rather
+   than a bordered input sitting next to a loose glyph. */
+.realtime__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-full);
+  background: var(--field-bg);
+  color: var(--t3);
+}
+
+.realtime__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--t1);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+/* Full-bleed: the chips scroll past the bar's padding rather than stopping
+   inside it, so a row that continues looks like it continues. */
+.realtime__chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 -12px;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.realtime__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.realtime__chip {
+  flex: 0 0 auto;
+  height: 28px;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-surface);
+  color: var(--t2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.realtime__chip-count {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--t3);
+}
+
+/* The fill carries the selected state; the border is the brand navy in both
+   themes, as the canvas has it, which all but disappears on the dark fill. */
+.realtime__chip--on {
+  border-color: var(--brand-primary);
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.realtime__chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.realtime__shown {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The dot breathes while messages are arriving, so a quiet channel still
+   looks connected rather than stalled. */
+.realtime__pulse {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: var(--radius-full);
+  animation: realtime-pulse 1.6s ease-in-out infinite;
+}
+
+.realtime__pulse--live {
+  background: var(--ok-fg);
+}
+
+.realtime__pulse--paused {
+  background: var(--warn-fg);
+  animation: none;
+}
+
+@keyframes realtime-pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.65);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(0.65);
+  }
+}
+
+/* Pause and Clear are one segmented control, not two loose buttons. */
+.realtime__controls {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-surface);
+}
+
+.realtime__controls button {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.realtime__controls button:hover {
+  background: var(--app-surface-2);
+  color: var(--t1);
+}
+
+.realtime__stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.realtime__empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.realtime__empty-title {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  color: var(--t2);
+}
+
+.realtime__empty-sub {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+/* ── One message ────────────────────────────────────────── */
+
+.realtime__msg {
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.realtime__msg-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.realtime__msg-row:hover,
+.realtime__msg--open .realtime__msg-row {
+  background: var(--app-surface-2);
+}
+
+/* Something this app sent is tinted, so a round trip reads as two rows that
+   belong together rather than two unrelated lines. */
+.realtime__msg-row--out {
+  background: var(--out-bg);
+}
+
+.realtime__dir {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+}
+
+.realtime__dir--in {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.realtime__dir--out {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.realtime__time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+
+.realtime__msg-text {
+  flex: 0 0 auto;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.realtime__msg-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime__msg-channel {
+  padding-left: 14px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime__badges {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.realtime__badge {
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--app-sel);
+  color: var(--t3);
+  font-size: 10px;
+}
+
+.realtime__badge--via {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.realtime__preview {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Expanded payload ───────────────────────────────────── */
+
+.realtime__detail {
+  padding: 2px 12px 10px 52px;
+  background: var(--app-surface-2);
+}
+
+.realtime__json {
+  padding: 8px 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-canvas);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.realtime__json-key {
+  color: var(--t2);
+}
+
+.realtime__json-value--string {
+  color: var(--dump-string);
+}
+
+.realtime__json-value--number {
+  color: var(--dump-number);
+}
+
+.realtime__json-value--boolean,
+.realtime__json-value--null {
+  color: var(--dump-const);
+}
+
+.realtime__json-value--punctuation {
+  color: var(--t3);
+}
+
+.realtime__detail-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.realtime__detail-foot button {
+  padding: 3px 9px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-canvas);
+  color: var(--t2);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.realtime__detail-foot button:hover {
+  background: var(--app-surface);
+  color: var(--t1);
+}
+
+.realtime__detail-meta {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--t3);
+}
+
+/* ── Composer ───────────────────────────────────────────── */
+
+.realtime__composer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.realtime__composer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.realtime__modes {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-canvas);
+}
+
+.realtime__mode {
+  padding: 6px 10px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--t2);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.realtime__mode--on {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.realtime__event,
+.realtime__target,
+.realtime__whisper {
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  background: var(--field-bg);
+  outline: none;
+  color: var(--t1);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.realtime__event {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.realtime__target {
+  flex: 0 1 280px;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.realtime__whisper {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.realtime__whisper-prefix {
+  color: var(--t3);
+}
+
+.realtime__whisper input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--t1);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.realtime__whisper input:focus {
+  outline: none;
+}
+
+.realtime__payload {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* The one field the canvas leaves on --app-surface rather than --field-bg:
+   it is a block of code, not a line to fill in. */
+.realtime__payload textarea {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  outline: none;
+  color: var(--t1);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.realtime__payload--bad {
+  border-color: var(--err-fg) !important;
+}
+
+.realtime__send {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.realtime__send button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.realtime__send button:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.realtime__send button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.realtime__shortcut {
+  font-size: 10px;
+  color: var(--t3);
+}
+
+.realtime__composer-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.realtime__bad {
+  color: var(--err-fg);
+}
+
+/* The line that says what Broadcast will actually run, so the button is not a
+   black box: it is the same call you would type in Tinker. */
+.realtime__php {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime__toast {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  background: var(--app-rail);
+  color: var(--color-brand-primary-inverted);
+  font-size: 12px;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── Editor line marks ──────────────────────────────────── */
+
+/*
+ * A reported problem names a line; this is what makes that line findable.
+ * The tint sits on the painted layer under the transparent textarea, so the
+ * caret and selection are untouched.
+ */
+.code-editor__line--error {
+  background: color-mix(in srgb, var(--err-fg) 16%, transparent);
+  box-shadow: inset 2px 0 0 var(--err-fg);
+}
+
+.code-editor__line--warning {
+  background: color-mix(in srgb, var(--warn-fg) 16%, transparent);
+  box-shadow: inset 2px 0 0 var(--warn-fg);
+}
+
+.code-editor__number--error {
+  color: var(--err-fg);
+  font-weight: var(--fw-medium);
+}
+
+.code-editor__number--warning {
+  color: var(--warn-fg);
+  font-weight: var(--fw-medium);
+}
+
+/* ── Add, on the diagram ────────────────────────────────── */
+
+/* Top left, not bottom left: the legend lives at the foot of the canvas and
+   the menu was opening straight over it. */
+.erd__add {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 6;
+}
+
+.erd__add-button {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Separates the text exports from the pictures in the Export menu. */
+.erd__item-rule {
+  display: block;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--app-border);
+}
+
+/* Undo and redo, sitting just left of the zoom controls. */
+.erd__history {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-surface);
+}
+
+.erd__history .erd__zoom-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* A note is written on the canvas, so its body is a field, not a paragraph. */
+.erd-sticky__name {
+  cursor: grab;
+}
+
+.erd-sticky__name:active {
+  cursor: grabbing;
+}
+
+textarea.erd-sticky__text {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+  cursor: text;
+}
+
+textarea.erd-sticky__text::placeholder {
+  color: var(--warn-fg);
+  opacity: 0.65;
+}
+
+/* ---------------------------------------------------------------------------
+   What's new
+   --------------------------------------------------------------------------- */
+
+.nav-rail__changelog {
+  position: relative;
+}
+
+/* A dot, not a count: the badge says there is something to read, and one look
+   at the modal is what clears it. */
+.nav-rail__badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--status-error);
+  box-shadow: 0 0 0 2px var(--app-rail);
+}
+
+.changelog {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.changelog__panel {
+  width: min(680px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+  overflow: hidden;
+}
+
+.changelog__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.changelog__title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 16px;
+  color: var(--t1);
+}
+
+.changelog__subtitle {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--t3);
+}
+
+.changelog__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 20px 20px;
+}
+
+.changelog__empty {
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: var(--lh-body);
+  color: var(--t3);
+}
+
+.changelog__empty code {
+  font-family: var(--font-mono);
+}
+
+.changelog__entry {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.changelog__entry:last-child {
+  border-bottom: 0;
+}
+
+.changelog__entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.changelog__version {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t2);
+}
+
+/* Which one you are on, so the list has a "you are here". */
+.changelog__here {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10px;
+}
+
+.changelog__date {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.changelog__entry-title {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 14px;
+  color: var(--t1);
+}
+
+.changelog__items {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.changelog__items li {
+  font-size: 13px;
+  line-height: var(--lh-body);
+  color: var(--t2);
+}
+
+/* ------------------------------------------------------------------ HTTP --
+ *
+ * Outgoing calls: the list on the left, one call on the right. Laid out from
+ * the canvas, which puts both inside one rounded panel so the page reads as a
+ * single surface rather than as two columns that happen to touch.
+ */
+.hc {
+  flex: 1;
+  min-height: 0;
+  margin: 0 8px 8px;
+  display: flex;
+  border-radius: 12px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  overflow: hidden;
+}
+
+.hc-list {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* The columns answer to this pane's width, not the window's: the detail pane
+     takes its share first, and the list has to fold at whatever is left. */
+  container-type: inline-size;
+}
+
+.hc-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.hc-search {
+  flex: 1 1 auto;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--radius-full);
+  background: var(--field-bg);
+  border: 1px solid var(--border-form-field);
+  color: var(--t3);
+}
+
+.hc-search:focus-within {
+  border-color: var(--border-form-field-active);
+}
+
+.hc-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.hc-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.hc-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 12.5px;
+  color: var(--t2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hc-tab:hover {
+  background: var(--app-surface-2);
+}
+
+.hc-tab--on {
+  background: var(--app-sel);
+  color: var(--app-accent-fg);
+}
+
+.hc-tab__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--app-surface-3);
+  font-size: 10.5px;
+}
+
+.hc-shown {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hc-pulse {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--ok-fg);
+  animation: netos-pulse 1.6s ease-in-out infinite;
+}
+
+.hc-pulse--paused {
+  background: var(--warn-fg);
+  animation: none;
+}
+
+/* The row, and the header that names its columns: one grid definition, so a
+   column cannot drift from its heading. */
+.hc-grid {
+  display: grid;
+  grid-template-columns: 88px 54px 60px minmax(0, 1fr) minmax(0, 190px) 96px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 14px;
+  text-align: left;
+}
+
+.hc-grid--head {
+  flex: none;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--app-border-soft);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.hc-rows {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.hc-row {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.hc-row:hover {
+  background: var(--app-surface-2);
+}
+
+.hc-row--on {
+  background: var(--app-sel);
+}
+
+.hc-mono {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hc-dim {
+  color: var(--t3);
+}
+
+.hc-method {
+  font-weight: 600;
+}
+
+.hc-status {
+  justify-self: start;
+  height: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.hc-url {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hc-url__line {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-url__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.hc-chip {
+  flex: none;
+  height: 16px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  background: var(--app-surface-3);
+  color: var(--t2);
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.hc-origin {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hc-origin__kind {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 10.5px;
+  color: var(--t3);
+}
+
+.hc-origin__name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-dur {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.hc-dur__track {
+  width: 72px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--app-surface-3);
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.hc-dur__bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+.hc-empty {
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.hc-empty__title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 16px;
+}
+
+.hc-empty__text {
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t3);
+  text-wrap: pretty;
+}
+
+.hc-empty__code {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t2);
+}
+
+/* --------------------------------------------------------- one call, in full */
+.hc-detail {
+  flex: 0 0 clamp(320px, 38%, 480px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.hc-detail__none {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.hc-detail__head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.hc-detail__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hc-detail__dur {
+  margin-left: auto;
+  color: var(--t2);
+}
+
+.hc-detail__url {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.hc-facts {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 5px 10px;
+  font-size: 12px;
+}
+
+.hc-facts__origin {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.hc-facts__origin .hc-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hc-detail__tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px 0;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.hc-detail__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hc-section__head {
+  display: flex;
+  align-items: center;
+}
+
+.hc-section__title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+/* A toggle that reads as a sentence: the switch, then what it switches. */
+.hc-switch {
+  height: 24px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.hc-switch__track {
+  width: 28px;
+  height: 16px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  display: flex;
+  justify-content: flex-start;
+  background: var(--app-surface-3);
+}
+
+.hc-switch__track--on {
+  justify-content: flex-end;
+  background: var(--app-accent-fg);
+}
+
+.hc-switch__knob {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--app-surface);
+}
+
+.hc-headers {
+  border-radius: 10px;
+  border: 1px solid var(--app-border-soft);
+  overflow: hidden;
+}
+
+.hc-headers__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--app-border-soft);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  word-break: break-all;
+}
+
+.hc-headers__row:last-child {
+  border-bottom: 0;
+}
+
+.hc-body {
+  border-radius: 10px;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border-soft);
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.hc-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--err-bg);
+  color: var(--err-fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.hc-trace {
+  border-radius: 10px;
+  border: 1px solid var(--app-border-soft);
+  overflow: hidden;
+}
+
+.hc-trace__frame {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.hc-trace__frame:last-child {
+  border-bottom: 0;
+}
+
+/* Somebody else's code, dimmed: it is shown to explain the path, not to be read. */
+.hc-trace__frame--vendor {
+  background: var(--app-surface-2);
+}
+
+.hc-trace__fn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t1);
+}
+
+.hc-trace__frame--vendor .hc-trace__fn {
+  color: var(--t3);
+}
+
+.hc-trace__file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t3);
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------- the phase timeline */
+.hc-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hc-timeline__head {
+  display: grid;
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.hc-timeline__ticks {
+  position: relative;
+  height: 14px;
+  margin: 0 14px 0 6px;
+}
+
+.hc-timeline__tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+.hc-timeline__row {
+  display: grid;
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.hc-timeline__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.hc-timeline__row .hc-timeline__label {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--t1);
+}
+
+.hc-timeline__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: var(--radius-full);
+}
+
+.hc-timeline__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-timeline__ms {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hc-timeline__track {
+  position: relative;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--app-surface-2);
+}
+
+.hc-timeline__bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 4px;
+}
+
+.hc-timeline__legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.hc-timeline__key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hc-timeline__note {
+  padding-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--t3);
+}
+
+/*
+ * Folding, measured against the list pane rather than the window. The columns
+ * that go are the ones the detail pane repeats: origin first, then the time and
+ * the client chip, so the URL — the thing you are reading — keeps its room.
+ */
+@container (max-width: 640px) {
+  .hc-col-origin {
+    display: none;
+  }
+
+  .hc-grid {
+    grid-template-columns: 76px 50px 54px minmax(0, 1fr) 72px;
+  }
+
+  .hc-shown {
+    display: none;
+  }
+}
+
+@container (max-width: 520px) {
+  .hc-col-time,
+  .hc-url__meta {
+    display: none;
+  }
+
+  .hc-grid {
+    grid-template-columns: 44px 50px minmax(0, 1fr) 60px;
+    gap: 8px;
+  }
+}
+
+/*
+ * Every simple field in the app, focused.
+ *
+ * A field says it has focus with its border, not with a glow around it: the
+ * ring stays on everything else that can take focus — a button reached by Tab
+ * has nothing else to say so — but a text box already looks like a box, and a
+ * second box of light around it reads as a state rather than as a place to
+ * type. The border moving to its active shade is the whole signal, in every
+ * theme.
+ *
+ * Last in the file on purpose. These selectors weigh the same as the module
+ * rules they unify (`.realtime__event`, `.api-pairs__value`, and so on), so
+ * order is what settles it; anything that genuinely wants another colour
+ * re-declares it below.
+ *
+ * Checkboxes and radios are left out: the platform draws them and they have no
+ * border to move. The command centre is left out too — its field has no border
+ * at all, and it is focused from the moment the panel opens.
+ */
+input:not([type='checkbox']):not([type='radio']):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--border-form-field-active);
+}
+
+/* Renaming a group on the canvas: the field is the selection, and the ring it
+   carries is what says which group is being renamed. */
+.erd-inspector__group-input:focus {
+  border-color: var(--sel-ring);
 }

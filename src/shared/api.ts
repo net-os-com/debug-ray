@@ -70,6 +70,8 @@ export type ApiRequest = {
   auth: ApiAuth
   /** The route this was built from, when it was built from one. */
   routeUri: string
+  /** The folder inside its collection, when it came from one or was put in one. */
+  folder: string
 }
 
 /** What the main process is handed to actually send. */
@@ -150,6 +152,13 @@ export type SavedRequest = {
   /** The mode only — never who was impersonated, and never the token. */
   auth: ApiAuthMode
   summary: string
+  /**
+   * Where it sits inside its collection, as a slash-separated path such as
+   * `Desks/Bookings`. Empty is the root of the file. Stored as the operation's
+   * OpenAPI tag, so the grouping is visible to anything else that reads the
+   * document.
+   */
+  folder: string
   /** Set by the package when reading; how one request is found again. */
   operationId?: string
 }

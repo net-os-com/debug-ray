@@ -3,7 +3,9 @@ import { EditorPane } from './editor-pane'
 import { ErdCanvas, fitView, MAX_ZOOM, MIN_ZOOM } from './erd-canvas'
 import { ErdSidebar } from './erd-sidebar'
 import { toMigrations, toSql } from './exports'
-import { ChevronIcon, MinusIcon, PanelIcon, PlusIcon } from './icons'
+import { toSvg } from './svg-export'
+import { toPng } from './png-export'
+import { ChevronIcon, MinusIcon, PanelIcon, PlusIcon, RedoIcon, UndoIcon } from './icons'
 import { Inspector } from './inspector'
 import { CENTRAL, SCOPE_COLORS, TENANT } from './model'
 import type { ErdState } from './use-erd'
@@ -35,7 +37,7 @@ export function ErdView({
   const canvas = useRef<HTMLDivElement>(null)
   const [sideOpen, setSideOpen] = useState(true)
   const [editorOpen, setEditorOpen] = useState(true)
-  const [menu, setMenu] = useState<'import' | 'export' | null>(null)
+  const [menu, setMenu] = useState<'import' | 'export' | 'add' | null>(null)
   const [modal, setModal] = useState<Modal | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -50,6 +52,32 @@ export function ErdView({
       run()
     }
   }
+
+  /*
+   * Undo belongs to the whole view, not only to the textarea: a patch from the
+   * inspector is as undoable as a keystroke. preventDefault stops the
+   * textarea's own undo running as well, which would step the DOM back without
+   * telling the stack and leave the two disagreeing.
+   */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z') {
+        return
+      }
+
+      event.preventDefault()
+
+      if (event.shiftKey) {
+        erd.redo()
+      } else {
+        erd.undo()
+      }
+    }
+
+    window.addEventListener('keydown', onKey)
+
+    return () => window.removeEventListener('keydown', onKey)
+  }, [erd])
 
   const fit = (): void => {
     const box = canvas.current?.getBoundingClientRect()
@@ -92,6 +120,46 @@ export function ErdView({
   // Looked up fresh each render: after a patch the model is reparsed, and a
   // panel holding the table object from before would show the old values.
   const selected = erd.model.tables.find((table) => table.name === erd.selected) ?? null
+
+  /**
+   * Writes a picture of the diagram, rather than showing it in the modal.
+   *
+   * The other exports are text you copy somewhere; an image is a file, and the
+   * only useful thing to do with it is put it on disk.
+   */
+  const saveImage = async (kind: 'svg' | 'png'): Promise<void> => {
+    setMenu(null)
+
+    const svg = toSvg(erd.model, erd.layout)
+
+    if (svg === '') {
+      erd.announce('There is nothing placed to export yet.')
+
+      return
+    }
+
+    try {
+      const answer = await window.ray.saveErdFile({
+        name: `schema.${kind}`,
+        what: kind === 'svg' ? 'SVG image' : 'PNG image',
+        extension: kind,
+        data: kind === 'svg' ? svg : await toPng(svg),
+        base64: kind === 'png',
+      })
+
+      if (answer.error !== null) {
+        erd.announce(answer.error)
+
+        return
+      }
+
+      if (answer.path !== null) {
+        erd.announce(`Saved ${answer.path.split('/').pop() ?? answer.path}`)
+      }
+    } catch (error) {
+      erd.announce(error instanceof Error ? error.message : 'The image could not be written.')
+    }
+  }
 
   const openExport = (title: string, subtitle: string, text: string): void => {
     setMenu(null)
@@ -248,20 +316,29 @@ export function ErdView({
                     <span className="erd__item-label">DBML</span>
                     <span className="erd__item-meta">paste into dbdiagram.io</span>
                   </button>
+                  <span className="erd__item-rule" />
+                  <button
+                    className="erd__item"
+                    onClick={() => void saveImage('svg')}
+                    type="button"
+                  >
+                    <span className="erd__item-label">SVG image</span>
+                    <span className="erd__item-meta">vector, scales to any size</span>
+                  </button>
+                  <button
+                    className="erd__item"
+                    onClick={() => void saveImage('png')}
+                    type="button"
+                  >
+                    <span className="erd__item-label">PNG image</span>
+                    <span className="erd__item-meta">at twice the pixels</span>
+                  </button>
                 </div>
               ) : null}
             </div>
 
             <span className="erd__divider" />
 
-            <button className="button" onClick={erd.addTable} type="button">
-              <PlusIcon />
-              Table
-            </button>
-            <button className="button" onClick={erd.addNote} type="button">
-              <PlusIcon />
-              Note
-            </button>
             <button className="button" onClick={erd.rearrange} type="button">
               Auto-arrange
             </button>
@@ -278,6 +355,27 @@ export function ErdView({
                 </option>
               ))}
             </select>
+
+            <div className="erd__history">
+              <button
+                className="erd__zoom-button"
+                disabled={!erd.canUndo}
+                onClick={erd.undo}
+                title="Undo (⌘Z)"
+                type="button"
+              >
+                <UndoIcon />
+              </button>
+              <button
+                className="erd__zoom-button"
+                disabled={!erd.canRedo}
+                onClick={erd.redo}
+                title="Redo (⇧⌘Z)"
+                type="button"
+              >
+                <RedoIcon />
+              </button>
+            </div>
 
             <div className="erd__zoomer">
               <button className="erd__zoom-button" onClick={() => zoomBy(1 / 1.2)} title="Zoom out" type="button">
@@ -317,12 +415,63 @@ export function ErdView({
                 erd.setSelected(table)
                 erd.setEditingColumn(null)
               }}
+              onStickyEdit={erd.editNote}
               onStickyMove={erd.moveSticky}
               onView={erd.setView}
               selected={erd.selected}
               stickies={erd.stickies}
               view={erd.view}
             />
+
+            {/*
+              * Adding lives on the diagram rather than in the toolbar: what you
+              * add lands here, and the button that adds it should be where you
+              * are looking when you decide to.
+              */}
+            <div
+              className="erd__add"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <button
+                className="button erd__add-button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setMenu((current) => (current === 'add' ? null : 'add'))
+                }}
+                type="button"
+              >
+                <PlusIcon />
+                Add
+                <ChevronIcon />
+              </button>
+
+              {menu === 'add' ? (
+                <div className="erd__dropdown" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    className="erd__item"
+                    onClick={() => {
+                      setMenu(null)
+                      erd.addTable()
+                    }}
+                    type="button"
+                  >
+                    <span className="erd__item-label">Table</span>
+                    <span className="erd__item-meta">in the current scope</span>
+                  </button>
+                  <button
+                    className="erd__item"
+                    onClick={() => {
+                      setMenu(null)
+                      erd.addNote()
+                    }}
+                    type="button"
+                  >
+                    <span className="erd__item-label">Note</span>
+                    <span className="erd__item-meta">a sticky on the canvas</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
 
             {erd.model.tables.length > 0 ? (
               <div className="erd__legend" onPointerDown={(event) => event.stopPropagation()}>

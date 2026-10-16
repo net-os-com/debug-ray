@@ -13,6 +13,12 @@ export type Command = {
   icon: string
   /** The module whose tile colour the row borrows, when it is one. */
   module: Exclude<View, 'settings'> | null
+  /**
+   * Extra text the row can be found by without carrying it on screen — the verb
+   * and path of a saved request, which is how half the team refers to it and
+   * the other half does not.
+   */
+  search?: string
   run: () => void
 }
 
@@ -24,7 +30,15 @@ export type CommandSources = {
   /** Saved Tinker snippets, by name. */
   snippets: { id: string; name: string; open: () => void }[]
   /** Saved API requests, as the collections hold them. */
-  requests: { id: string; label: string; open: () => void }[]
+  requests: {
+    id: string
+    name: string
+    method: string
+    path: string
+    collection: string
+    folder: string
+    open: () => void
+  }[]
   /** Tables on the ERD canvas. */
   tables: { name: string; open: () => void }[]
   /** What the current view's toolbar offers. */
@@ -80,11 +94,18 @@ export function buildCommands(sources: CommandSources): CommandGroup[] {
       items: sources.requests.map(
         (one): Command => ({
           id: `request:${one.id}`,
-          label: one.label,
-          hint: 'API',
+          // What you called it, rather than its verb and path: the name is
+          // what the sidebar shows and what somebody asks you to open.
+          label: one.name,
+          // Where it is, which is the thing you know when you cannot remember
+          // the name — "it is the one in Desks".
+          hint: one.folder === ''
+            ? `API · ${one.collection}`
+            : `API · ${one.collection}/${one.folder}`,
           key: '↵',
           icon: 'api',
           module: 'api',
+          search: `${one.method} ${one.path}`,
           run: one.open,
         }),
       ),
@@ -122,7 +143,7 @@ export function narrowCommands(groups: CommandGroup[], query: string): CommandGr
         needle === ''
           ? group.items
           : group.items.filter((one) =>
-              `${one.label} ${one.hint}`.toLowerCase().includes(needle),
+              `${one.label} ${one.hint} ${one.search ?? ''}`.toLowerCase().includes(needle),
             ),
     }))
     .filter((group) => group.items.length > 0)

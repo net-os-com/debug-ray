@@ -1,4 +1,13 @@
-export type View = 'stream' | 'requests' | 'tinker' | 'api' | 'erd' | 'tools' | 'settings'
+export type View =
+  | 'stream'
+  | 'requests'
+  | 'http'
+  | 'realtime'
+  | 'tinker'
+  | 'api'
+  | 'erd'
+  | 'tools'
+  | 'settings'
 
 /** A module the rail and the palette both offer. */
 export type Module = {
@@ -23,6 +32,10 @@ export type Module = {
 export const MODULES: Module[] = [
   { key: 'stream', label: 'Stream', hint: 'Live dumps and logs', group: 'Inspect' },
   { key: 'requests', label: 'Requests', hint: 'Laravel requests and queries', group: 'Inspect' },
+  // Named for what it watches rather than for the facade that fires it: the
+  // page is about calls leaving this application, incoming ones are next door.
+  { key: 'http', label: 'HTTP', hint: 'Outgoing calls', group: 'Inspect' },
+  { key: 'realtime', label: 'Realtime', hint: 'Pusher channels and events', group: 'Inspect' },
   { key: 'tinker', label: 'Tinker', hint: 'Run PHP in the app', group: 'Build' },
   { key: 'api', label: 'API', hint: 'Send requests to the NetOS API', group: 'Build' },
   { key: 'erd', label: 'ERD', hint: 'Design the schema in DBML', group: 'Build' },

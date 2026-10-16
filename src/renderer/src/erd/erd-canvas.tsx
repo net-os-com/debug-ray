@@ -59,6 +59,8 @@ type ErdCanvasProps = {
   onColumn: (table: string, column: string) => void
   stickies: Sticky[]
   onStickyMove: (name: string, at: Point) => void
+  /** Writes a note's text back into the source. */
+  onStickyEdit: (name: string, text: string) => void
   onGroupMove: (group: string, delta: Point) => void
 }
 
@@ -74,6 +76,7 @@ export function ErdCanvas({
   onColumn,
   stickies,
   onStickyMove,
+  onStickyEdit,
   onGroupMove,
 }: ErdCanvasProps) {
   const [hovered, setHovered] = useState<number | null>(null)
@@ -189,6 +192,7 @@ export function ErdCanvas({
         {stickies.map((sticky) => (
           <StickyNote
             key={sticky.name}
+            onEdit={(text) => onStickyEdit(sticky.name, text)}
             onMove={(at) => onStickyMove(sticky.name, at)}
             sticky={sticky}
             zoom={view.z}

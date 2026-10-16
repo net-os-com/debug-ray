@@ -4,12 +4,24 @@ import type { AppRoute, SchemaTable } from '../../../shared/tools'
 
 export type SchemaState = ReturnType<typeof useSchema>
 
-export function useSchema(container: TinkerContainer | null, tenants: string[]) {
+export function useSchema(
+  container: TinkerContainer | null,
+  tenants: string[],
+  /**
+   * What this window closed on. `chosen` is separate because central is the
+   * empty string, so the value alone cannot say whether anyone picked it.
+   */
+  remembered: { tenant: string; chosen: boolean },
+  onRemember: (tenant: string) => void,
+) {
   const [routes, setRoutes] = useState<AppRoute[]>([])
   const [tables, setTables] = useState<SchemaTable[]>([])
-  const [tenant, setTenant] = useState('')
-  /** Until you pick one, the panel may choose a better default than central. */
-  const [chosen, setChosen] = useState(false)
+  const [tenant, setTenant] = useState(remembered.tenant)
+  /**
+   * Until you pick one, the panel may choose a better default than central.
+   * A remembered tenant counts as picked: it was chosen, in an earlier run.
+   */
+  const [chosen, setChosen] = useState(remembered.chosen)
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -34,6 +46,17 @@ export function useSchema(container: TinkerContainer | null, tenants: string[]) 
     }
   }, [chosen, tenant, tenants])
 
+  /*
+   * A remembered tenant that this stack no longer has would read an empty
+   * schema and give no clue why, so it is dropped once the list is known.
+   */
+  useEffect(() => {
+    if (tenant !== '' && tenants.length > 0 && !tenants.includes(tenant)) {
+      setTenant(tenants[0] as string)
+      onRemember(tenants[0] as string)
+    }
+  }, [onRemember, tenant, tenants])
+
   const loadTables = useCallback(async () => {
     if (container === null) {
       return
@@ -57,11 +80,15 @@ export function useSchema(container: TinkerContainer | null, tenants: string[]) 
     shownRoutes,
     shownTables,
     tenant,
-    setTenant: useCallback((next: string) => {
-      setChosen(true)
-      setTenant(next)
-      setTables([])
-    }, []),
+    setTenant: useCallback(
+      (next: string) => {
+        setChosen(true)
+        setTenant(next)
+        setTables([])
+        onRemember(next)
+      },
+      [onRemember],
+    ),
     loading,
     query,
     setQuery,

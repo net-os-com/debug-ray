@@ -158,7 +158,14 @@ function unquoteText(body: string): string {
   const single = /^'([\s\S]*)'$/.exec(body)
 
   if (single !== null) {
-    return (single[1] ?? '').replace(/\\'/g, "'").replace(/\\\\/g, '\\')
+    // One pass, not a chain: unescaping the quote and then the backslash turns
+    // a literal \\n — a backslash the author typed, followed by an n — into a
+    // newline. Taking each escape once, in order, cannot do that. `\\n` is
+    // decoded here because notes written from the canvas are a paragraph, and
+    // a raw newline would end the quoted string.
+    return (single[1] ?? '').replace(/\\(.)/g, (_, character: string) =>
+      character === 'n' ? '\n' : character,
+    )
   }
 
   return body

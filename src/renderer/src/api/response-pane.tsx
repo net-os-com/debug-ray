@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ApiResult, ApiTiming } from '../../../shared/api'
 import { JsonTree } from '../detail/payloads/json-tree'
+import { queryPath, type JsonPathResult } from './jsonpath'
 import { size, statusBackground, statusColor } from './method-color'
 import { RouteBrief } from './route-brief'
 import { problemOf } from './validation'
@@ -16,7 +17,22 @@ type ResponsePaneProps = {
 
 export function ResponsePane({ api, onOpenInRequests }: ResponsePaneProps) {
   const [tab, setTab] = useState<Tab>('body')
+  /**
+   * Kept across sends rather than cleared with the response: narrowing to
+   * `$.data.*.id` and then changing one parameter is one question asked twice,
+   * and retyping the path each time is the part that makes it not worth asking.
+   */
+  const [filter, setFilter] = useState('')
+  /** HTML bodies are shown as the page they are, until you ask for the source. */
+  const [source, setSource] = useState(false)
   const { result, sending } = api
+  const body = result === null || result.error !== null ? '' : result.body
+  const parsed = useMemo(() => parseJson(body), [body])
+  const html = useMemo(() => (result === null ? false : isHtml(result)), [result])
+  const found = useMemo(
+    () => (filter.trim() === '' || !parsed.ok ? null : queryPath(parsed.value, filter)),
+    [filter, parsed],
+  )
 
   if (sending) {
     return (
@@ -100,7 +116,17 @@ export function ResponsePane({ api, onOpenInRequests }: ResponsePaneProps) {
       </div>
 
       <div className="api-response__body">
-        {tab === 'body' ? <BodyTab problem={problem} result={result} /> : null}
+        {tab === 'body' ? (
+          <BodyTab
+            found={found}
+            html={html}
+            onSource={setSource}
+            parsed={parsed}
+            problem={problem}
+            result={result}
+            source={source}
+          />
+        ) : null}
         {tab === 'raw' ? <pre className="api-response__raw">{result.body}</pre> : null}
 
         {tab === 'headers' ? (
@@ -116,8 +142,114 @@ export function ResponsePane({ api, onOpenInRequests }: ResponsePaneProps) {
 
         {tab === 'timing' ? <TimingTab timing={result.timing} /> : null}
       </div>
+
+      {tab === 'body' && parsed.ok ? (
+        <FilterBar found={found} onChange={setFilter} value={filter} />
+      ) : null}
     </section>
   )
+}
+
+/**
+ * Narrowing the body to the part of it being read.
+ *
+ * At the foot of the response rather than the top because it is about what is
+ * above it, and because the body is where your eye already is once a call has
+ * come back.
+ */
+function FilterBar({
+  value,
+  onChange,
+  found,
+}: {
+  value: string
+  onChange: (value: string) => void
+  found: JsonPathResult | null
+}) {
+  return (
+    <div className="api-filter">
+      <input
+        className="api-filter__input"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Filter with JSONPath, e.g. $.data.*.id"
+        spellCheck={false}
+        value={value}
+      />
+
+      {found === null ? null : found.error !== null ? (
+        <span className="api-filter__note api-filter__note--bad">{found.error}</span>
+      ) : (
+        <span className="api-filter__note">
+          {found.matches.length === 0
+            ? 'no matches'
+            : found.matches.length === 1
+              ? '1 match'
+              : `${found.matches.length} matches`}
+        </span>
+      )}
+
+      {value === '' ? null : (
+        <button className="api-filter__clear" onClick={() => onChange('')} type="button">
+          Clear
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The response, rendered as the page it claims to be.
+ *
+ * An API that answers HTML is usually answering with an error page — the one
+ * Laravel renders when a call that wanted JSON did not say so — and reading
+ * that as source is reading a stack trace through its own markup.
+ *
+ * It is a page from somewhere else, shown inside the debugger, so it is framed
+ * under `sandbox` with nothing allowed back: no scripts, no forms, no
+ * navigation, and an opaque origin, which is what keeps it away from the bridge
+ * this window holds. The app's own content policy is inherited by the frame on
+ * top of that, so remote scripts, styles and images do not load either — what
+ * renders is the document's own markup and the styles it carries inline.
+ */
+function HtmlPreview({ body }: { body: string }) {
+  return (
+    <iframe className="api-response__html" sandbox="" srcDoc={body} title="Response preview" />
+  )
+}
+
+/**
+ * Whether the body is a page rather than data.
+ *
+ * The header is the claim and the first bytes are the evidence; either will do,
+ * because a route that forgot to set a content type still returns a page, and a
+ * page served as `text/plain` is still what somebody is trying to read.
+ */
+function isHtml(result: ApiResult): boolean {
+  const declared = result.headers.some(
+    (header) =>
+      header.key.toLowerCase() === 'content-type' && header.value.toLowerCase().includes('text/html'),
+  )
+
+  if (declared) {
+    return true
+  }
+
+  const start = result.body.trimStart().slice(0, 120).toLowerCase()
+
+  return start.startsWith('<!doctype html') || start.startsWith('<html')
+}
+
+/** A body is JSON or it is not, and both tabs below need to know which. */
+function parseJson(body: string): { ok: boolean; value: unknown } {
+  if (body.trim() === '') {
+    return { ok: false, value: null }
+  }
+
+  try {
+    return { ok: true, value: JSON.parse(body) }
+  } catch {
+    return { ok: false, value: null }
+  }
 }
 
 const LABELS: Record<Tab, string> = {
@@ -136,7 +268,7 @@ function EmptyResponse({ api }: { api: ApiState }) {
           Send the request to see the response, headers and timing here.
         </div>
         <div className="api-response__empty-hint">
-          Press <span className="api-key">⌘</span> <span className="api-key">Enter</span> to send
+          Press <span className="api-key">⌘</span> <span className="api-key">R</span> to send
         </div>
       </div>
 
@@ -153,19 +285,57 @@ function EmptyResponse({ api }: { api: ApiState }) {
   )
 }
 
-function BodyTab({ result, problem }: { result: ApiResult; problem: ReturnType<typeof problemOf> }) {
+type BodyTabProps = {
+  result: ApiResult
+  problem: ReturnType<typeof problemOf>
+  parsed: { ok: boolean; value: unknown }
+  /** Null when nothing is being filtered; carries its own error when it is. */
+  found: JsonPathResult | null
+  html: boolean
+  source: boolean
+  onSource: (source: boolean) => void
+}
+
+function BodyTab({ result, problem, parsed, found, html, source, onSource }: BodyTabProps) {
   if (result.body.trim() === '') {
     return <div className="api-pairs__empty">No content. The server returned an empty body.</div>
   }
 
-  let parsed: unknown
-  let isJson = true
+  if (html) {
+    return (
+      <>
+        <div className="api-body__modes">
+          <button
+            className={source ? 'api-mode' : 'api-mode api-mode--on'}
+            onClick={() => onSource(false)}
+            type="button"
+          >
+            Rendered
+          </button>
+          <button
+            className={source ? 'api-mode api-mode--on' : 'api-mode'}
+            onClick={() => onSource(true)}
+            type="button"
+          >
+            Source
+          </button>
+          <span className="api-body__state">
+            {source ? 'As it came off the wire' : 'Scripts and remote files do not run here'}
+          </span>
+        </div>
 
-  try {
-    parsed = JSON.parse(result.body)
-  } catch {
-    isJson = false
+        {source ? (
+          <pre className="api-response__raw">{result.body}</pre>
+        ) : (
+          <HtmlPreview body={result.body} />
+        )}
+      </>
+    )
   }
+
+  // A path that does not parse yet is a path being typed. The body stays where
+  // it was so you can see what you are aiming at; the box says what is wrong.
+  const shown = found === null || found.error !== null ? parsed.value : found.matches
 
   return (
     <>
@@ -189,9 +359,13 @@ function BodyTab({ result, problem }: { result: ApiResult; problem: ReturnType<t
         </div>
       )}
 
-      {isJson ? (
+      {parsed.ok ? (
         <div className="api-response__tree">
-          <JsonTree value={parsed} />
+          {found !== null && found.error === null && found.matches.length === 0 ? (
+            <div className="api-pairs__empty">Nothing in this body matches that path.</div>
+          ) : (
+            <JsonTree value={shown} />
+          )}
         </div>
       ) : (
         <pre className="api-response__raw">{result.body}</pre>

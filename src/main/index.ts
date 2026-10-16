@@ -13,6 +13,7 @@ import type { ErdPoint, ErdSticky } from '../shared/erd'
 import { schemaFromMigrations } from './erd/migrations'
 import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
+import { saveFile, type SaveRequest } from './save-file'
 import { McpPresence } from './mcp-status'
 import { applyMenu } from './menu'
 import { Preferences } from './preferences'
@@ -21,13 +22,20 @@ import { createRayServer } from './ray-server'
 import { Snippets } from './snippets'
 import { Environments } from './api/environments'
 import { send } from './api/send'
+import { broadcast } from './realtime/broadcast'
+import { readCredentials } from './realtime/credentials'
+import { broadcastEvents } from './realtime/events'
+import { occupiedChannels } from './realtime/occupied'
+import { RealtimeSession, type RealtimeContext } from './realtime/session'
 import { mintToken, revokeTokens, searchUsers } from './api/impersonate'
 import {
   forgetInCollection,
+  importIntoCollection,
   listCollections,
   readCollection,
   saveToCollection,
 } from './api/collections'
+import { importFile } from './api/import-file'
 import { Streams } from './exec/run-stream'
 import { artisanCommands } from './tools/artisan'
 import { queueReport } from './tools/queues'
@@ -64,6 +72,14 @@ let environments: Environments
 const updater = new Updater(() => mainWindow)
 const tinker = new Tinker()
 const streams = new Streams(() => mainWindow)
+
+// The socket lives here rather than in the window: the renderer's
+// connect-src refuses it, and the token it authorizes with should never
+// reach a page that renders other applications' payloads.
+const realtime = new RealtimeSession({
+  frame: (frame) => mainWindow?.webContents.send('realtime:frame', frame),
+  status: (status, detail) => mainWindow?.webContents.send('realtime:status', status, detail),
+})
 const notifier = new Notifier({
   isFocused: () => mainWindow?.isFocused() ?? false,
   onActivate: () => {
@@ -165,6 +181,12 @@ app.whenReady().then(() => {
 
   mainWindow = createWindow()
 
+  // Synchronous because the renderer wants it during its first render, and a
+  // version that arrives a frame later shows as a blank where a number goes.
+  ipcMain.on('ray:version', (event) => {
+    event.returnValue = app.getVersion()
+  })
+
   ipcMain.handle('ray:status', () => status)
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
@@ -209,6 +231,49 @@ app.whenReady().then(() => {
   // only place the real phases of a request can be read.
   ipcMain.handle('api:send', (_event, options: ApiSend) => send(options))
 
+  // The socket itself lives in the renderer, where a WebSocket belongs. Only
+  // the three things it cannot do from a file:// origin come through here:
+  // reading the application's configuration, asking it to authorize a channel,
+  // and asking it to broadcast.
+  ipcMain.handle('realtime:credentials', (_event, containerId: string, workingDir: string) =>
+    readCredentials(containerId, workingDir),
+  )
+
+  ipcMain.handle(
+    'realtime:broadcast',
+    (
+      _event,
+      containerId: string,
+      workingDir: string,
+      tenant: string,
+      channel: string,
+      event: string,
+      payload: string,
+    ) => broadcast(containerId, workingDir, tenant, channel, event, payload),
+  )
+
+  ipcMain.handle('realtime:events', (_event, containerId: string, workingDir: string) =>
+    broadcastEvents(containerId, workingDir),
+  )
+
+  ipcMain.handle('realtime:occupied', (_event, containerId: string, workingDir: string) =>
+    occupiedChannels(containerId, workingDir),
+  )
+
+  ipcMain.handle('realtime:open', (_event, context: RealtimeContext) => realtime.open(context))
+  ipcMain.handle('realtime:subscribe', (_event, channel: string) => realtime.subscribe(channel))
+  ipcMain.handle('realtime:unsubscribe', (_event, channel: string) => realtime.unsubscribe(channel))
+  ipcMain.handle('realtime:close', () => realtime.close())
+  ipcMain.handle(
+    'realtime:whisper',
+    (_event, channel: string, event: string, data: unknown) =>
+      realtime.whisper(channel, event, data),
+  )
+
+  ipcMain.handle('erd:save-file', (_event, request: SaveRequest) =>
+    saveFile(mainWindow, request),
+  )
+
   ipcMain.handle('erd:migrations', (_event, containerId: string, workingDir: string) =>
     schemaFromMigrations(containerId, workingDir),
   )
@@ -245,6 +310,16 @@ app.whenReady().then(() => {
     'api:collection:save',
     (_event, containerId: string, workingDir: string, name: string, request: SavedRequest) =>
       saveToCollection(containerId, workingDir, name, request),
+  )
+
+  // Reading somebody's export happens here, not in the container: the file is
+  // on this machine, and an import should not need a stack to be running.
+  ipcMain.handle('api:import:file', () => importFile())
+
+  ipcMain.handle(
+    'api:collection:import',
+    (_event, containerId: string, workingDir: string, name: string, requests: SavedRequest[]) =>
+      importIntoCollection(containerId, workingDir, name, requests),
   )
 
   ipcMain.handle(

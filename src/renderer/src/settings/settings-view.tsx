@@ -41,7 +41,6 @@ type SettingsViewProps = {
   onToggleTheme: (shift: boolean) => void
   onSet: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onToggle: (key: keyof Settings) => void
-  onClose: () => void
 }
 
 export function SettingsView({
@@ -52,7 +51,6 @@ export function SettingsView({
   onSet,
   onToggle,
   onToggleTheme,
-  onClose,
 }: SettingsViewProps) {
   const containerOptions = [
     { value: '', label: 'Pick one automatically' },
@@ -75,9 +73,6 @@ export function SettingsView({
             <div className="settings__title">Settings</div>
             <div className="settings__subtitle">Applies to this machine only.</div>
           </div>
-          <button className="button" onClick={onClose} type="button">
-            Back to stream
-          </button>
         </div>
 
         <SettingsSection title="Docker">
@@ -210,6 +205,25 @@ export function SettingsView({
           />
         </SettingsSection>
 
+        <SettingsSection title="HTTP">
+          <SettingsToggle
+            hint="Keep the calls this application makes with Laravel's HTTP client — from a request, a job, the scheduler or a command. Turning this off drops them on arrival."
+            label="Collect outgoing calls"
+            on={settings.collectHttpClient}
+            onToggle={() => onToggle('collectHttpClient')}
+          />
+          <SettingsNumber
+            hint="How many outgoing calls are kept. One page load can make a dozen of them."
+            label="Call buffer"
+            max={2_000}
+            min={10}
+            onChange={(value) => onSet('httpClientBuffer', value)}
+            step={10}
+            unit="calls"
+            value={settings.httpClientBuffer}
+          />
+        </SettingsSection>
+
         <SettingsSection title="Notifications">
           <SettingsToggle
             hint="Bring the window forward when an exception arrives."
@@ -246,6 +260,32 @@ export function SettingsView({
             onChange={(value) => onSet('ignoredSources', value)}
             placeholder={'Rick-Macbook.local\n/some/other/project'}
             value={settings.ignoredSources}
+          />
+        </SettingsSection>
+
+        <SettingsSection title="ERD">
+          <SettingsToggle
+            hint="Write schema.dbml about a second after you stop typing, but only while it parses — a half-typed table is never committed."
+            label="Save automatically"
+            on={settings.erdAutoSave}
+            onToggle={() => onToggle('erdAutoSave')}
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Realtime">
+          <SettingsText
+            hint="Leave empty to use the key the application itself broadcasts with, read from the container. Set it to watch another stack's Pusher application."
+            label="Pusher key"
+            onChange={(value) => onSet('realtimeKey', value)}
+            placeholder="read from the container"
+            value={settings.realtimeKey}
+          />
+          <SettingsText
+            hint="The cluster that key belongs to. Only read when a key is set above."
+            label="Pusher cluster"
+            onChange={(value) => onSet('realtimeCluster', value)}
+            placeholder="eu"
+            value={settings.realtimeCluster}
           />
         </SettingsSection>
 

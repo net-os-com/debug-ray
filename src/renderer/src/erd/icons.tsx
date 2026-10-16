@@ -92,3 +92,21 @@ export function GripIcon() {
     </svg>
   )
 }
+
+export function UndoIcon() {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="14">
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h11a5 5 0 0 1 0 10h-4" />
+    </svg>
+  )
+}
+
+export function RedoIcon() {
+  return (
+    <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="14">
+      <path d="m15 14 5-5-5-5" />
+      <path d="M20 9H9a5 5 0 0 0 0 10h4" />
+    </svg>
+  )
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CodeEditor } from '../ui/code-editor'
 import { tokenizeDbml } from './dbml-tokens'
 import type { Problem } from './problems'
@@ -22,6 +22,22 @@ type EditorPaneProps = {
  */
 export function EditorPane({ code, problems, savedLabel, onChange }: EditorPaneProps) {
   const [open, setOpen] = useState(false)
+  /**
+   * Which lines to flag. An error outranks a warning on the same line: the
+   * error is the one that stops the file parsing.
+   */
+  const marks = useMemo(() => {
+    const found = new Map<number, 'error' | 'warning'>()
+
+    for (const problem of problems) {
+      if (problem.line > 0 && !(found.get(problem.line) === 'error')) {
+        found.set(problem.line, problem.severity)
+      }
+    }
+
+    return found
+  }, [problems])
+
   const errors = problems.filter((one) => one.severity === 'error').length
   const warnings = problems.length - errors
   const head = useRef<HTMLDivElement>(null)
@@ -98,7 +114,7 @@ export function EditorPane({ code, problems, savedLabel, onChange }: EditorPaneP
       </div>
 
       <div className="erd-editor__code">
-        <CodeEditor code={code} onChange={onChange} tokenize={tokenizeDbml} />
+        <CodeEditor code={code} marks={marks} onChange={onChange} tokenize={tokenizeDbml} />
       </div>
     </section>
   )
