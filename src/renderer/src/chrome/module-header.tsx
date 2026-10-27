@@ -38,7 +38,7 @@ export function ModuleHeader({
       <button className="module-head__search" onClick={onOpenPalette} type="button">
         <SearchIcon />
         <span className="module-head__search-text">Search modules and actions</span>
-        <span className="module-head__key">⌘K</span>
+        <span className="module-head__key">⌘P</span>
       </button>
 
       <div className="module-head__right">

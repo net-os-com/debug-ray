@@ -45,6 +45,7 @@ import { NoResults } from './stream/no-results'
 import { useAlwaysOnTop } from './use-always-on-top'
 import { useRayEvents } from './use-ray-events'
 import { useServerStatus } from './use-server-status'
+import { useClearShortcut } from './use-clear-shortcut'
 import { useFindShortcut } from './use-find-shortcut'
 import { useSettings } from './use-settings'
 import { useTheme } from './use-theme'
@@ -213,6 +214,9 @@ export function App() {
     onEvent,
   })
 
+  // Cmd-K empties the stream from wherever you are, as it does in Ray.
+  useClearShortcut(clear)
+
   const shown = useMemo(
     () => filterEvents(events, filters, labels, settings.streamOrder),
     [events, filters, labels, settings.streamOrder],
@@ -273,7 +277,7 @@ export function App() {
             id: 'clear-stream',
             label: 'Clear stream',
             where: 'Stream',
-            key: '⌘⌫',
+            key: '⌘K',
             run: () => {
               clear()
               setView('stream')

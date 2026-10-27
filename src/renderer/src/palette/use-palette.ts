@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { MODULES, type View } from '../chrome/view-nav'
 
 /**
- * ⌘K opens the palette, Escape closes it, and ⌘1–6 jump straight to a module.
+ * ⌘P opens the palette, Escape closes it, and ⌘1–6 jump straight to a module.
+ *
+ * ⌘P rather than ⌘K because ⌘K empties the stream here, as it does in Ray —
+ * and of the two, the one people reach for without looking is the clear.
  *
  * The number keys are handled here rather than in the rail because they have to
  * work from anywhere, including with the palette open — and because the order
@@ -16,7 +19,7 @@ export function usePalette(onSelectView: (view: View) => void) {
     const onKey = (event: KeyboardEvent): void => {
       const command = event.metaKey || event.ctrlKey
 
-      if (command && event.key.toLowerCase() === 'k') {
+      if (command && event.key.toLowerCase() === 'p') {
         event.preventDefault()
         setOpen((shown) => !shown)
 

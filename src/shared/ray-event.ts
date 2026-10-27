@@ -29,14 +29,17 @@ export const ANNOTATION_TYPES = new Set(['label', 'color', 'confetti'])
  * Shared because the main process' buffer and the renderer both filter on it,
  * and two copies of this list would drift.
  */
-export const OUT_OF_STREAM = new Set([
-  ...ANNOTATION_TYPES,
-  REQUEST_PAYLOAD_TYPE,
-  // Outgoing calls have a view of their own for the same reason collected
-  // requests do: one page load can make a dozen of them, and a stream that
-  // buries a dump under them is a stream nobody reads.
-  HTTP_CLIENT_PAYLOAD_TYPE,
-])
+/**
+ * Payloads that have a view of their own, and so never appear in the stream.
+ *
+ * One page load can make a dozen outgoing calls and one collected request can
+ * carry a hundred queries; a stream that buries a dump under either is a stream
+ * nobody reads. Both are kept in the buffer — the API can fetch one by id — and
+ * out of the list.
+ */
+export const OWN_VIEW = new Set([REQUEST_PAYLOAD_TYPE, HTTP_CLIENT_PAYLOAD_TYPE])
+
+export const OUT_OF_STREAM = new Set([...ANNOTATION_TYPES, ...OWN_VIEW])
 
 /** The `origin` block every ray payload carries: where the ray() call sat. */
 export type RayOrigin = {

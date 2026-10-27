@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { REQUEST_PAYLOAD_TYPE, type RayEvent } from '../../shared/ray-event'
+import { OWN_VIEW, type RayEvent } from '../../shared/ray-event'
 
 /** The design's buffer card promises 500 events kept. */
 /** Fallback when no buffer size is configured. */
@@ -49,9 +49,11 @@ export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Option
           return
         }
 
-        // Collected HTTP requests belong to the Requests view; use-requests
-        // subscribes to the same channel and picks them up there.
-        if (event.type === REQUEST_PAYLOAD_TYPE) {
+        // Collected requests and outgoing calls belong to their own views,
+        // which subscribe to this same channel and pick them up there. Checked
+        // against the shared set rather than by name, which is how outgoing
+        // calls ended up listed here in the first place.
+        if (OWN_VIEW.has(event.type)) {
           return
         }
 
