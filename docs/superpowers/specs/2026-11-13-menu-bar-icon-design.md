@@ -29,10 +29,12 @@ with that event selected in the Stream.
 | Right-click menu | Open NetOS Debug · Settings… · Quit NetOS Debug |
 | "Close" in the request | Means quit the app, receiver included. Labelled "Quit" |
 | Cmd-K | Also removes the Stream's events from the main process's log, so the panel and MCP see what the Stream sees |
+| Hiding the icon | A "Show in menu bar" toggle in Settings → Window, on by default, applied at once (added after the first review) |
 
 ## Goals
 
-- A menu bar icon that is always there while the app runs.
+- A menu bar icon that is there while the app runs, unless "Show in menu bar"
+  is switched off in Settings.
 - Left click toggles the panel. Right click opens the menu.
 - The panel shows the receiver status and a scrollable list of the latest
   events, newest first, updating live while open.
@@ -43,7 +45,7 @@ with that event selected in the Stream.
 
 - No detail view, filters, search, copy buttons or "open in editor" in the
   panel. That is the main window's job.
-- No setting to hide the icon, no unread counter, no badge text next to the icon.
+- No unread counter and no badge text next to the icon.
 - No change to the Dock icon or to how the main window closes.
 - No refilling of the Requests and HTTP views when the main window is
   recreated. Only the Stream is refilled (see "Clicking an event").

@@ -12,6 +12,8 @@ export type Settings = {
   alwaysOnTop: boolean
   launchAtLogin: boolean
   closeToBackground: boolean
+  /** The menu bar icon, its panel and its pulse. */
+  showMenuBarIcon: boolean
   defaultView: StartView
 
   // Stream
@@ -123,6 +125,7 @@ export const DEFAULTS: Settings = {
   alwaysOnTop: false,
   launchAtLogin: false,
   closeToBackground: false,
+  showMenuBarIcon: true,
   defaultView: 'stream',
 
   streamOrder: 'newest',

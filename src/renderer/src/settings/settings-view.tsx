@@ -113,6 +113,12 @@ export function SettingsView({
             on={settings.closeToBackground}
             onToggle={() => onToggle('closeToBackground')}
           />
+          <SettingsToggle
+            hint="An icon in the menu bar that pulses when events arrive. Click it for the latest events and whether the receiver is listening."
+            label="Show in menu bar"
+            on={settings.showMenuBarIcon}
+            onToggle={() => onToggle('showMenuBarIcon')}
+          />
           <SettingsSelect
             hint="Which view opens when the app starts."
             label="Default view"

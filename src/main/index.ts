@@ -127,6 +127,47 @@ function streamWindows(): Array<BrowserWindow | null> {
   return [mainWindow, panel.window()]
 }
 
+/**
+ * Mirrors the "Show in menu bar" setting: puts the icon up, or takes it and its
+ * panel down. Read from preferences like the login item, so switching it in
+ * Settings takes effect at once rather than at the next start.
+ */
+function applyMenuBarIcon(): void {
+  const wanted = readSettings(preferences).showMenuBarIcon
+
+  if (!wanted) {
+    panel.hide()
+    menuBar?.destroy()
+    menuBar = null
+
+    return
+  }
+
+  if (menuBar !== null) {
+    return
+  }
+
+  const images = loadTrayImages()
+
+  if (!images) {
+    return
+  }
+
+  menuBar = new MenuBar({
+    images,
+    menu: buildTrayMenu({
+      open: () => showMainWindow(),
+      settings: () => {
+        showMainWindow()
+        intents.deliver({ kind: 'show-view', view: 'settings' })
+      },
+      // before-quit sets `quitting`, so "Close to background" lets it through.
+      quit: () => app.quit(),
+    }),
+    onLeftClick: (bounds) => panel.toggle(bounds),
+  })
+}
+
 function applyLoginItem(): void {
   const { launchAtLogin } = readSettings(preferences)
 
@@ -243,23 +284,7 @@ app.whenReady().then(() => {
 
   mainWindow = createWindow()
 
-  const trayImages = loadTrayImages()
-
-  if (trayImages) {
-    menuBar = new MenuBar({
-      images: trayImages,
-      menu: buildTrayMenu({
-        open: () => showMainWindow(),
-        settings: () => {
-          showMainWindow()
-          intents.deliver({ kind: 'show-view', view: 'settings' })
-        },
-        // before-quit sets `quitting`, so "Close to background" lets it through.
-        quit: () => app.quit(),
-      }),
-      onLeftClick: (bounds) => panel.toggle(bounds),
-    })
-  }
+  applyMenuBarIcon()
 
   // Synchronous because the renderer wants it during its first render, and a
   // version that arrives a frame later shows as a blank where a number goes.
@@ -520,9 +545,11 @@ app.whenReady().then(() => {
   ipcMain.on('ray:prefs:write', (_event, patch: Record<string, unknown>) => {
     preferences.merge(patch)
 
-    // Login items live with the OS rather than in our file, so the setting has
-    // to be pushed there whenever it changes.
+    // Login items live with the OS rather than in our file, and the menu bar
+    // icon is an object main owns, so both settings have to be pushed out
+    // whenever they change. Both are cheap no-ops when nothing did.
     applyLoginItem()
+    applyMenuBarIcon()
   })
 
   // Backs "Open files in": the renderer passes the path as the sender wrote it,

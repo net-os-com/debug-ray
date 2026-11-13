@@ -44,7 +44,14 @@ export class MenuBar {
     this.pulser.play()
   }
 
+  /** Called on quit so a pending pulse frame cannot land on a destroyed tray. */
   stop(): void {
     this.pulser.stop()
+  }
+
+  /** Takes the icon out of the menu bar, for when the setting is switched off. */
+  destroy(): void {
+    this.pulser.stop()
+    this.tray.destroy()
   }
 }

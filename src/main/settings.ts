@@ -15,6 +15,8 @@ export type MainSettings = {
   closeToBackground: boolean
   notificationSound: boolean
   notificationCoalesceMs: number
+  /** Whether the menu bar icon is up. On unless switched off. */
+  showMenuBarIcon: boolean
   /** How many stream events the window keeps; the main log keeps as many. */
   eventBuffer: number
 }
@@ -28,6 +30,7 @@ const FALLBACK: MainSettings = {
   closeToBackground: false,
   notificationSound: true,
   notificationCoalesceMs: 3_000,
+  showMenuBarIcon: true,
   eventBuffer: 500,
 }
 
@@ -60,6 +63,9 @@ export function readSettings(preferences: Preferences): MainSettings {
       typeof settings.notificationCoalesceMs === 'number' && settings.notificationCoalesceMs >= 0
         ? settings.notificationCoalesceMs
         : FALLBACK.notificationCoalesceMs,
+    // On by default, so only an explicit false takes it down: a settings file
+    // from before this setting existed has no key for it at all.
+    showMenuBarIcon: settings.showMenuBarIcon !== false,
     eventBuffer:
       typeof settings.eventBuffer === 'number' &&
       Number.isInteger(settings.eventBuffer) &&
