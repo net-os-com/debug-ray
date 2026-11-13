@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { SonarPing } from './sonar-ping/sonar-ping'
-import { useClickedButton } from './sonar-ping/use-clicked-button'
 import { useSpaceToPlay } from './sonar-ping/use-space-to-play'
 import { Sonar } from './sonar'
 import { breathSeconds, waitingMessage } from './waiting'
@@ -20,6 +19,12 @@ type EmptyStateProps = {
   onBest: (score: number) => void
   /** False while the palette or a modal is open over the stream. */
   canPlay: boolean
+  /**
+   * The button the last click focused. Tracked by App, which is always there:
+   * the click that brings this screen up — Stream in the nav rail, Clear in the
+   * toolbar — lands before this screen exists to see it.
+   */
+  clicked: () => Element | null
 }
 
 /**
@@ -27,12 +32,10 @@ type EmptyStateProps = {
  * into a small game — unannounced, for whoever finds it. The first event
  * unmounts this screen, and the game with it.
  */
-export function EmptyState({ target, best, onBest, canPlay }: EmptyStateProps) {
+export function EmptyState({ target, best, onBest, canPlay, clicked }: EmptyStateProps) {
   const elapsed = useWaited()
   const message = waitingMessage(elapsed)
   const [playing, setPlaying] = useState(false)
-
-  const clicked = useClickedButton()
 
   useSpaceToPlay(() => setPlaying(true), canPlay && !playing, clicked)
 

@@ -41,6 +41,7 @@ import { useTests } from './tools/use-tests'
 import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
 import { bestScore } from './stream/sonar-ping/best-score'
+import { useClickedButton } from './stream/sonar-ping/use-clicked-button'
 import { EventStream } from './stream/event-stream'
 import { NoResults } from './stream/no-results'
 import { useAlwaysOnTop } from './use-always-on-top'
@@ -132,6 +133,10 @@ export function App() {
   const [tool, setTool] = useState<ToolKey>('artisan')
 
   useAlwaysOnTop(settings.alwaysOnTop)
+
+  // Watched from here, where it is always mounted, for the hidden game on the
+  // empty stream: the click that leads there happens before that screen exists.
+  const clickedButton = useClickedButton()
 
   const [view, setView] = useState<View>(settings.defaultView)
   const [changelogOpen, setChangelogOpen] = useState(false)
@@ -531,6 +536,7 @@ export function App() {
                       <EmptyState
                         best={bestScore(settings.sonarBest)}
                         canPlay={!palette.open && !changelogOpen}
+                        clicked={clickedButton}
                         onBest={(score) => setSetting('sonarBest', score)}
                         target={target}
                       />
