@@ -83,6 +83,9 @@ export type Settings = {
    */
   changelogSeen: string
 
+  /** The hidden sonar game's best score. Never shown in Settings. */
+  sonarBest: number
+
   /** Writes schema.dbml a moment after you stop typing, when it parses. */
   erdAutoSave: boolean
 
@@ -151,6 +154,7 @@ export const DEFAULTS: Settings = {
   erdTenant: '',
   erdTenantChosen: false,
   changelogSeen: '',
+  sonarBest: 0,
   erdAutoSave: false,
   httpClientBuffer: 300,
   collectHttpClient: true,

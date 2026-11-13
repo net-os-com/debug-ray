@@ -527,7 +527,11 @@ export function App() {
 
                   <div className="app__stream">
                     {events.length === 0 ? (
-                      <EmptyState target={target} />
+                      <EmptyState
+                        best={settings.sonarBest}
+                        onBest={(score) => setSetting('sonarBest', score)}
+                        target={target}
+                      />
                     ) : shown.length === 0 ? (
                       <NoResults onReset={() => setFilters(NO_FILTERS)} query={filters.query} />
                     ) : (

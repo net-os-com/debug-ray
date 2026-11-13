@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { SonarPing } from './sonar-ping/sonar-ping'
+import { useSpaceToPlay } from './sonar-ping/use-space-to-play'
 import { Sonar } from './sonar'
 import { breathSeconds, waitingMessage } from './waiting'
 
@@ -10,9 +12,32 @@ ray()->confetti();`
 /** Often enough for the wait to notice itself, rarely enough to cost nothing. */
 const TICK_MS = 30_000
 
-export function EmptyState({ target }: { target: string }) {
+type EmptyStateProps = {
+  target: string
+  /** The hidden game's best score, kept in settings. */
+  best: number
+  onBest: (score: number) => void
+}
+
+/**
+ * The stream before anything arrived. Space on the bare page turns the sonar
+ * into a small game — unannounced, for whoever finds it. The first event
+ * unmounts this screen, and the game with it.
+ */
+export function EmptyState({ target, best, onBest }: EmptyStateProps) {
   const elapsed = useWaited()
   const message = waitingMessage(elapsed)
+  const [playing, setPlaying] = useState(false)
+
+  useSpaceToPlay(() => setPlaying(true))
+
+  if (playing) {
+    return (
+      <div className="empty empty--playing">
+        <SonarPing best={best} onBest={onBest} onQuit={() => setPlaying(false)} />
+      </div>
+    )
+  }
 
   return (
     <div className="empty">
