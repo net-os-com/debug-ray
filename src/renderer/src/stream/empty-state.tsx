@@ -45,6 +45,7 @@ export function EmptyState({ target, best, onBest }: EmptyStateProps) {
         <Sonar seconds={breathSeconds(elapsed)} />
         <div className="empty__title">{message.title}</div>
         <div className="empty__body">{message.body}</div>
+        {message.hint ? <div className="empty__hint">{message.hint}</div> : null}
         <pre className="empty__snippet">{SNIPPET}</pre>
         <div className="empty__target">{target}</div>
       </div>

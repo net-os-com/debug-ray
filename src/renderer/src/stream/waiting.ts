@@ -1,7 +1,12 @@
 export type Waiting = {
   title: string
   body: string
+  /** A last line for the longest waits, and the only clue to the game. */
+  hint?: string
 }
+
+/** Anyone who waits half an hour has earned it. */
+const HINT = 'Psst. Press space.'
 
 /**
  * How the empty screen passes the time.
@@ -37,6 +42,7 @@ const STAGES: { after: number; waiting: Waiting }[] = [
     waiting: {
       title: "I'll wait",
       body: 'Half an hour. The port is still open and the buffer is still empty.',
+      hint: HINT,
     },
   },
   {
@@ -44,6 +50,7 @@ const STAGES: { after: number; waiting: Waiting }[] = [
     waiting: {
       title: 'Take your time',
       body: 'We could talk about the weather. Or you could hit an endpoint.',
+      hint: HINT,
     },
   },
 ]
