@@ -139,6 +139,8 @@ const notifier = new Notifier({
   },
   coalesceMs: () => readSettings(preferences).notificationCoalesceMs,
   sound: () => readSettings(preferences).notificationSound,
+  // A paused stream is a quiet one, down to the summary of a burst under way.
+  isMuted: () => pause.isPaused(),
 })
 
 /**
@@ -664,10 +666,6 @@ app.whenReady().then(() => {
   ipcMain.handle('ray:notify-test', () => notifier.test())
 
   ipcMain.on('ray:notify', (_event, title: string, body: string) => {
-    if (pause.isPaused()) {
-      return
-    }
-
     notifier.notify(title, body)
   })
 

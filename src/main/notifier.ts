@@ -14,6 +14,12 @@ export type NotifierOptions = {
   coalesceMs: () => number
   /** Whether the system sound plays with each banner. */
   sound: () => boolean
+  /**
+   * While the stream is paused nothing is announced — not a new event, and
+   * not the summary of a burst that was already being counted when the pause
+   * began, which is exactly the flood a pause is for.
+   */
+  isMuted: () => boolean
 }
 
 /**
@@ -33,7 +39,7 @@ export class Notifier {
 
   notify(title: string, body: string): void {
     // Looking at the window already tells you more than a banner would.
-    if (!Notification.isSupported() || this.options.isFocused()) {
+    if (!Notification.isSupported() || this.options.isFocused() || this.options.isMuted()) {
       return
     }
 
@@ -105,6 +111,14 @@ export class Notifier {
   private openWindow(): void {
     this.timer = setTimeout(() => {
       this.timer = null
+
+      // Paused since the burst began: what was counted waits in the list, and
+      // the window closes rather than opening another one behind a summary.
+      if (this.options.isMuted()) {
+        this.suppressed = 0
+
+        return
+      }
 
       if (this.suppressed === 0) {
         return
