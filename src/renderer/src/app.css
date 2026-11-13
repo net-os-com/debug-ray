@@ -10193,6 +10193,11 @@ select:focus {
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
+/* Three hits in a row and up: the bonus is on. */
+.sonar-ping__streak {
+  color: var(--app-accent-fg);
+  font-weight: var(--fw-medium);
+}
 .sonar-ping__lives {
   color: var(--err-fg);
   letter-spacing: 2px;

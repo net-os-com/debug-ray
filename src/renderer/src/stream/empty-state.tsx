@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SonarPing } from './sonar-ping/sonar-ping'
+import { useClickedButton } from './sonar-ping/use-clicked-button'
 import { useSpaceToPlay } from './sonar-ping/use-space-to-play'
 import { Sonar } from './sonar'
 import { breathSeconds, waitingMessage } from './waiting'
@@ -31,13 +32,16 @@ export function EmptyState({ target, best, onBest, canPlay }: EmptyStateProps) {
   const message = waitingMessage(elapsed)
   const [playing, setPlaying] = useState(false)
 
-  useSpaceToPlay(() => setPlaying(true), canPlay && !playing)
+  const clicked = useClickedButton()
+
+  useSpaceToPlay(() => setPlaying(true), canPlay && !playing, clicked)
 
   if (playing) {
     return (
       <div className="empty empty--playing">
         <SonarPing
           best={best}
+          clicked={clicked}
           held={!canPlay}
           onBest={onBest}
           onQuit={() => setPlaying(false)}
