@@ -102,6 +102,27 @@ const api = {
     ipcRenderer.send('tray:hide')
   },
 
+  /** The collected requests the main process kept, oldest first. */
+  getRequestsSnapshot(): Promise<RayEvent[]> {
+    return ipcRenderer.invoke('ray:requests:snapshot')
+  },
+
+  /** Forgets the collected requests in the main process too. */
+  clearRequests(): void {
+    ipcRenderer.send('ray:requests:clear')
+  },
+
+  /** Fires whenever the collected requests were cleared, from whichever window. */
+  onRequestsCleared(listener: () => void): () => void {
+    const handler = (): void => listener()
+
+    ipcRenderer.on('ray:requests:cleared', handler)
+
+    return () => {
+      ipcRenderer.off('ray:requests:cleared', handler)
+    }
+  },
+
   /** The stream's pause as the main process holds it. */
   getPause(): Promise<PauseState> {
     return ipcRenderer.invoke('ray:pause')

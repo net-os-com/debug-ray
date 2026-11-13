@@ -1,13 +1,22 @@
 import {
   ANNOTATION_TYPES,
   OWN_VIEW,
+  REQUEST_PAYLOAD_TYPE,
   isStreamEntry,
   type RayEvent,
   type StreamSnapshot,
 } from '../shared/ray-event'
 
-/** Collected requests and outgoing calls, counted apart from the stream. */
+/** Outgoing calls, counted apart from the stream and from requests. */
 const OWN_VIEW_CAPACITY = 500
+
+/** How many of each list the log keeps, read on every record. */
+export type EventLogCapacities = {
+  /** The stream's buffer size from Settings. */
+  stream: () => number
+  /** The Requests view's buffer size from Settings. */
+  requests: () => number
+}
 
 /**
  * A ceiling on labels and colours, which normally go when their event goes.
@@ -23,30 +32,34 @@ const ANNOTATION_CAPACITY = 2_000
  * without the window having to be open on the right screen, and the menu bar
  * panel reads from here so it works while the window is hidden or closed.
  *
- * It is three lists rather than one. A single list of the last 500 payloads of
+ * It is four lists rather than one. A single list of the last 500 payloads of
  * every kind let an application that polls, or calls out, push every `ray()`
  * event out within minutes — one collected request or outgoing call counted the
  * same as a dump — while the window's stream, which counts stream events only,
  * still showed them. The panel and an MCP client then read "nothing" beside a
  * full stream. So stream events are capped on their own, at the stream's own
- * buffer size; requests and outgoing calls have a cap of their own; and labels
- * and colours go when the events they decorate go.
+ * buffer size; requests likewise, at the Requests view's, since a reopened
+ * window fills its Requests from here; outgoing calls have a cap of their own;
+ * and labels and colours go when the events they decorate go.
  */
 export class EventLog {
   private stream: RayEvent[] = []
+  private requests: RayEvent[] = []
   private ownView: RayEvent[] = []
   private annotations: RayEvent[] = []
 
   /**
-   * The stream's capacity is read on every record rather than fixed here, so a
-   * buffer size changed in Settings takes effect without a restart.
+   * Capacities are read on every record rather than fixed here, so a buffer
+   * size changed in Settings takes effect without a restart.
    */
-  constructor(private readonly streamCapacity: () => number) {}
+  constructor(private readonly capacities: EventLogCapacities) {}
 
   record(events: RayEvent[]): void {
     for (const event of events) {
       if (ANNOTATION_TYPES.has(event.type)) {
         this.annotations.push(event)
+      } else if (event.type === REQUEST_PAYLOAD_TYPE) {
+        this.requests.push(event)
       } else if (OWN_VIEW.has(event.type)) {
         this.ownView.push(event)
       } else {
@@ -55,7 +68,8 @@ export class EventLog {
     }
 
     const evicted = [
-      ...this.evict('stream', this.streamCapacity()),
+      ...this.evict('stream', this.capacities.stream()),
+      ...this.evict('requests', this.capacities.requests()),
       ...this.evict('ownView', OWN_VIEW_CAPACITY),
     ]
 
@@ -66,8 +80,25 @@ export class EventLog {
   /** Everything, as a `clear_all` payload asks. */
   clear(): void {
     this.stream = []
+    this.requests = []
     this.ownView = []
     this.annotations = []
+  }
+
+  /**
+   * The collected requests only, as the Requests view's Clear asks, so a
+   * window opened again afterwards does not bring them back.
+   */
+  clearRequests(): void {
+    const cleared = this.requests
+
+    this.requests = []
+    this.dropAnnotationsOf(cleared)
+  }
+
+  /** Collected requests, oldest first, for a window that opens late. */
+  requestsSnapshot(): RayEvent[] {
+    return [...this.requests]
   }
 
   /**
@@ -150,11 +181,11 @@ export class EventLog {
   }
 
   private all(): RayEvent[] {
-    return [...this.stream, ...this.ownView, ...this.annotations]
+    return [...this.stream, ...this.requests, ...this.ownView, ...this.annotations]
   }
 
   /** Trims a list to its capacity, oldest first, and returns what it dropped. */
-  private evict(list: 'stream' | 'ownView', capacity: number): RayEvent[] {
+  private evict(list: 'stream' | 'requests' | 'ownView', capacity: number): RayEvent[] {
     const overflow = Math.max(0, this[list].length - capacity)
     const dropped = this[list].slice(0, overflow)
 
@@ -177,7 +208,9 @@ export class EventLog {
       return
     }
 
-    const remaining = new Set([...this.stream, ...this.ownView].map((event) => event.uuid))
+    const remaining = new Set(
+      [...this.stream, ...this.requests, ...this.ownView].map((event) => event.uuid),
+    )
     const gone = new Set(
       removed.map((event) => event.uuid).filter((uuid) => !remaining.has(uuid)),
     )

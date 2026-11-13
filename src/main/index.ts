@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
-import { isStreamEntry, type ServerStatus } from '../shared/ray-event'
+import { REQUEST_PAYLOAD_TYPE, isStreamEntry, type ServerStatus } from '../shared/ray-event'
 import type { StreamStart } from './exec/run-stream'
 import type { Snippet, TinkerRequest } from '../shared/tinker'
 import type { ApiEnvironment, ApiSend, SavedRequest } from '../shared/api'
@@ -90,7 +90,10 @@ const clients = new Clients()
 // `preferences` is only assigned once the app is ready, but the log is only
 // written to by the receiver, which starts after that, so reading it lazily
 // here is safe.
-const log = new EventLog(() => readSettings(preferences).eventBuffer)
+const log = new EventLog({
+  stream: () => readSettings(preferences).eventBuffer,
+  requests: () => readSettings(preferences).requestBuffer,
+})
 const presence = new McpPresence()
 let preferences: Preferences
 let snippets: Snippets
@@ -379,6 +382,14 @@ app.whenReady().then(() => {
   // Every way the window clears the stream comes through here, so the log, and
   // with it the panel and any MCP client, see what the window shows.
   ipcMain.on('ray:stream:clear', () => clearStream())
+
+  // A reopened window fills its Requests from here, and the Requests view's
+  // Clear comes through here so the log forgets them too.
+  ipcMain.handle('ray:requests:snapshot', () => log.requestsSnapshot())
+  ipcMain.on('ray:requests:clear', () => {
+    log.clearRequests()
+    sendToWindows(streamWindows(), 'ray:requests:cleared')
+  })
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
   ipcMain.handle('ray:update', () => updater.current())
@@ -656,8 +667,15 @@ app.whenReady().then(() => {
     onRequest: (request, address) => {
       clients.record(request, address)
 
-      const ignored = readSettings(preferences).ignoredSources
-      const events = toRayEvents(request).filter((event) => !isIgnored(event, ignored))
+      const { ignoredSources, collectRequests } = readSettings(preferences)
+      // "Collect requests" off drops them here, before the log: a window filling
+      // its Requests from the log later would otherwise bring back what
+      // arrived while collecting was off.
+      const events = toRayEvents(request).filter(
+        (event) =>
+          !isIgnored(event, ignoredSources) &&
+          (collectRequests || event.type !== REQUEST_PAYLOAD_TYPE),
+      )
 
       if (events.length === 0) {
         return

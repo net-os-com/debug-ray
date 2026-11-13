@@ -19,6 +19,13 @@ export type MainSettings = {
   showMenuBarIcon: boolean
   /** How many stream events the window keeps; the main log keeps as many. */
   eventBuffer: number
+  /**
+   * Whether collected requests are kept at all. Off, they are dropped as they
+   * arrive — in main, so they never reach the log, a window or an MCP client.
+   */
+  collectRequests: boolean
+  /** How many requests the Requests view keeps; the main log keeps as many. */
+  requestBuffer: number
 }
 
 const FALLBACK: MainSettings = {
@@ -32,6 +39,8 @@ const FALLBACK: MainSettings = {
   notificationCoalesceMs: 3_000,
   showMenuBarIcon: true,
   eventBuffer: 500,
+  collectRequests: true,
+  requestBuffer: 100,
 }
 
 /**
@@ -66,11 +75,14 @@ export function readSettings(preferences: Preferences): MainSettings {
     // On by default, so only an explicit false takes it down: a settings file
     // from before this setting existed has no key for it at all.
     showMenuBarIcon: settings.showMenuBarIcon !== false,
-    eventBuffer:
-      typeof settings.eventBuffer === 'number' &&
-      Number.isInteger(settings.eventBuffer) &&
-      settings.eventBuffer >= 1
-        ? settings.eventBuffer
-        : FALLBACK.eventBuffer,
+    eventBuffer: buffer(settings.eventBuffer, FALLBACK.eventBuffer),
+    // On by default, like the window's own default.
+    collectRequests: settings.collectRequests !== false,
+    requestBuffer: buffer(settings.requestBuffer, FALLBACK.requestBuffer),
   }
+}
+
+/** A buffer size is a whole number of at least one; anything else falls back. */
+function buffer(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : fallback
 }

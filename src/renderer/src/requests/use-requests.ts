@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { REQUEST_PAYLOAD_TYPE } from '../../../shared/ray-event'
+import { mergeById } from '../merge-by-id'
 import type { TabKey } from './tabs'
 import { toHttpRequest } from './to-http-request'
 import {
@@ -64,6 +65,46 @@ export function useRequests({ max, slowMs, collect }: Options) {
     [max, collect],
   )
 
+  // A window opened again — closed outright, or reloaded — starts from what
+  // the main process kept rather than from nothing, so a request picked in the
+  // menu bar panel is there to open. Live ones may land first; by id they stay
+  // one row. Main already dropped whatever arrived while collecting was off.
+  useEffect(() => {
+    if (!collect) {
+      return
+    }
+
+    let cancelled = false
+
+    void window.ray.getRequestsSnapshot().then((events) => {
+      if (cancelled) {
+        return
+      }
+
+      const kept = events
+        .map((event) => toHttpRequest(event.content))
+        .filter((request): request is HttpRequest => request !== null)
+        .reverse()
+
+      setRequests((current) => mergeById(current, kept).slice(0, max))
+    })
+
+    return () => {
+      cancelled = true
+    }
+    // Once, on mount: afterwards the live subscription above keeps it current.
+  }, [])
+
+  // A clear from another window, or from this one coming back, empties it here.
+  useEffect(
+    () =>
+      window.ray.onRequestsCleared(() => {
+        setRequests([])
+        setSelectedId(null)
+      }),
+    [],
+  )
+
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
 
@@ -126,6 +167,9 @@ export function useRequests({ max, slowMs, collect }: Options) {
   const clear = useCallback(() => {
     setRequests([])
     setSelectedId(null)
+    // The main process keeps its own copy for reopened windows, the menu bar
+    // panel and MCP clients; without this they would bring the requests back.
+    window.ray.clearRequests()
   }, [])
 
   return {
