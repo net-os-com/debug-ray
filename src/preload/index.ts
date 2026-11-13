@@ -91,6 +91,11 @@ const api = {
     }
   },
 
+  /** Opens the main window on one event; a row in the menu bar panel calls it. */
+  openEventInApp(id: string): void {
+    ipcRenderer.send('tray:open-event', id)
+  },
+
   /** Puts the menu bar panel away; Escape in the panel calls it. */
   hideTrayPanel(): void {
     ipcRenderer.send('tray:hide')

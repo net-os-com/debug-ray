@@ -124,7 +124,7 @@ const notifier = new Notifier({
  * every event, status change and clear.
  */
 function streamWindows(): Array<BrowserWindow | null> {
-  return [mainWindow]
+  return [mainWindow, panel.window()]
 }
 
 function applyLoginItem(): void {
@@ -275,6 +275,14 @@ app.whenReady().then(() => {
 
   // Escape in the panel puts it away, as it would a menu.
   ipcMain.on('tray:hide', () => panel.hide())
+
+  // A row clicked in the panel: the panel steps aside and the main window opens
+  // on that event, built again first if it was closed.
+  ipcMain.on('tray:open-event', (_event, id: string) => {
+    panel.hide()
+    showMainWindow()
+    intents.deliver({ kind: 'select-event', id })
+  })
 
   // A window that opens after events arrived — the panel, or a main window
   // closed and opened again — starts from what the log holds rather than empty.

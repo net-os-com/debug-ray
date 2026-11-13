@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { RayEvent } from '../../../shared/ray-event'
+import { clockTime } from '../clock-time'
 import { eventPreview } from '../event-preview'
 import { eventTitle } from '../event-title'
 import { kindFor } from '../kind'
@@ -63,8 +64,8 @@ export function StreamRow({
             {label}
           </span>
         ) : null}
-        <span className="row__time" title={formatTime(latestAt)}>
-          {relative ? relativeTime(latestAt, now) : formatTime(latestAt)}
+        <span className="row__time" title={clockTime(latestAt)}>
+          {relative ? relativeTime(latestAt, now) : clockTime(latestAt)}
         </span>
       </div>
       <div className="row__preview">{eventPreview(event)}</div>
@@ -77,8 +78,4 @@ export function StreamRow({
       </div>
     </div>
   )
-}
-
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString(undefined, { hour12: false })
 }
