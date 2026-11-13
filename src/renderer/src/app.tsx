@@ -48,6 +48,7 @@ import { useServerStatus } from './use-server-status'
 import { useClearShortcut } from './use-clear-shortcut'
 import { useFindShortcut } from './use-find-shortcut'
 import { useSettings } from './use-settings'
+import { useStreamPause } from './use-stream-pause'
 import { useTheme } from './use-theme'
 import { useUpdate } from './use-update'
 import { useWindowIntents } from './use-window-intents'
@@ -145,7 +146,9 @@ export function App() {
   )
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [paused, setPaused] = useState(false)
+  // Held by the main process: the menu bar pauses the same stream, and the
+  // pause outlives this window.
+  const { paused, setPaused } = useStreamPause()
 
   // The menu bar opens this window on an event from its panel, or on Settings.
   // Filters and pause are left alone: an event they hide simply stays
@@ -300,7 +303,7 @@ export function App() {
             label: paused ? 'Resume the stream' : 'Pause the stream',
             where: 'Stream',
             run: () => {
-              setPaused((current) => !current)
+              setPaused(!paused)
               setView('stream')
             },
           },
@@ -373,7 +376,7 @@ export function App() {
           },
         ],
       }),
-    [snippets, api, erd, schema, clear, paused, realtime, theme, toggleTheme],
+    [snippets, api, erd, schema, clear, paused, setPaused, realtime, theme, toggleTheme],
   )
 
   const target = status ? `${status.host}:${status.port}` : 'starting…'
@@ -509,7 +512,7 @@ export function App() {
                     onOrder={(order) => setSetting('streamOrder', order)}
                     order={settings.streamOrder}
                     onQueryChange={(query) => setFilters((current) => ({ ...current, query }))}
-                    onTogglePause={() => setPaused((current) => !current)}
+                    onTogglePause={() => setPaused(!paused)}
                     paused={paused}
                     pendingCount={pendingCount}
                     query={filters.query}

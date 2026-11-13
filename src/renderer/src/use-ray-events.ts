@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { OWN_VIEW, type RayEvent } from '../../shared/ray-event'
 import { mergeById } from './merge-by-id'
+import { splitAtPause } from './split-at-pause'
 
 /** The design's buffer card promises 500 events kept. */
 /** Fallback when no buffer size is configured. */
@@ -98,19 +99,25 @@ export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Option
   // A window that opens after events arrived — the menu bar panel, or this
   // window closed and opened again — starts from what the main process kept
   // rather than from nothing. Live events may land before the answer does, so
-  // the two are merged rather than one replacing the other.
+  // the two are merged rather than one replacing the other. What arrived while
+  // the stream is paused waits, as it does in the windows that were open.
   useEffect(() => {
     let cancelled = false
 
-    void window.ray.getStreamSnapshot().then((snapshot) => {
-      if (cancelled) {
-        return
-      }
+    void Promise.all([window.ray.getStreamSnapshot(), window.ray.getPause()]).then(
+      ([snapshot, pause]) => {
+        if (cancelled) {
+          return
+        }
 
-      setEvents((current) => mergeById(snapshot.events, current).slice(-maxEvents))
-      setLabels((current) => ({ ...snapshot.labels, ...current }))
-      setColors((current) => ({ ...snapshot.colors, ...current }))
-    })
+        const { shown, pending: waiting } = splitAtPause(snapshot.events, pause.since)
+
+        setEvents((current) => mergeById(shown, current).slice(-maxEvents))
+        setPending((current) => mergeById(waiting, current).slice(-maxEvents))
+        setLabels((current) => ({ ...snapshot.labels, ...current }))
+        setColors((current) => ({ ...snapshot.colors, ...current }))
+      },
+    )
 
     return () => {
       cancelled = true
@@ -134,7 +141,9 @@ export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Option
       return
     }
 
-    setEvents((current) => [...current, ...pending].slice(-maxEvents))
+    // By id, because a window that opened while paused can hold one event in
+    // both: live before it learned of the pause, and as waiting in the snapshot.
+    setEvents((current) => mergeById(current, pending).slice(-maxEvents))
     setPending([])
   }, [paused, pending])
 

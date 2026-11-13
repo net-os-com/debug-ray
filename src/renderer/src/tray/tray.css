@@ -45,6 +45,11 @@
   background: rgb(var(--color-green-600));
 }
 
+/* Held, the toolbar's colour for a paused stream. */
+.tray__status[data-state='paused'] .tray__dot {
+  background: rgb(var(--color-yellow-600));
+}
+
 .tray__status[data-state='failed'] .tray__dot {
   background: rgb(var(--color-red-600));
 }

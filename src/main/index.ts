@@ -50,6 +50,7 @@ import { listContainers } from './exec/containers'
 import { classIndex } from './tinker/class-index'
 import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
+import { StreamPause } from './stream-pause'
 import { Updater } from './updater'
 import { WindowIntents } from './window-intents'
 import { MenuBar } from './tray/menu-bar'
@@ -93,6 +94,11 @@ let preferences: Preferences
 let snippets: Snippets
 let environments: Environments
 const updater = new Updater(() => mainWindow)
+// One pause for the whole app, so the window, the panel and the menu bar agree
+// on it, and it outlives a closed window.
+const pause = new StreamPause((state) => {
+  sendToWindows(streamWindows(), 'ray:pause', state)
+})
 const tinker = new Tinker()
 const streams = new Streams(() => mainWindow)
 
@@ -297,6 +303,10 @@ app.whenReady().then(() => {
   // The window takes what was asked of it while it was being built; taking it
   // is also how it says it is listening.
   ipcMain.handle('ray:intent:take', () => intents.take())
+
+  // The toolbar, the palette and the menu bar all pause through here.
+  ipcMain.handle('ray:pause', () => pause.state())
+  ipcMain.on('ray:pause:set', (_event, paused: boolean) => pause.set(paused === true))
 
   // Escape in the panel puts it away, as it would a menu.
   ipcMain.on('tray:hide', () => panel.hide())
@@ -563,7 +573,14 @@ app.whenReady().then(() => {
   })
 
   // Backs the "Focus on errors" setting; the renderer decides when to ask.
+  // A paused stream is a quiet one: you pause because you are busy elsewhere,
+  // and a window jumping forward is the opposite of that. Nothing is replayed
+  // on resume; the events themselves are waiting in the list.
   ipcMain.on('ray:attention', () => {
+    if (pause.isPaused()) {
+      return
+    }
+
     mainWindow?.show()
     mainWindow?.flashFrame(true)
   })
@@ -574,6 +591,10 @@ app.whenReady().then(() => {
   ipcMain.handle('ray:notify-test', () => notifier.test())
 
   ipcMain.on('ray:notify', (_event, title: string, body: string) => {
+    if (pause.isPaused()) {
+      return
+    }
+
     notifier.notify(title, body)
   })
 

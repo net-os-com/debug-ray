@@ -24,6 +24,7 @@ import type {
   SavedRequest,
 } from '../shared/api'
 import type { ImportedFile } from '../shared/import/documents'
+import type { PauseState } from '../shared/pause-state'
 import type { WindowIntent } from '../shared/window-intent'
 import type { BroadcastOutcome, PusherCredentials, RealtimeFrame } from '../shared/realtime'
 import type {
@@ -99,6 +100,27 @@ const api = {
   /** Puts the menu bar panel away; Escape in the panel calls it. */
   hideTrayPanel(): void {
     ipcRenderer.send('tray:hide')
+  },
+
+  /** The stream's pause as the main process holds it. */
+  getPause(): Promise<PauseState> {
+    return ipcRenderer.invoke('ray:pause')
+  },
+
+  /** Fires whenever the stream is paused or resumed, from wherever. */
+  onPause(listener: (state: PauseState) => void): () => void {
+    const handler = (_: unknown, state: PauseState): void => listener(state)
+
+    ipcRenderer.on('ray:pause', handler)
+
+    return () => {
+      ipcRenderer.off('ray:pause', handler)
+    }
+  },
+
+  /** Pauses or resumes the stream for every window and the menu bar. */
+  setPaused(paused: boolean): void {
+    ipcRenderer.send('ray:pause:set', paused)
   },
 
   /** Fires whenever the stream was cleared, from whichever window. */
