@@ -146,6 +146,17 @@ function streamWindows(): Array<BrowserWindow | null> {
 }
 
 /**
+ * Empties the stream everywhere: the log, and with it the panel and any MCP
+ * client, every window, and the count beside the icon. Cmd-K in the window and
+ * Clear Stream in the menu bar both end up here.
+ */
+function clearStream(): void {
+  log.clearStream()
+  sendToWindows(streamWindows(), 'ray:stream:cleared')
+  unseen.cleared()
+}
+
+/**
  * Mirrors the "Show in menu bar" setting: puts the icon up, or takes it and its
  * panel down. Read from preferences like the login item, so switching it in
  * Settings takes effect at once rather than at the next start.
@@ -173,15 +184,23 @@ function applyMenuBarIcon(): void {
 
   menuBar = new MenuBar({
     images,
-    menu: buildTrayMenu({
-      open: () => showMainWindow(),
-      settings: () => {
-        showMainWindow()
-        intents.deliver({ kind: 'show-view', view: 'settings' })
-      },
-      // before-quit sets `quitting`, so "Close to background" lets it through.
-      quit: () => app.quit(),
-    }),
+    menu: () =>
+      buildTrayMenu(
+        { paused: pause.isPaused(), update: updater.current() },
+        {
+          open: () => showMainWindow(),
+          settings: () => {
+            showMainWindow()
+            intents.deliver({ kind: 'show-view', view: 'settings' })
+          },
+          togglePause: () => pause.set(!pause.isPaused()),
+          clearStream,
+          downloadUpdate: () => updater.download(),
+          installUpdate: () => updater.install(),
+          // before-quit sets `quitting`, so "Close to background" lets it through.
+          quit: () => app.quit(),
+        },
+      ),
     onLeftClick: () => {
       // Cleared before the panel is placed: an empty title narrows the item,
       // and bounds read before that would put the panel off-centre.
@@ -359,11 +378,7 @@ app.whenReady().then(() => {
 
   // Every way the window clears the stream comes through here, so the log, and
   // with it the panel and any MCP client, see what the window shows.
-  ipcMain.on('ray:stream:clear', () => {
-    log.clearStream()
-    sendToWindows(streamWindows(), 'ray:stream:cleared')
-    unseen.cleared()
-  })
+  ipcMain.on('ray:stream:clear', () => clearStream())
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
   ipcMain.handle('ray:update', () => updater.current())

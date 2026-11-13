@@ -10,8 +10,11 @@ const PULSE_QUIET_MS = 1_200
 
 export type MenuBarOptions = {
   images: TrayImages
-  /** Opened by a right click. */
-  menu: Menu
+  /**
+   * Opened by a right click, and built for that click: the pause and the
+   * update it shows change while the icon sits there.
+   */
+  menu: () => Menu
   /**
    * A left click. Where the icon sits is read through `bounds()` rather than
    * handed over, because what the click does first — clearing the count — can
@@ -47,7 +50,7 @@ export class MenuBar {
     })
 
     this.tray.on('click', () => options.onLeftClick())
-    this.tray.on('right-click', () => this.tray.popUpContextMenu(options.menu))
+    this.tray.on('right-click', () => this.tray.popUpContextMenu(options.menu()))
   }
 
   /** Where the icon sits now, so a panel can drop below it. */
