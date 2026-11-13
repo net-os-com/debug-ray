@@ -15,6 +15,8 @@ export type MainSettings = {
   closeToBackground: boolean
   notificationSound: boolean
   notificationCoalesceMs: number
+  /** How many stream events the window keeps; the main log keeps as many. */
+  eventBuffer: number
 }
 
 const FALLBACK: MainSettings = {
@@ -26,6 +28,7 @@ const FALLBACK: MainSettings = {
   closeToBackground: false,
   notificationSound: true,
   notificationCoalesceMs: 3_000,
+  eventBuffer: 500,
 }
 
 /**
@@ -57,5 +60,11 @@ export function readSettings(preferences: Preferences): MainSettings {
       typeof settings.notificationCoalesceMs === 'number' && settings.notificationCoalesceMs >= 0
         ? settings.notificationCoalesceMs
         : FALLBACK.notificationCoalesceMs,
+    eventBuffer:
+      typeof settings.eventBuffer === 'number' &&
+      Number.isInteger(settings.eventBuffer) &&
+      settings.eventBuffer >= 1
+        ? settings.eventBuffer
+        : FALLBACK.eventBuffer,
   }
 }

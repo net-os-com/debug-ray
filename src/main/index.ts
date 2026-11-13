@@ -65,7 +65,10 @@ let quitting = false
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
 const clients = new Clients()
-const log = new EventLog()
+// `preferences` is only assigned once the app is ready, but the log is only
+// written to by the receiver, which starts after that, so reading it lazily
+// here is safe.
+const log = new EventLog(() => readSettings(preferences).eventBuffer)
 const presence = new McpPresence()
 let preferences: Preferences
 let snippets: Snippets

@@ -72,6 +72,32 @@ export type RayEvent = {
   meta: Record<string, unknown>
 }
 
+/**
+ * Whether an event is a row in the stream.
+ *
+ * `clear_all` is not one: it is an instruction to empty the stream, which
+ * every listener acts on rather than shows. Shared because the main process
+ * decides from this when the menu bar icon pulses and what a late window is
+ * handed, and the renderer must agree on both.
+ */
+export function isStreamEntry(event: RayEvent): boolean {
+  return !OUT_OF_STREAM.has(event.type) && event.type !== 'clear_all'
+}
+
+/**
+ * What the main process holds for the stream, handed to a window that opens
+ * after the events arrived: the menu bar panel, or a main window that was
+ * closed and opened again.
+ */
+export type StreamSnapshot = {
+  /** Oldest first, the order events arrive in. Never contains `clear_all`. */
+  events: RayEvent[]
+  /** `ray()->label()` per request uuid. */
+  labels: Record<string, string>
+  /** `ray()->color()` per request uuid. */
+  colors: Record<string, string>
+}
+
 export type ServerStatus = {
   listening: boolean
   host: string
