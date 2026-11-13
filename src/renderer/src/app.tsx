@@ -529,6 +529,7 @@ export function App() {
                     {events.length === 0 ? (
                       <EmptyState
                         best={settings.sonarBest}
+                        canPlay={!palette.open && !changelogOpen}
                         onBest={(score) => setSetting('sonarBest', score)}
                         target={target}
                       />

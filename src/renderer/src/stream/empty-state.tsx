@@ -17,6 +17,8 @@ type EmptyStateProps = {
   /** The hidden game's best score, kept in settings. */
   best: number
   onBest: (score: number) => void
+  /** False while the palette or a modal is open over the stream. */
+  canPlay: boolean
 }
 
 /**
@@ -24,17 +26,22 @@ type EmptyStateProps = {
  * into a small game — unannounced, for whoever finds it. The first event
  * unmounts this screen, and the game with it.
  */
-export function EmptyState({ target, best, onBest }: EmptyStateProps) {
+export function EmptyState({ target, best, onBest, canPlay }: EmptyStateProps) {
   const elapsed = useWaited()
   const message = waitingMessage(elapsed)
   const [playing, setPlaying] = useState(false)
 
-  useSpaceToPlay(() => setPlaying(true))
+  useSpaceToPlay(() => setPlaying(true), canPlay && !playing)
 
   if (playing) {
     return (
       <div className="empty empty--playing">
-        <SonarPing best={best} onBest={onBest} onQuit={() => setPlaying(false)} />
+        <SonarPing
+          best={best}
+          held={!canPlay}
+          onBest={onBest}
+          onQuit={() => setPlaying(false)}
+        />
       </div>
     )
   }

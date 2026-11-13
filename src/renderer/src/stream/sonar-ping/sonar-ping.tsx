@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { drawGame, readColors, type GameColors } from './draw'
-import { LIVES, newGame, ping, step, type SonarGame } from './rules'
+import { LIVES, newGame, pressSpace, step, type SonarGame } from './rules'
 
 type SonarPingProps = {
   /** The best score so far, kept between games and launches. */
   best: number
+  /** The palette or a modal is open over it: hold still until it closes. */
+  held: boolean
   onBest: (score: number) => void
   /** Escape: back to the waiting screen. */
   onQuit: () => void
@@ -24,11 +26,16 @@ type Hud = {
  * them. The game state sits in a ref, so the 60 frames a second never touch
  * React — only the score line does, when it changes.
  */
-export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
+export function SonarPing({ best, held, onBest, onQuit }: SonarPingProps) {
   const wrapper = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const game = useRef<SonarGame>(newGame())
-  const paused = useRef(!document.hasFocus())
+  // Two reasons to hold still: the window is in the background, or something
+  // is open over the game. Either one pauses it.
+  const blurred = useRef(!document.hasFocus())
+  const covered = useRef(held)
+  const paused = useRef(blurred.current || covered.current)
+  const resync = useRef<() => void>(() => {})
   const saved = useRef(best)
   const latest = useRef({ onBest, onQuit })
   const [hud, setHud] = useState<Hud>({
@@ -39,6 +46,11 @@ export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
   })
 
   latest.current = { onBest, onQuit }
+
+  useEffect(() => {
+    covered.current = held
+    resync.current()
+  }, [held])
   saved.current = Math.max(saved.current, best)
 
   // A new best is kept the moment it is made final: at game over, and when
@@ -120,7 +132,8 @@ export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
       const focused = document.activeElement
       const ours = focused === null || focused === document.body || element.contains(focused)
 
-      if (!ours) {
+      // Whatever is open over the game has the keys, Escape included.
+      if (!ours || covered.current) {
         return
       }
 
@@ -142,20 +155,33 @@ export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
         return
       }
 
-      game.current = game.current.phase === 'over' ? newGame() : ping(game.current)
+      game.current = pressSpace(game.current, event.repeat)
       sync()
     }
 
     // In another app nobody is watching the core, so nothing may reach it.
-    const onBlur = (): void => {
-      paused.current = true
+    const settle = (): void => {
+      const was = paused.current
+
+      paused.current = blurred.current || covered.current
+
+      if (was && !paused.current) {
+        last = performance.now()
+      }
+
       sync()
     }
 
+    resync.current = settle
+
+    const onBlur = (): void => {
+      blurred.current = true
+      settle()
+    }
+
     const onFocus = (): void => {
-      paused.current = false
-      last = performance.now()
-      sync()
+      blurred.current = false
+      settle()
     }
 
     const resizes = new ResizeObserver(resize)
@@ -172,7 +198,10 @@ export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
       themes.observe(themed, { attributes: true, attributeFilter: ['data-app'] })
     }
 
-    window.addEventListener('keydown', onKey)
+    // In the capture phase, so the game sees a key before whatever is open
+    // over it reacts: an Escape that closes the palette is the palette's, and
+    // must not also end the game once the palette is gone.
+    window.addEventListener('keydown', onKey, true)
     window.addEventListener('blur', onBlur)
     window.addEventListener('focus', onFocus)
     frame = requestAnimationFrame(tick)
@@ -181,7 +210,7 @@ export function SonarPing({ best, onBest, onQuit }: SonarPingProps) {
       cancelAnimationFrame(frame)
       resizes.disconnect()
       themes.disconnect()
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('blur', onBlur)
       window.removeEventListener('focus', onFocus)
       keepBest(game.current.score)
