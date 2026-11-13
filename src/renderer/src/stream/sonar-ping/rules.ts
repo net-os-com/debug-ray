@@ -56,6 +56,10 @@ export const JAM_S = 0.35
 export const MAX_DT = 0.05
 /** How long a zap's flash lasts. */
 export const ZAP_S = 0.3
+/** From this many hitting presses in a row, each one scores a point more. */
+export const STREAK_FROM = 3
+/** Space does nothing this long after a game ends, so its score can be read. */
+export const RESTART_GRACE_S = 0.6
 /** A moment's grace before the first bug, so a game does not open on one. */
 const FIRST_BUG_S = 1
 
@@ -165,12 +169,15 @@ export function ping(game: SonarGame): SonarGame {
     return { ...game, streak: 0, jammedFor: JAM_S }
   }
 
+  const streak = game.streak + 1
+
   return {
     ...game,
     bugs: game.bugs.filter((bug) => !onRing(bug)),
-    // One each, and one more for every extra bug the same press caught.
-    score: game.score + hits.length + (hits.length - 1),
-    streak: game.streak + 1,
+    // One each, one more for every extra bug the same press caught, and one
+    // more once the presses have hit three times in a row.
+    score: game.score + hits.length + (hits.length - 1) + (streak >= STREAK_FROM ? 1 : 0),
+    streak,
     zaps: [
       ...game.zaps,
       ...hits.map((bug) => ({ angle: bug.angle, distance: bug.distance, age: 0 })),
@@ -181,12 +188,21 @@ export function ping(game: SonarGame): SonarGame {
 /**
  * What Space does. A key held down repeats every ~90 ms, which would ping again
  * the moment each jam ends and restart a lost game before its score shows, so
- * only a fresh press counts: holding Space down must not be a way to play.
+ * only a fresh press counts: holding Space down must not be a way to play. And
+ * a press in the moment after a game ends is still the last game's mashing,
+ * not a request for the next one.
+ *
+ * `sinceOver` is how long ago the game ended, in seconds; anything while it
+ * is still playing.
  */
-export function pressSpace(game: SonarGame, repeat: boolean): SonarGame {
+export function pressSpace(game: SonarGame, repeat: boolean, sinceOver: number): SonarGame {
   if (repeat) {
     return game
   }
 
-  return game.phase === 'over' ? newGame() : ping(game)
+  if (game.phase === 'over') {
+    return sinceOver < RESTART_GRACE_S ? game : newGame()
+  }
+
+  return ping(game)
 }
