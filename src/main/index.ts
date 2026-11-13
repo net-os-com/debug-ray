@@ -55,6 +55,8 @@ import { Updater } from './updater'
 import { WindowIntents } from './window-intents'
 import { MenuBar } from './tray/menu-bar'
 import { buildTrayMenu } from './tray/tray-menu'
+import { trayTitle } from './tray/tray-title'
+import { UnseenCount } from './tray/unseen-count'
 import { loadTrayImages } from './tray/tray-images'
 import { TrayPanel } from './tray/tray-panel'
 import { loadRendererPage } from './renderer-page'
@@ -98,6 +100,19 @@ const updater = new Updater(() => mainWindow)
 // on it, and it outlives a closed window.
 const pause = new StreamPause((state) => {
   sendToWindows(streamWindows(), 'ray:pause', state)
+
+  if (!state.paused) {
+    unseen.resumed()
+  }
+})
+// The number beside the menu bar icon. Looking is the panel being up or the
+// window having focus; a hidden or merely visible window does not count.
+const unseen = new UnseenCount({
+  isLooking: () =>
+    panel.isVisible() ||
+    (mainWindow !== null && !mainWindow.isDestroyed() && mainWindow.isFocused()),
+  isPaused: () => pause.isPaused(),
+  onChange: (state) => menuBar?.setTitle(trayTitle(state)),
 })
 const tinker = new Tinker()
 const streams = new Streams(() => mainWindow)
@@ -166,8 +181,21 @@ function applyMenuBarIcon(): void {
       // before-quit sets `quitting`, so "Close to background" lets it through.
       quit: () => app.quit(),
     }),
-    onLeftClick: (bounds) => panel.toggle(bounds),
+    onLeftClick: () => {
+      // Cleared before the panel is placed: an empty title narrows the item,
+      // and bounds read before that would put the panel off-centre.
+      if (!panel.isVisible()) {
+        unseen.looked()
+      }
+
+      if (menuBar !== null) {
+        panel.toggle(menuBar.bounds())
+      }
+    },
   })
+
+  // Switched on mid-session, it starts with what is already waiting.
+  menuBar.setTitle(trayTitle(unseen.current()))
 }
 
 /**
@@ -270,6 +298,9 @@ function createWindow(): BrowserWindow {
     window.hide()
   })
 
+  // Bringing the window forward is looking at what arrived.
+  window.on('focus', () => unseen.looked())
+
   loadRendererPage(window, 'index')
 
   return window
@@ -328,6 +359,7 @@ app.whenReady().then(() => {
   ipcMain.on('ray:stream:clear', () => {
     log.clearStream()
     sendToWindows(streamWindows(), 'ray:stream:cleared')
+    unseen.cleared()
   })
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
@@ -615,9 +647,11 @@ app.whenReady().then(() => {
 
       if (events.some((event) => event.type === 'clear_all')) {
         log.clear()
+        unseen.cleared()
       }
 
       log.record(events)
+      unseen.arrived(events)
 
       for (const event of events) {
         sendToWindows(streamWindows(), 'ray:event', event)

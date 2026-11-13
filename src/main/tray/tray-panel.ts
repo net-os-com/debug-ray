@@ -68,6 +68,11 @@ export class TrayPanel {
     }
   }
 
+  /** Whether the panel is on screen, which counts as looking at the stream. */
+  isVisible(): boolean {
+    return this.window()?.isVisible() ?? false
+  }
+
   /** The panel's window, or null when it was never built or is gone. */
   window(): BrowserWindow | null {
     return this.panel !== null && !this.panel.isDestroyed() ? this.panel : null

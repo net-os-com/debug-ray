@@ -12,8 +12,12 @@ export type MenuBarOptions = {
   images: TrayImages
   /** Opened by a right click. */
   menu: Menu
-  /** A left click, with where the icon sits so a panel can drop below it. */
-  onLeftClick: (bounds: Rectangle) => void
+  /**
+   * A left click. Where the icon sits is read through `bounds()` rather than
+   * handed over, because what the click does first — clearing the count — can
+   * move the icon.
+   */
+  onLeftClick: () => void
 }
 
 /**
@@ -39,8 +43,20 @@ export class MenuBar {
       quietMs: PULSE_QUIET_MS,
     })
 
-    this.tray.on('click', () => options.onLeftClick(this.tray.getBounds()))
+    this.tray.on('click', () => options.onLeftClick())
     this.tray.on('right-click', () => this.tray.popUpContextMenu(options.menu))
+  }
+
+  /** Where the icon sits now, so a panel can drop below it. */
+  bounds(): Rectangle {
+    return this.tray.getBounds()
+  }
+
+  /** The text beside the icon; empty leaves the icon on its own. */
+  setTitle(title: string): void {
+    // Digits of one width, so a count going from 9 to 10 does not shuffle
+    // every icon to its left.
+    this.tray.setTitle(title, { fontType: 'monospacedDigit' })
   }
 
   /** Something arrived for the stream. */
