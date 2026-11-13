@@ -380,6 +380,13 @@ app.whenReady().then(() => {
     intents.deliver({ kind: 'select-event', id })
   })
 
+  // The last request clicked in the panel: the same, on the Requests view.
+  ipcMain.on('tray:open-request', (_event, id: string) => {
+    panel.hide()
+    showMainWindow()
+    intents.deliver({ kind: 'select-request', id })
+  })
+
   // A window that opens after events arrived — the panel, or a main window
   // closed and opened again — starts from what the log holds rather than empty.
   ipcMain.handle('ray:stream:snapshot', () => log.streamSnapshot())

@@ -3,6 +3,7 @@ import type { WindowIntent } from '../../shared/window-intent'
 
 type Handlers = {
   onSelectEvent: (id: string) => void
+  onSelectRequest: (id: string) => void
   onShowView: (view: 'settings') => void
 }
 
@@ -23,6 +24,8 @@ export function useWindowIntents(handlers: Handlers): void {
     const apply = (intent: WindowIntent): void => {
       if (intent.kind === 'select-event') {
         latest.current.onSelectEvent(intent.id)
+      } else if (intent.kind === 'select-request') {
+        latest.current.onSelectRequest(intent.id)
       } else {
         latest.current.onShowView(intent.view)
       }

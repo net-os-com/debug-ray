@@ -97,6 +97,11 @@ const api = {
     ipcRenderer.send('tray:open-event', id)
   },
 
+  /** Opens the main window on one request; the panel's last request calls it. */
+  openRequestInApp(id: string): void {
+    ipcRenderer.send('tray:open-request', id)
+  },
+
   /** Puts the menu bar panel away; Escape in the panel calls it. */
   hideTrayPanel(): void {
     ipcRenderer.send('tray:hide')

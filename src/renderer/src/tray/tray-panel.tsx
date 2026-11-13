@@ -3,7 +3,9 @@ import { groupEvents } from '../stream/group-events'
 import { useNow } from '../use-now'
 import { useRayEvents } from '../use-ray-events'
 import { useStreamPause } from '../use-stream-pause'
+import { TrayLastRequest } from './tray-last-request'
 import { TrayRow } from './tray-row'
+import { useLastRequest } from './use-last-request'
 import { TrayStatus } from './tray-status'
 import { usePanelPreferences } from './use-panel-preferences'
 
@@ -17,9 +19,11 @@ import { usePanelPreferences } from './use-panel-preferences'
  * the panel holds back what the window holds back.
  */
 export function TrayPanel() {
-  const { theme, relativeTime, eventBuffer } = usePanelPreferences()
+  const { theme, relativeTime, eventBuffer, collectRequests, slowRequestMs } =
+    usePanelPreferences()
   const now = useNow(relativeTime)
   const { paused } = useStreamPause()
+  const lastRequest = useLastRequest(collectRequests)
 
   // The same hook the stream uses, so it fills from the main process's log,
   // follows every clear and `clear_all`, and leaves requests and annotations
@@ -50,6 +54,13 @@ export function TrayPanel() {
   return (
     <div className="tray" data-app={theme}>
       <TrayStatus paused={paused} pending={pendingCount} />
+      {lastRequest ? (
+        <TrayLastRequest
+          request={lastRequest}
+          slowMs={slowRequestMs}
+          onOpen={(id) => window.ray.openRequestInApp(id)}
+        />
+      ) : null}
       <div className="tray__list">
         {groups.length === 0 ? (
           <div className="tray__empty">No events yet</div>

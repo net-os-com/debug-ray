@@ -5,9 +5,16 @@ export type PanelPreferences = {
   theme: Theme
   relativeTime: boolean
   eventBuffer: number
+  /** Off, the panel shows no last request, as the window collects none. */
+  collectRequests: boolean
+  /** At or above this a request's duration shows red. */
+  slowRequestMs: number
 }
 
 const THEMES: Theme[] = ['light', 'dark', 'phosphor']
+
+/** The window's own default for "Slow request". */
+const SLOW_REQUEST_MS = 200
 
 function read(): PanelPreferences {
   const stored = window.ray.readPreferences()
@@ -17,11 +24,14 @@ function read(): PanelPreferences {
       : {}
   const theme = THEMES.find((one) => one === stored.theme) ?? 'light'
   const buffer = settings.eventBuffer
+  const slow = settings.slowRequestMs
 
   return {
     theme,
     relativeTime: settings.relativeTime !== false,
     eventBuffer: typeof buffer === 'number' && Number.isInteger(buffer) && buffer >= 1 ? buffer : 500,
+    collectRequests: settings.collectRequests !== false,
+    slowRequestMs: typeof slow === 'number' && slow >= 0 ? slow : SLOW_REQUEST_MS,
   }
 }
 

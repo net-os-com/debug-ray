@@ -158,6 +158,12 @@ export function App() {
       setView('stream')
       setSelectedId(id)
     },
+    // The search and filter stay as they are; the detail opens regardless,
+    // because the selection is looked up among all requests, not the shown.
+    onSelectRequest: (id) => {
+      setView('requests')
+      requests.setSelectedId(id)
+    },
     onShowView: setView,
   })
 
