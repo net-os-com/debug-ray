@@ -55,6 +55,7 @@ import { Updater } from './updater'
 import { WindowIntents } from './window-intents'
 import { MenuBar } from './tray/menu-bar'
 import { buildTrayMenu } from './tray/tray-menu'
+import { rightAnchored } from './tray/right-anchored'
 import { trayTitle } from './tray/tray-title'
 import { UnseenCount } from './tray/unseen-count'
 import { loadTrayImages } from './tray/tray-images'
@@ -205,15 +206,19 @@ function applyMenuBarIcon(): void {
         },
       ),
     onLeftClick: () => {
-      // Cleared before the panel is placed: an empty title narrows the item,
-      // and bounds read before that would put the panel off-centre.
+      if (menuBar === null) {
+        return
+      }
+
+      // Opening the panel clears the count, which narrows the item and moves
+      // the icon; the panel is placed under where the icon is going to be.
+      const before = menuBar.bounds()
+
       if (!panel.isVisible()) {
         unseen.looked()
       }
 
-      if (menuBar !== null) {
-        panel.toggle(menuBar.bounds())
-      }
+      panel.toggle(rightAnchored(before, menuBar.bounds()))
     },
   })
 
