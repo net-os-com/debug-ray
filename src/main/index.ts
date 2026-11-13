@@ -116,10 +116,6 @@ const notifier = new Notifier({
 })
 
 /**
- * Mirrors the "Launch at login" setting into the OS. Reading from preferences
- * rather than taking an argument keeps the one source of truth in one place.
- */
-/**
  * The windows that show the stream and the receiver's status, and so are sent
  * every event, status change and clear.
  */
@@ -168,6 +164,10 @@ function applyMenuBarIcon(): void {
   })
 }
 
+/**
+ * Mirrors the "Launch at login" setting into the OS. Reading from preferences
+ * rather than taking an argument keeps the one source of truth in one place.
+ */
 function applyLoginItem(): void {
   const { launchAtLogin } = readSettings(preferences)
 

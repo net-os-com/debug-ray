@@ -5,6 +5,9 @@ import type { TrayImages } from './tray-images'
 /** Six frames at this pace make a pulse of a little under a second. */
 const PULSE_FRAME_MS = 120
 
+/** The icon then rests at least this long, however busy the stream is. */
+const PULSE_QUIET_MS = 1_200
+
 export type MenuBarOptions = {
   images: TrayImages
   /** Opened by a right click. */
@@ -33,6 +36,7 @@ export class MenuBar {
       rest: options.images.rest,
       show: (image) => this.tray.setImage(image),
       frameMs: PULSE_FRAME_MS,
+      quietMs: PULSE_QUIET_MS,
     })
 
     this.tray.on('click', () => options.onLeftClick(this.tray.getBounds()))
