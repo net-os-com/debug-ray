@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
-import type { ServerStatus } from '../shared/ray-event'
+import { isStreamEntry, type ServerStatus } from '../shared/ray-event'
 import type { StreamStart } from './exec/run-stream'
 import type { Snippet, TinkerRequest } from '../shared/tinker'
 import type { ApiEnvironment, ApiSend, SavedRequest } from '../shared/api'
@@ -52,6 +52,9 @@ import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
 import { Updater } from './updater'
 import { WindowIntents } from './window-intents'
+import { MenuBar } from './tray/menu-bar'
+import { buildTrayMenu } from './tray/tray-menu'
+import { loadTrayImages } from './tray/tray-images'
 
 // Unpackaged, Electron names the app after its own binary; the default menu is
 // built from app.name on ready, so this has to happen at load time.
@@ -63,6 +66,9 @@ const PORT = Number(process.env.RAY_PORT ?? 23517)
 
 let mainWindow: BrowserWindow | null = null
 const intents = new WindowIntents(() => mainWindow)
+// Held here for the life of the app: a Tray only a local variable points at is
+// garbage-collected, and the icon quietly disappears from the menu bar.
+let menuBar: MenuBar | null = null
 let quitting = false
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
@@ -228,6 +234,24 @@ app.whenReady().then(() => {
   applyMenu(updater)
 
   mainWindow = createWindow()
+
+  const trayImages = loadTrayImages()
+
+  if (trayImages) {
+    menuBar = new MenuBar({
+      images: trayImages,
+      menu: buildTrayMenu({
+        open: () => showMainWindow(),
+        settings: () => {
+          showMainWindow()
+          intents.deliver({ kind: 'show-view', view: 'settings' })
+        },
+        // before-quit sets `quitting`, so "Close to background" lets it through.
+        quit: () => app.quit(),
+      }),
+      onLeftClick: () => {},
+    })
+  }
 
   // Synchronous because the renderer wants it during its first render, and a
   // version that arrives a frame later shows as a blank where a number goes.
@@ -531,6 +555,12 @@ app.whenReady().then(() => {
       for (const event of events) {
         sendToWindows(streamWindows(), 'ray:event', event)
       }
+
+      // Requests, outgoing calls and annotations have views of their own or
+      // none; only what the stream would list is worth a glance at the icon.
+      if (events.some(isStreamEntry)) {
+        menuBar?.pulse()
+      }
     },
   })
 
@@ -562,6 +592,7 @@ app.on('before-quit', () => {
   environments?.flush()
   streams.stopAll()
   notifier.stop()
+  menuBar?.stop()
   // The socket outlived the window otherwise, and a frame arriving in that gap
   // was an uncaught exception on the way out.
   realtime.close()
