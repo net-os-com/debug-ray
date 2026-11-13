@@ -55,6 +55,8 @@ import { WindowIntents } from './window-intents'
 import { MenuBar } from './tray/menu-bar'
 import { buildTrayMenu } from './tray/tray-menu'
 import { loadTrayImages } from './tray/tray-images'
+import { TrayPanel } from './tray/tray-panel'
+import { loadRendererPage } from './renderer-page'
 
 // Unpackaged, Electron names the app after its own binary; the default menu is
 // built from app.name on ready, so this has to happen at load time.
@@ -69,6 +71,15 @@ const intents = new WindowIntents(() => mainWindow)
 // Held here for the life of the app: a Tray only a local variable points at is
 // garbage-collected, and the icon quietly disappears from the menu bar.
 let menuBar: MenuBar | null = null
+
+const PRELOAD = join(import.meta.dirname, '../preload/index.mjs')
+
+// The menu bar panel shares the main window's preload: it shows titles only,
+// never payload HTML, and everything it needs is already on window.ray.
+const panel = new TrayPanel({
+  preload: PRELOAD,
+  load: (window) => loadRendererPage(window, 'tray'),
+})
 let quitting = false
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
@@ -93,7 +104,10 @@ const realtime = new RealtimeSession({
   status: (status, detail) => sendToWindow(mainWindow, 'realtime:status', status, detail),
 })
 const notifier = new Notifier({
-  isFocused: () => mainWindow?.isFocused() ?? false,
+  // A closed window's reference outlives it, and asking a destroyed window
+  // whether it has focus throws. With the menu bar the app now runs windowless
+  // for long stretches, so a summary banner's timer can land in that gap.
+  isFocused: () => mainWindow !== null && !mainWindow.isDestroyed() && mainWindow.isFocused(),
   onActivate: () => {
     showMainWindow()
   },
@@ -174,7 +188,7 @@ function createWindow(): BrowserWindow {
     // centres them in the 56px header.
     trafficLightPosition: { x: 88, y: 22 },
     webPreferences: {
-      preload: join(import.meta.dirname, '../preload/index.mjs'),
+      preload: PRELOAD,
       contextIsolation: true,
       sandbox: false,
     },
@@ -209,13 +223,7 @@ function createWindow(): BrowserWindow {
     window.hide()
   })
 
-  const devUrl = process.env.ELECTRON_RENDERER_URL
-
-  if (devUrl) {
-    void window.loadURL(devUrl)
-  } else {
-    void window.loadFile(join(import.meta.dirname, '../renderer/index.html'))
-  }
+  loadRendererPage(window, 'index')
 
   return window
 }
@@ -249,7 +257,7 @@ app.whenReady().then(() => {
         // before-quit sets `quitting`, so "Close to background" lets it through.
         quit: () => app.quit(),
       }),
-      onLeftClick: () => {},
+      onLeftClick: (bounds) => panel.toggle(bounds),
     })
   }
 
@@ -264,6 +272,9 @@ app.whenReady().then(() => {
   // The window takes what was asked of it while it was being built; taking it
   // is also how it says it is listening.
   ipcMain.handle('ray:intent:take', () => intents.take())
+
+  // Escape in the panel puts it away, as it would a menu.
+  ipcMain.on('tray:hide', () => panel.hide())
 
   // A window that opens after events arrived — the panel, or a main window
   // closed and opened again — starts from what the log holds rather than empty.
@@ -582,7 +593,13 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('browser-window-focus', () => mainWindow?.flashFrame(false))
+// The panel is a window too, and focusing it while the main window is closed
+// would otherwise call into a destroyed window.
+app.on('browser-window-focus', () => {
+  if (mainWindow !== null && !mainWindow.isDestroyed()) {
+    mainWindow.flashFrame(false)
+  }
+})
 
 app.on('before-quit', () => {
   quitting = true

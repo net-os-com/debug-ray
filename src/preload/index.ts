@@ -91,6 +91,11 @@ const api = {
     }
   },
 
+  /** Puts the menu bar panel away; Escape in the panel calls it. */
+  hideTrayPanel(): void {
+    ipcRenderer.send('tray:hide')
+  },
+
   /** Fires whenever the stream was cleared, from whichever window. */
   onStreamCleared(listener: () => void): () => void {
     const handler = (): void => listener()
