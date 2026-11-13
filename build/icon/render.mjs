@@ -8,6 +8,13 @@ const ROOT = join(HERE, '..', '..')
 const OUT = join(ROOT, 'resources')
 const WORK = join(ROOT, 'build', 'icon', '.work')
 const ICONSET = join(WORK, 'icon.iconset')
+const TRAY_OUT = join(OUT, 'tray')
+
+/**
+ * The menu bar icon at rest (100) and the fainter steps its pulse plays
+ * through. src/main/tray/tray-images.ts loads these names, so they move together.
+ */
+const TRAY_OPACITIES = [100, 75, 50, 30]
 
 /**
  * Which mark variant each raster size uses. The design keeps the gradient bars
@@ -28,11 +35,13 @@ const SIZES = [
 ]
 
 /**
- * One window, loaded once, captured twice: the variant is a body attribute, so
- * flipping it is cheaper and more reliable than a second file load.
+ * The one offscreen window every capture is taken from. The app icon and the
+ * menu bar icon share it, the second page loaded into the first one's window:
+ * a second window means a second renderer process, which is one more thing to
+ * fail for no gain.
  */
-async function renderMasters() {
-  const window = new BrowserWindow({
+function captureWindow() {
+  return new BrowserWindow({
     width: 1024,
     height: 1024,
     useContentSize: true,
@@ -43,7 +52,13 @@ async function renderMasters() {
     backgroundColor: '#00000000',
     webPreferences: { offscreen: true, backgroundThrottling: false },
   })
+}
 
+/**
+ * One page, loaded once, captured twice: the variant is a body attribute, so
+ * flipping it is cheaper and more reliable than a second file load.
+ */
+async function renderMasters(window) {
   await window.loadFile(join(HERE, 'icon.html'))
 
   const masters = {}
@@ -75,9 +90,43 @@ async function renderMasters() {
     masters[variant] = file
   }
 
-  window.destroy()
-
   return masters
+}
+
+/**
+ * Captures tray.html once per opacity and writes each at 16pt, at 1x and 2x.
+ *
+ * The names end in `Template`, which macOS reads as "tint me for the menu
+ * bar", and the 2x file sits beside the 1x one as `@2x`, which is how
+ * Electron's nativeImage finds it.
+ */
+async function renderTray(window) {
+  await window.loadFile(join(HERE, 'tray.html'))
+  mkdirSync(TRAY_OUT, { recursive: true })
+
+  for (const opacity of TRAY_OPACITIES) {
+    await window.webContents.executeJavaScript(
+      `document.body.dataset.opacity = ${JSON.stringify(String(opacity))}; true`,
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const image = await window.webContents.capturePage()
+    const master = join(WORK, `tray-${opacity}.png`)
+
+    writeFileSync(master, image.toPNG())
+
+    const name = opacity === 100 ? 'trayTemplate' : `tray-${opacity}Template`
+
+    for (const [suffix, px] of [['', 16], ['@2x', 32]]) {
+      const target = join(TRAY_OUT, `${name}${suffix}.png`)
+
+      execFileSync('cp', [master, target])
+      execFileSync('sips', ['-z', String(px), String(px), target], { stdio: 'ignore' })
+    }
+  }
+
+  console.log(`wrote ${TRAY_OPACITIES.length * 2} menu bar images to ${TRAY_OUT}`)
 }
 
 app.whenReady().then(async () => {
@@ -86,7 +135,8 @@ app.whenReady().then(async () => {
     mkdirSync(ICONSET, { recursive: true })
     mkdirSync(OUT, { recursive: true })
 
-    const masters = await renderMasters()
+    const window = captureWindow()
+    const masters = await renderMasters(window)
 
     for (const size of SIZES) {
       const target = join(ICONSET, `${size.name}.png`)
@@ -100,6 +150,9 @@ app.whenReady().then(async () => {
     execFileSync('sips', ['-z', '512', '512', join(OUT, 'icon.png')], { stdio: 'ignore' })
 
     console.log(`wrote ${join(OUT, 'icon.icns')} and ${join(OUT, 'icon.png')}`)
+
+    await renderTray(window)
+    window.destroy()
 
     rmSync(WORK, { recursive: true, force: true })
     app.exit(0)
