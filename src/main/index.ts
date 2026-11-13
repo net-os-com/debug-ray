@@ -51,6 +51,7 @@ import { classIndex } from './tinker/class-index'
 import { Tinker } from './tinker/tinker'
 import { toRayEvents } from './to-ray-events'
 import { Updater } from './updater'
+import { WindowIntents } from './window-intents'
 
 // Unpackaged, Electron names the app after its own binary; the default menu is
 // built from app.name on ready, so this has to happen at load time.
@@ -61,6 +62,7 @@ const HOST = process.env.RAY_HOST ?? '0.0.0.0'
 const PORT = Number(process.env.RAY_PORT ?? 23517)
 
 let mainWindow: BrowserWindow | null = null
+const intents = new WindowIntents(() => mainWindow)
 let quitting = false
 let status: ServerStatus = { listening: false, host: HOST, port: PORT, error: null }
 
@@ -87,8 +89,7 @@ const realtime = new RealtimeSession({
 const notifier = new Notifier({
   isFocused: () => mainWindow?.isFocused() ?? false,
   onActivate: () => {
-    mainWindow?.show()
-    mainWindow?.focus()
+    showMainWindow()
   },
   coalesceMs: () => readSettings(preferences).notificationCoalesceMs,
   sound: () => readSettings(preferences).notificationSound,
@@ -114,7 +115,42 @@ function applyLoginItem(): void {
   }
 }
 
+/**
+ * Brings the main window forward, building it again if it was closed.
+ *
+ * With "Close to background" off, closing the window destroys it while the app
+ * keeps running — in the menu bar, now. The reference outlives the window, so a
+ * plain `mainWindow.show()` would throw "Object has been destroyed". Counting
+ * windows instead, as `activate` used to, stopped working once the menu bar
+ * panel existed: it is a window too, so the count never reaches zero.
+ *
+ * Every caller is someone asking for the app — the Dock, a banner, the menu
+ * bar — so on macOS the app is made active too; a click in the menu bar does
+ * not do that by itself, and the window would open behind whatever had focus.
+ */
+function showMainWindow(): BrowserWindow {
+  if (process.platform === 'darwin') {
+    app.focus({ steal: true })
+  }
+
+  if (mainWindow === null || mainWindow.isDestroyed()) {
+    // A new window shows itself once it is ready to; showing it now would
+    // flash an empty frame.
+    mainWindow = createWindow()
+
+    return mainWindow
+  }
+
+  mainWindow.show()
+  mainWindow.focus()
+
+  return mainWindow
+}
+
 function createWindow(): BrowserWindow {
+  // Whatever is asked of this window has to wait until its renderer listens.
+  intents.reset()
+
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -200,6 +236,10 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('ray:status', () => status)
+
+  // The window takes what was asked of it while it was being built; taking it
+  // is also how it says it is listening.
+  ipcMain.handle('ray:intent:take', () => intents.take())
 
   // A window that opens after events arrived — the panel, or a main window
   // closed and opened again — starts from what the log holds rather than empty.
@@ -504,18 +544,11 @@ app.whenReady().then(() => {
     sendToWindows(streamWindows(), 'ray:status', status)
   })
 
+  // The Dock icon brings the window back whether it was hidden by "Close to
+  // background" or closed outright. Without this the app would look dead while
+  // it was still receiving.
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow()
-
-      return
-    }
-
-    // "Close to background" hides the window rather than closing it, so it is
-    // still counted above. Without this the dock icon would appear to do
-    // nothing and the app would look dead while it was still receiving.
-    mainWindow?.show()
-    mainWindow?.focus()
+    showMainWindow()
   })
 })
 

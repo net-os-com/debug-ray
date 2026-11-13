@@ -50,6 +50,7 @@ import { useFindShortcut } from './use-find-shortcut'
 import { useSettings } from './use-settings'
 import { useTheme } from './use-theme'
 import { useUpdate } from './use-update'
+import { useWindowIntents } from './use-window-intents'
 
 const NO_FILTERS: Filters = { source: ALL, kind: ALL, label: ALL, query: '' }
 
@@ -145,6 +146,17 @@ export function App() {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
+
+  // The menu bar opens this window on an event from its panel, or on Settings.
+  // Filters and pause are left alone: an event they hide simply stays
+  // unselected, rather than the window rearranging itself under you.
+  useWindowIntents({
+    onSelectEvent: (id) => {
+      setView('stream')
+      setSelectedId(id)
+    },
+    onShowView: setView,
+  })
 
   useFindShortcut(() => {
     if (view === 'stream') {

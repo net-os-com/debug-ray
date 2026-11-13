@@ -24,6 +24,7 @@ import type {
   SavedRequest,
 } from '../shared/api'
 import type { ImportedFile } from '../shared/import/documents'
+import type { WindowIntent } from '../shared/window-intent'
 import type { BroadcastOutcome, PusherCredentials, RealtimeFrame } from '../shared/realtime'
 import type {
   AppRoute,
@@ -69,6 +70,25 @@ const api = {
   /** Empties the stream in the main process too, so every reader agrees. */
   clearStream(): void {
     ipcRenderer.send('ray:stream:clear')
+  },
+
+  /**
+   * Whatever the main process asked of this window before it was listening.
+   * Calling it is also how the window says it is listening now.
+   */
+  takeIntent(): Promise<WindowIntent | null> {
+    return ipcRenderer.invoke('ray:intent:take')
+  },
+
+  /** What the main process asks of this window while it is open. */
+  onIntent(listener: (intent: WindowIntent) => void): () => void {
+    const handler = (_: unknown, intent: WindowIntent): void => listener(intent)
+
+    ipcRenderer.on('ray:intent', handler)
+
+    return () => {
+      ipcRenderer.off('ray:intent', handler)
+    }
   },
 
   /** Fires whenever the stream was cleared, from whichever window. */
