@@ -10,6 +10,14 @@ import {
 const OWN_VIEW_CAPACITY = 500
 
 /**
+ * A ceiling on labels and colours, which normally go when their event goes.
+ * It only bites on annotations whose event never came — a source that is
+ * ignored, a `confetti` — which would otherwise pile up for as long as the app
+ * runs.
+ */
+const ANNOTATION_CAPACITY = 2_000
+
+/**
  * The main process keeps the authoritative buffer. The renderer mirrors it for
  * display; the local API reads from here so an MCP client can pull payloads
  * without the window having to be open on the right screen, and the menu bar
@@ -22,7 +30,7 @@ const OWN_VIEW_CAPACITY = 500
  * still showed them. The panel and an MCP client then read "nothing" beside a
  * full stream. So stream events are capped on their own, at the stream's own
  * buffer size; requests and outgoing calls have a cap of their own; and labels
- * and colours are kept for exactly as long as something they decorate is.
+ * and colours go when the events they decorate go.
  */
 export class EventLog {
   private stream: RayEvent[] = []
@@ -46,9 +54,13 @@ export class EventLog {
       }
     }
 
-    this.stream = this.stream.slice(-this.streamCapacity())
-    this.ownView = this.ownView.slice(-OWN_VIEW_CAPACITY)
-    this.pruneAnnotations()
+    const evicted = [
+      ...this.evict('stream', this.streamCapacity()),
+      ...this.evict('ownView', OWN_VIEW_CAPACITY),
+    ]
+
+    this.dropAnnotationsOf(evicted)
+    this.annotations = this.annotations.slice(-ANNOTATION_CAPACITY)
   }
 
   /** Everything, as a `clear_all` payload asks. */
@@ -63,8 +75,10 @@ export class EventLog {
    * lists when the stream is cleared, so their payloads stay fetchable here.
    */
   clearStream(): void {
+    const cleared = this.stream
+
     this.stream = []
-    this.pruneAnnotations()
+    this.dropAnnotationsOf(cleared)
   }
 
   /**
@@ -139,14 +153,35 @@ export class EventLog {
     return [...this.stream, ...this.ownView, ...this.annotations]
   }
 
-  /**
-   * An annotation whose entry has gone decorates nothing. Dropping it here is
-   * what keeps the annotations from outliving, or being outlived by, the
-   * events they belong to.
-   */
-  private pruneAnnotations(): void {
-    const kept = new Set([...this.stream, ...this.ownView].map((event) => event.uuid))
+  /** Trims a list to its capacity, oldest first, and returns what it dropped. */
+  private evict(list: 'stream' | 'ownView', capacity: number): RayEvent[] {
+    const overflow = Math.max(0, this[list].length - capacity)
+    const dropped = this[list].slice(0, overflow)
 
-    this.annotations = this.annotations.filter((event) => kept.has(event.uuid))
+    this[list] = this[list].slice(overflow)
+
+    return dropped
+  }
+
+  /**
+   * Drops the labels and colours of events that just left, unless another
+   * event of the same request is still here.
+   *
+   * Only what left, never "whatever has no event right now": the PHP client
+   * can send the annotation first — `ray()->label('Cart')->table($cart)`
+   * posts the label before the table, under the same uuid — and an annotation
+   * judged by whether its event exists yet would be thrown away on arrival.
+   */
+  private dropAnnotationsOf(removed: RayEvent[]): void {
+    if (removed.length === 0) {
+      return
+    }
+
+    const remaining = new Set([...this.stream, ...this.ownView].map((event) => event.uuid))
+    const gone = new Set(
+      removed.map((event) => event.uuid).filter((uuid) => !remaining.has(uuid)),
+    )
+
+    this.annotations = this.annotations.filter((event) => !gone.has(event.uuid))
   }
 }
