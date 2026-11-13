@@ -99,7 +99,14 @@ const presence = new McpPresence()
 let preferences: Preferences
 let snippets: Snippets
 let environments: Environments
-const updater = new Updater(() => mainWindow)
+// Installing quits through "Close to background", which would otherwise keep
+// the hidden window open and the update waiting forever.
+const updater = new Updater(
+  () => mainWindow,
+  () => {
+    quitting = true
+  },
+)
 // One pause for the whole app, so the window, the panel and the menu bar agree
 // on it, and it outlives a closed window.
 const pause = new StreamPause((state) => {

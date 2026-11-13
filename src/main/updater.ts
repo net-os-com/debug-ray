@@ -36,7 +36,16 @@ export class Updater {
 
   private resetting: ReturnType<typeof setTimeout> | null = null
 
-  constructor(private readonly window: () => BrowserWindow | null) {
+  /**
+   * `beforeInstall` runs just before the app quits to install. quitAndInstall
+   * closes every window first and only then quits, so anything that keeps a
+   * window open on close — "Close to background" — has to know beforehand, or
+   * the install never happens.
+   */
+  constructor(
+    private readonly window: () => BrowserWindow | null,
+    private readonly beforeInstall: () => void,
+  ) {
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true
 
@@ -112,6 +121,7 @@ export class Updater {
 
   install(): void {
     if (this.state.phase === 'ready') {
+      this.beforeInstall()
       autoUpdater.quitAndInstall()
     }
   }
