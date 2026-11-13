@@ -26,3 +26,17 @@ export function sendToWindow(
 
   return true
 }
+
+/**
+ * The same, to several windows. The stream, the receiver's status and a clear
+ * reach both the main window and the menu bar panel, and either may be gone.
+ */
+export function sendToWindows(
+  windows: ReadonlyArray<BrowserWindow | null>,
+  channel: string,
+  ...args: unknown[]
+): void {
+  for (const window of windows) {
+    sendToWindow(window, channel, ...args)
+  }
+}

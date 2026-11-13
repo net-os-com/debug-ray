@@ -15,7 +15,7 @@ import { readErd, saveErd } from './erd/store'
 import { openInEditor } from './open-in-editor'
 import { saveFile, type SaveRequest } from './save-file'
 import { McpPresence } from './mcp-status'
-import { sendToWindow } from './send-to-window'
+import { sendToWindow, sendToWindows } from './send-to-window'
 import { applyMenu } from './menu'
 import { Preferences } from './preferences'
 import { readSettings } from './settings'
@@ -98,6 +98,14 @@ const notifier = new Notifier({
  * Mirrors the "Launch at login" setting into the OS. Reading from preferences
  * rather than taking an argument keeps the one source of truth in one place.
  */
+/**
+ * The windows that show the stream and the receiver's status, and so are sent
+ * every event, status change and clear.
+ */
+function streamWindows(): Array<BrowserWindow | null> {
+  return [mainWindow]
+}
+
 function applyLoginItem(): void {
   const { launchAtLogin } = readSettings(preferences)
 
@@ -192,6 +200,17 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('ray:status', () => status)
+
+  // A window that opens after events arrived — the panel, or a main window
+  // closed and opened again — starts from what the log holds rather than empty.
+  ipcMain.handle('ray:stream:snapshot', () => log.streamSnapshot())
+
+  // Every way the window clears the stream comes through here, so the log, and
+  // with it the panel and any MCP client, see what the window shows.
+  ipcMain.on('ray:stream:clear', () => {
+    log.clearStream()
+    sendToWindows(streamWindows(), 'ray:stream:cleared')
+  })
   ipcMain.handle('ray:clients', () => clients.list())
   ipcMain.handle('ray:mcp', () => presence.status())
   ipcMain.handle('ray:update', () => updater.current())
@@ -470,19 +489,19 @@ app.whenReady().then(() => {
       log.record(events)
 
       for (const event of events) {
-        sendToWindow(mainWindow, 'ray:event', event)
+        sendToWindows(streamWindows(), 'ray:event', event)
       }
     },
   })
 
   server.on('listening', () => {
     status = { ...status, listening: true, error: null }
-    sendToWindow(mainWindow, 'ray:status', status)
+    sendToWindows(streamWindows(), 'ray:status', status)
   })
 
   server.on('error', (error: Error) => {
     status = { ...status, listening: false, error: error.message }
-    sendToWindow(mainWindow, 'ray:status', status)
+    sendToWindows(streamWindows(), 'ray:status', status)
   })
 
   app.on('activate', () => {

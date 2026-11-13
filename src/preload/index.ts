@@ -5,6 +5,7 @@ import type {
   RayClient,
   RayEvent,
   ServerStatus,
+  StreamSnapshot,
   UpdateStatus,
 } from '../shared/ray-event'
 import type {
@@ -58,6 +59,27 @@ const api = {
 
   getStatus(): Promise<ServerStatus> {
     return ipcRenderer.invoke('ray:status')
+  },
+
+  /** The stream as the main process holds it, for a window that opens late. */
+  getStreamSnapshot(): Promise<StreamSnapshot> {
+    return ipcRenderer.invoke('ray:stream:snapshot')
+  },
+
+  /** Empties the stream in the main process too, so every reader agrees. */
+  clearStream(): void {
+    ipcRenderer.send('ray:stream:clear')
+  },
+
+  /** Fires whenever the stream was cleared, from whichever window. */
+  onStreamCleared(listener: () => void): () => void {
+    const handler = (): void => listener()
+
+    ipcRenderer.on('ray:stream:cleared', handler)
+
+    return () => {
+      ipcRenderer.off('ray:stream:cleared', handler)
+    }
   },
 
   getClients(): Promise<RayClient[]> {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { OWN_VIEW, type RayEvent } from '../../shared/ray-event'
+import { mergeById } from './merge-by-id'
 
 /** The design's buffer card promises 500 events kept. */
 /** Fallback when no buffer size is configured. */
@@ -94,6 +95,39 @@ export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Option
     [],
   )
 
+  // A window that opens after events arrived — the menu bar panel, or this
+  // window closed and opened again — starts from what the main process kept
+  // rather than from nothing. Live events may land before the answer does, so
+  // the two are merged rather than one replacing the other.
+  useEffect(() => {
+    let cancelled = false
+
+    void window.ray.getStreamSnapshot().then((snapshot) => {
+      if (cancelled) {
+        return
+      }
+
+      setEvents((current) => mergeById(snapshot.events, current).slice(-maxEvents))
+      setLabels((current) => ({ ...snapshot.labels, ...current }))
+      setColors((current) => ({ ...snapshot.colors, ...current }))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // A clear from anywhere empties this list too: the panel follows the window,
+  // and the window hears its own clear back, which is harmless.
+  useEffect(
+    () =>
+      window.ray.onStreamCleared(() => {
+        setEvents([])
+        setPending([])
+      }),
+    [],
+  )
+
   // Nothing is dropped while paused; the buffer flushes on resume.
   useEffect(() => {
     if (paused || pending.length === 0) {
@@ -107,6 +141,9 @@ export function useRayEvents({ paused, onEvent, maxEvents = MAX_EVENTS }: Option
   const clear = useCallback(() => {
     setEvents([])
     setPending([])
+    // The main process keeps its own copy for the menu bar panel and MCP
+    // clients; without this they would go on showing what was just cleared.
+    window.ray.clearStream()
   }, [])
 
   return { events, pendingCount: pending.length, labels, colors, confettiAt, clear }
