@@ -177,3 +177,16 @@ export function ping(game: SonarGame): SonarGame {
     ],
   }
 }
+
+/**
+ * What Space does. A key held down repeats every ~90 ms, which would ping again
+ * the moment each jam ends and restart a lost game before its score shows, so
+ * only a fresh press counts: holding Space down must not be a way to play.
+ */
+export function pressSpace(game: SonarGame, repeat: boolean): SonarGame {
+  if (repeat) {
+    return game
+  }
+
+  return game.phase === 'over' ? newGame() : ping(game)
+}
