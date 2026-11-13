@@ -40,6 +40,7 @@ import { useScout } from './tools/use-scout'
 import { useTests } from './tools/use-tests'
 import { ConfettiOverlay } from './stream/confetti-overlay'
 import { EmptyState } from './stream/empty-state'
+import { bestScore } from './stream/sonar-ping/best-score'
 import { EventStream } from './stream/event-stream'
 import { NoResults } from './stream/no-results'
 import { useAlwaysOnTop } from './use-always-on-top'
@@ -528,7 +529,7 @@ export function App() {
                   <div className="app__stream">
                     {events.length === 0 ? (
                       <EmptyState
-                        best={settings.sonarBest}
+                        best={bestScore(settings.sonarBest)}
                         canPlay={!palette.open && !changelogOpen}
                         onBest={(score) => setSetting('sonarBest', score)}
                         target={target}
