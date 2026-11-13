@@ -100,6 +100,7 @@ const updater = new Updater(() => mainWindow)
 // on it, and it outlives a closed window.
 const pause = new StreamPause((state) => {
   sendToWindows(streamWindows(), 'ray:pause', state)
+  menuBar?.setPaused(state.paused)
 
   if (!state.paused) {
     unseen.resumed()
@@ -194,8 +195,10 @@ function applyMenuBarIcon(): void {
     },
   })
 
-  // Switched on mid-session, it starts with what is already waiting.
+  // Switched on mid-session, it starts with what is already waiting, and
+  // dimmed if the stream is paused.
   menuBar.setTitle(trayTitle(unseen.current()))
+  menuBar.setPaused(pause.isPaused())
 }
 
 /**

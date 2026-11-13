@@ -30,8 +30,11 @@ export type MenuBarOptions = {
 export class MenuBar {
   private readonly tray: Tray
   private readonly pulser: Pulse
+  private readonly images: TrayImages
+  private paused = false
 
   constructor(options: MenuBarOptions) {
+    this.images = options.images
     this.tray = new Tray(options.images.rest)
     this.tray.setToolTip('NetOS Debug')
 
@@ -59,9 +62,28 @@ export class MenuBar {
     this.tray.setTitle(title, { fontType: 'monospacedDigit' })
   }
 
-  /** Something arrived for the stream. */
+  /** Something arrived for the stream. Ignored while paused: paused is quiet. */
   pulse(): void {
+    if (this.paused) {
+      return
+    }
+
     this.pulser.play()
+  }
+
+  /**
+   * Dims the icon while the stream is paused, and brings it back on resume. A
+   * pulse under way is cut short, so it cannot put the full icon back over the
+   * dimmed one when it ends.
+   */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) {
+      return
+    }
+
+    this.paused = paused
+    this.pulser.stop()
+    this.tray.setImage(paused ? this.images.paused : this.images.rest)
   }
 
   /** Called on quit so a pending pulse frame cannot land on a destroyed tray. */

@@ -20,7 +20,15 @@ export type TrayImages = {
   rest: NativeImage
   /** The pulse's frames in the order they play, ending before `rest` returns. */
   pulse: NativeImage[]
+  /**
+   * The icon while the stream is paused: the pulse's faintest frame, held. A
+   * dimmed icon reads as "not active", and needs no artwork of its own.
+   */
+  paused: NativeImage
 }
+
+/** The level the paused icon is held at; one of the pulse's own frames. */
+const PAUSED_LEVEL = 30
 
 /**
  * The 1x file is named here; nativeImage picks up the `@2x` file beside it on
@@ -50,12 +58,14 @@ export function loadTrayImages(): TrayImages | null {
     }
   }
 
-  if (!rest || levels.size !== new Set(PULSE_LEVELS).size) {
+  const paused = levels.get(PAUSED_LEVEL)
+
+  if (!rest || !paused || levels.size !== new Set(PULSE_LEVELS).size) {
     // Silently running without a menu bar icon hides a broken path, so say so.
     console.warn(`No menu bar images in ${DIR}. Run \`npm run icon\` to generate them.`)
 
     return null
   }
 
-  return { rest, pulse: PULSE_LEVELS.flatMap((level) => levels.get(level) ?? []) }
+  return { rest, pulse: PULSE_LEVELS.flatMap((level) => levels.get(level) ?? []), paused }
 }
