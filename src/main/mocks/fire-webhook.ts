@@ -23,7 +23,9 @@ export async function fireWebhook(fire: WebhookFire, deps: FireWebhookDeps): Pro
     edited: false,
   })
 
-  if (!isLocalHost(fire.host)) {
+  const url = fire.host.replace(/\/+$/, '') + webhook.path
+
+  if (!/^\/(?!\/)/.test(webhook.path) || !isLocalHost(fire.host) || !isLocalHost(url)) {
     return failed('Webhooks only go to the local stack: localhost, 127.0.0.1 or a .test host.')
   }
 
@@ -40,11 +42,15 @@ export async function fireWebhook(fire: WebhookFire, deps: FireWebhookDeps): Pro
       signed = signatureHeaders(webhook.signature, secret, webhook.body, Math.floor(at / 1000))
     }
 
-    const headers = { ...withContentType(webhook.headers, webhook.body), ...signed }
+    const signedNames = Object.keys(signed).map((name) => name.toLowerCase())
+    const kept = Object.fromEntries(
+      Object.entries(withContentType(webhook.headers, webhook.body)).filter(([name]) => !signedNames.includes(name.toLowerCase())),
+    )
+    const headers = { ...kept, ...signed }
     const result = await deps.send({
       environmentId: '',
       method: webhook.method,
-      url: fire.host + webhook.path,
+      url,
       headers: Object.entries(headers).map(([key, value]) => ({ key, value })),
       body: webhook.body,
       form: null,
