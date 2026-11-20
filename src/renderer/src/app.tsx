@@ -23,6 +23,8 @@ import { HttpView } from './http-client/http-view'
 import { useHttpClient } from './http-client/use-http-client'
 import { ErdView } from './erd/erd-view'
 import { useErd } from './erd/use-erd'
+import { MocksView } from './mocks/mocks-view'
+import { useMocks } from './mocks/use-mocks'
 import { RealtimeView } from './realtime/realtime-view'
 import { useRealtime } from './realtime/use-realtime'
 import { RequestsView } from './requests/requests-view'
@@ -103,6 +105,7 @@ export function App() {
       [setSetting],
     ),
   )
+  const mocks = useMocks(tinker.container)
   const snippets = useSnippets()
   const artisan = useArtisan(tinker.container)
   const logs = useLogs(tinker.container)
@@ -448,6 +451,8 @@ export function App() {
                     : null
                 }
               />
+            ) : view === 'mocks' ? (
+              <MocksView container={tinker.container} mocks={mocks} />
             ) : view === 'erd' ? (
               <ErdView
                 erd={erd}

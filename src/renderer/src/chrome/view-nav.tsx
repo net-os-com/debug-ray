@@ -5,6 +5,7 @@ export type View =
   | 'realtime'
   | 'tinker'
   | 'api'
+  | 'mocks'
   | 'erd'
   | 'tools'
   | 'settings'
@@ -26,7 +27,7 @@ export type Module = {
  * it and shows five, but it is a view this application has, and reachable in
  * one click beats correct to a drawing.
  *
- * The order is also the ⌘1–6 order, so this list is the single place that
+ * The order is also the ⌘ digit order, so this list is the single place that
  * decides both.
  */
 export const MODULES: Module[] = [
@@ -38,6 +39,7 @@ export const MODULES: Module[] = [
   { key: 'realtime', label: 'Realtime', hint: 'Pusher channels and events', group: 'Inspect' },
   { key: 'tinker', label: 'Tinker', hint: 'Run PHP in the app', group: 'Build' },
   { key: 'api', label: 'API', hint: 'Send requests to the NetOS API', group: 'Build' },
+  { key: 'mocks', label: 'Mocks', hint: 'Fake third-party APIs', group: 'Build' },
   { key: 'erd', label: 'ERD', hint: 'Design the schema in DBML', group: 'Build' },
   { key: 'tools', label: 'Tools', hint: 'Artisan, logs, queues and tests', group: 'Build' },
 ]
