@@ -71,6 +71,13 @@ middleware, so there is nothing else to wire up.
 - **[Tools](https://github.com/net-os-com/debug-ray/wiki/Tools)** — run artisan
   commands with a form built from their own definitions, tail the logs, and
   check the search indexes against the database.
+- **Mocks** — answer the platform's calls to third-party APIs with fixed
+  responses and fire signed webhooks at it, so an integration runs locally
+  without that service's token. Fixtures live in the application's `mocks/`
+  directory; point a service's base URL in your `.env` at
+  `http://host.docker.internal:23517/mock/<service>`, restart the worker and the
+  scheduler, and see every call with the response that answered it. Needs
+  `laravel-netos-debug` `v0.3.0`.
 - **[MCP server](https://github.com/net-os-com/debug-ray/wiki/MCP-server)** — let
   a Claude Code session read payloads itself. Settings carries the exact command
   for your checkout.
