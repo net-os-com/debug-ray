@@ -23,9 +23,11 @@ import { createRayServer } from './ray-server'
 import { Snippets } from './snippets'
 import { Environments } from './api/environments'
 import { MockChoicesStore } from './mocks/choices-store'
+import { fireWebhook } from './mocks/fire-webhook'
 import { MockHitLog } from './mocks/hit-log'
 import { registerMockIpc } from './mocks/mock-ipc'
 import { MockRegistry } from './mocks/mock-registry'
+import { readSecret } from './mocks/package-bridge'
 import { send } from './api/send'
 import { broadcast } from './realtime/broadcast'
 import { readCredentials } from './realtime/credentials'
@@ -689,14 +691,7 @@ app.whenReady().then(() => {
     registry: mockRegistry,
     choices: mockChoices,
     log: mockHits,
-    fire: async (fire) => ({
-      webhookId: fire.webhook.id,
-      at: Date.now(),
-      sent: false,
-      result: null,
-      error: 'Not yet',
-      edited: false,
-    }),
+    fire: (fire) => fireWebhook(fire, { readSecret, send, now: Date.now }),
   })
 
   const server = createRayServer({
