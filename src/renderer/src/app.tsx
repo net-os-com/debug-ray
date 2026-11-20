@@ -457,7 +457,21 @@ export function App() {
               <MocksView
                 container={tinker.container}
                 editor={mockEditor}
+                environment={api.environment}
                 mocks={mocks}
+                // Same rule as the API view's link: only when the collector saw it.
+                openInRequests={(debugId) => {
+                  const id = requests.findByDebugId(debugId)
+
+                  if (id === null) {
+                    return null
+                  }
+
+                  return () => {
+                    requests.setSelectedId(id)
+                    setView('requests')
+                  }
+                }}
                 port={status?.port ?? null}
               />
             ) : view === 'erd' ? (

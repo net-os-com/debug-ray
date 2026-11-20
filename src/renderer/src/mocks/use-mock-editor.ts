@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { MockService } from '../../../shared/mocks/types'
+import { updateWebhook } from './edit-service'
 import type { MocksData } from './use-mocks'
 
 export type MockSelection =
@@ -24,6 +25,18 @@ export function useMockEditor(mocks: MocksData) {
   const saved = useMemo(
     () => services.find((one) => one.name === selection?.service) ?? null,
     [services, selection?.service],
+  )
+
+  const [oneOff, setOneOff] = useState<{ key: string; body: string } | null>(null)
+
+  const oneOffKey = selection?.kind === 'webhook' ? `${selection.service}/${selection.id}` : null
+  const oneOffBody = oneOff !== null && oneOff.key === oneOffKey ? oneOff.body : null
+
+  const setOneOffBody = useCallback(
+    (body: string | null): void => {
+      setOneOff(body === null || oneOffKey === null ? null : { key: oneOffKey, body })
+    },
+    [oneOffKey],
   )
 
   const [base, setBase] = useState<string | null>(null)
@@ -79,9 +92,13 @@ export function useMockEditor(mocks: MocksData) {
         setOnDisk(false)
       }
 
+      if (next?.kind !== 'webhook' || `${next.service}/${next.id}` !== oneOffKey) {
+        setOneOff(null)
+      }
+
       setSelection(next)
     },
-    [dirty, selection?.service],
+    [dirty, selection?.service, oneOffKey],
   )
 
   const edit = useCallback((change: (s: MockService) => MockService): void => {
@@ -97,6 +114,17 @@ export function useMockEditor(mocks: MocksData) {
       setSelection(null)
     }
   }, [saved])
+
+  const saveOneOff = useCallback((): void => {
+    if (selection?.kind !== 'webhook' || oneOffBody === null) {
+      return
+    }
+
+    const { id } = selection
+
+    setDraft((current) => (current === null ? current : updateWebhook(current, id, { body: oneOffBody })))
+    setOneOff(null)
+  }, [selection, oneOffBody])
 
   const create = useCallback(
     (service: MockService): void => {
@@ -132,5 +160,17 @@ export function useMockEditor(mocks: MocksData) {
     return error
   }, [draft, mocks])
 
-  return { selection, select, draft, dirty, edit, discard, save, create }
+  return {
+    selection,
+    select,
+    draft,
+    dirty,
+    edit,
+    discard,
+    save,
+    create,
+    oneOffBody,
+    setOneOffBody,
+    saveOneOff,
+  }
 }

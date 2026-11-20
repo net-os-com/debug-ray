@@ -10978,3 +10978,160 @@ select:focus {
 .mk__right > .mk__placeholder {
   padding: 16px 20px;
 }
+
+.mk-send {
+  height: 34px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mk-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mk-send__key {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.mk-target {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.mk-target__host {
+  max-width: 55%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 10px;
+  border-right: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+  font-size: 12.5px;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mk-target__path {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: var(--t1);
+}
+
+.mk-target__path:focus {
+  outline: none;
+}
+
+.mk-target:focus-within {
+  border-color: var(--border-form-field-active);
+}
+
+.mk-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: var(--app-sel);
+  font-weight: var(--fw-medium);
+  font-size: 11.5px;
+  color: var(--app-accent-fg);
+}
+
+.mk-signature {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface-2);
+}
+
+.mk-signature__col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mk-signature__pair {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 6px;
+}
+
+.mk-field {
+  height: 32px;
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-lg);
+  background: var(--app-surface);
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: var(--t1);
+}
+
+.mk-field:focus {
+  outline: none;
+  border-color: var(--border-form-field-active);
+}
+
+.mk-oneoff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.mk-oneoff__text {
+  flex: 1;
+  font-size: 12.5px;
+}
+
+.mk-oneoff__button {
+  height: 26px;
+}
+
+.mk-sighint {
+  padding: 8px 14px;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  font-size: 11.5px;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mk-notsent {
+  background: var(--app-surface-3);
+  color: var(--t2);
+}
+
+.mk-send-link {
+  align-self: flex-start;
+  margin: 4px 0 0;
+}

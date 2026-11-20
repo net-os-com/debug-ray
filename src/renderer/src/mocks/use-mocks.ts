@@ -143,13 +143,17 @@ export function useMocks(container: TinkerContainer | null) {
       } else if (environment === null) {
         outcome = refused(webhook, 'Pick an environment in the API tab.', edited)
       } else {
-        outcome = await window.ray.mocksFire({
-          containerId,
-          workingDir,
-          host: environment.host,
-          insecure: environment.insecure,
-          webhook,
-        })
+        // Main signs and sends; whether the body was a one-off is only known here.
+        outcome = {
+          ...(await window.ray.mocksFire({
+            containerId,
+            workingDir,
+            host: environment.host,
+            insecure: environment.insecure,
+            webhook,
+          })),
+          edited,
+        }
       }
 
       setSends((current) => [outcome, ...current].slice(0, MAX_KEPT))
