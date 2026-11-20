@@ -148,7 +148,7 @@ export function WebhookEditor({
                   Revert
                 </button>
                 <button className="button mk-oneoff__button" onClick={onSaveOneOff} type="button">
-                  Save to file
+                  Keep in fixture
                 </button>
               </div>
             )}

@@ -26,7 +26,8 @@ export function SaveAsMockDialog({ call, mocks, onClose }: SaveAsMockDialogProps
   const services = mocks.state.services
   const matched = useMemo(() => endpointFor(services, call), [services, call])
 
-  const [serviceKey, setServiceKey] = useState(matched?.service ?? services[0]?.name ?? NEW_SERVICE)
+  // Null until picked, so a list that arrives after the dialog opened still sets the default.
+  const [chosen, setChosen] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [name, setName] = useState(`${call.status} ${call.reason}`.trim())
   const [target, setTarget] = useState<'matched' | 'new'>('matched')
@@ -46,10 +47,10 @@ export function SaveAsMockDialog({ call, mocks, onClose }: SaveAsMockDialogProps
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const creating = serviceKey === NEW_SERVICE
-  const service: MockService = creating
-    ? newService(title.trim() === '' ? 'New service' : title.trim(), services)
-    : (services.find((one) => one.name === serviceKey) as MockService)
+  const serviceKey = chosen ?? matched?.service ?? services[0]?.name ?? NEW_SERVICE
+  const picked = services.find((one) => one.name === serviceKey) ?? null
+  const creating = picked === null
+  const service: MockService = picked ?? newService(title.trim() === '' ? 'New service' : title.trim(), services)
   const match = creating ? null : endpointFor([service], call)
   const endpoint = match === null ? null : (service.endpoints.find((one) => one.id === match.endpointId) ?? null)
   const useMatch = endpoint !== null && target === 'matched'
@@ -67,7 +68,7 @@ export function SaveAsMockDialog({ call, mocks, onClose }: SaveAsMockDialogProps
     setError(null)
 
     const next = applyCall(service, call, useMatch ? endpoint.id : null, name.trim(), body)
-    const failure = await mocks.save(next)
+    const { error: failure } = await mocks.save(next)
 
     setSaving(false)
 
@@ -101,7 +102,7 @@ export function SaveAsMockDialog({ call, mocks, onClose }: SaveAsMockDialogProps
           <div className="sm__pair">
             <label className="sm__field">
               <span className="sm__label">Service</span>
-              <select className="mk-field" onChange={(event) => setServiceKey(event.target.value)} value={serviceKey}>
+              <select className="mk-field" onChange={(event) => setChosen(event.target.value)} value={creating ? NEW_SERVICE : serviceKey}>
                 {services.map((one) => (
                   <option key={one.name} value={one.name}>
                     {one.title} · {one.file}

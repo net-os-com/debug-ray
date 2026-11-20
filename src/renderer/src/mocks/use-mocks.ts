@@ -5,6 +5,7 @@ import {
   choiceKey,
   type MockChoices,
   type MockHit,
+  type MockSaveResult,
   type MockService,
   type MockState,
   type MockWebhook,
@@ -30,8 +31,10 @@ export function useMocks(container: TinkerContainer | null) {
   const [hits, setHits] = useState<MockHit[]>([])
   const [sends, setSends] = useState<WebhookOutcome[]>([])
   const [choices, setChoices] = useState<MockChoices>(() => window.ray.mocksChoices())
-  const [busy, setBusy] = useState(false)
+  // A count, so a reload that ends during a save does not clear it.
+  const [running, setRunning] = useState(0)
   const loadedAt = useRef(0)
+  const busy = running > 0
 
   const containerId = container?.id ?? null
   const workingDir = container?.workingDir ?? null
@@ -43,12 +46,12 @@ export function useMocks(container: TinkerContainer | null) {
     }
 
     loadedAt.current = Date.now()
-    setBusy(true)
+    setRunning((n) => n + 1)
 
     try {
       setState(await window.ray.mocksLoad(containerId, workingDir, containerName))
     } finally {
-      setBusy(false)
+      setRunning((n) => n - 1)
     }
   }, [containerId, workingDir, containerName])
 
@@ -84,17 +87,17 @@ export function useMocks(container: TinkerContainer | null) {
   }, [load])
 
   const save = useCallback(
-    async (service: MockService): Promise<string | null> => {
+    async (service: MockService): Promise<MockSaveResult> => {
       if (containerId === null || workingDir === null) {
-        return 'Pick a container in Settings.'
+        return { error: 'Pick a container in Settings.', hash: null, file: '' }
       }
 
-      setBusy(true)
+      setRunning((n) => n + 1)
 
       try {
-        return (await window.ray.mocksSave(containerId, workingDir, service)).error
+        return await window.ray.mocksSave(containerId, workingDir, service)
       } finally {
-        setBusy(false)
+        setRunning((n) => n - 1)
       }
     },
     [containerId, workingDir],
@@ -110,14 +113,14 @@ export function useMocks(container: TinkerContainer | null) {
         return 'Pick a container in Settings.'
       }
 
-      setBusy(true)
+      setRunning((n) => n + 1)
 
       try {
         return (
           await window.ray.mocksForget(containerId, workingDir, service.name, service.hash)
         ).error
       } finally {
-        setBusy(false)
+        setRunning((n) => n - 1)
       }
     },
     [containerId, workingDir],

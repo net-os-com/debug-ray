@@ -171,7 +171,7 @@ export function MocksView({ mocks, editor, container, port, environment, openInR
           onDiscard={editor.discard}
           onReload={() => void mocks.load()}
           onSave={() => void editor.save().then(setError)}
-          onTitle={(title) => editor.edit((s) => ({ ...s, title }))}
+          onTitle={editor.retitle}
           service={draft}
         />
       ) : null}

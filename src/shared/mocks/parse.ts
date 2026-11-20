@@ -102,8 +102,8 @@ function map(value: unknown): Record<string, string> {
   const out: Record<string, string> = {}
 
   for (const [key, one] of Object.entries(record(value))) {
-    if (typeof one === 'string') {
-      out[key] = one
+    if (typeof one === 'string' || typeof one === 'number' || typeof one === 'boolean') {
+      out[key] = String(one)
     }
   }
 

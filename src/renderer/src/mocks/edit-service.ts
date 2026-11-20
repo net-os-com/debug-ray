@@ -42,6 +42,11 @@ export function newService(title: string, existing: MockService[]): MockService 
   }
 }
 
+/** The name follows the title until the file exists; from then on it is the file's name. */
+export function retitle(s: MockService, title: string, others: string[]): MockService {
+  return s.hash === null ? { ...s, title, name: uniqueId(slug(title), others) } : { ...s, title }
+}
+
 function mapEndpoint(
   s: MockService,
   endpointId: string,

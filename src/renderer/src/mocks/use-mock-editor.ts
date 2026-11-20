@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MockService } from '../../../shared/mocks/types'
-import { updateWebhook } from './edit-service'
+import { withConflictHint } from './conflict-hint'
+import { NO_DRAFT, afterSave, followDisk, fromDisk, isDirty, type DraftSync } from './draft-sync'
+import { retitle as retitleService, updateWebhook } from './edit-service'
 import type { MocksData } from './use-mocks'
 
 export type MockSelection =
@@ -19,7 +21,9 @@ export type MockEditor = ReturnType<typeof useMockEditor>
 
 export function useMockEditor(mocks: MocksData) {
   const [selection, setSelection] = useState<MockSelection>(null)
-  const [draft, setDraft] = useState<MockService | null>(null)
+  const [sync, setSync] = useState<DraftSync>(NO_DRAFT)
+  // Changes whenever the draft stops being the one a save in flight was made from.
+  const lineage = useRef(0)
 
   const services = mocks.state.services
   const saved = useMemo(
@@ -39,44 +43,32 @@ export function useMockEditor(mocks: MocksData) {
     [oneOffKey],
   )
 
-  const [base, setBase] = useState<string | null>(null)
-  const [onDisk, setOnDisk] = useState(false)
+  const { draft } = sync
+  const dirty = isDirty(sync)
 
-  const snapshot = JSON.stringify(saved)
-  const dirty = draft !== null && JSON.stringify(draft) !== base
-
-  // The file and its hash come from disk, not from the editing.
-  const savedAsDraft =
-    draft !== null && saved !== null
-      ? JSON.stringify({ ...draft, file: saved.file, hash: saved.hash }) === snapshot
-      : false
+  const replace = useCallback((next: DraftSync): void => {
+    lineage.current += 1
+    setSync(next)
+  }, [])
 
   useEffect(() => {
     if (selection === null) {
-      setDraft(null)
-      setBase(null)
-      setOnDisk(false)
+      if (sync !== NO_DRAFT) {
+        replace(NO_DRAFT)
+      }
 
       return
     }
 
-    // It was read from disk and the file is gone: deleted here or by hand.
-    if (saved === null && onDisk && !dirty) {
-      setDraft(null)
-      setBase(null)
-      setOnDisk(false)
+    const next = followDisk(sync, saved)
+
+    if (next === null) {
+      replace(NO_DRAFT)
       setSelection(null)
-
-      return
+    } else if (next !== sync) {
+      setSync(next)
     }
-
-    // Untouched, or just written by this very draft: follow what is on disk.
-    if (saved !== null && (!dirty || savedAsDraft) && base !== snapshot) {
-      setDraft(saved)
-      setBase(snapshot)
-      setOnDisk(true)
-    }
-  }, [selection, saved, snapshot, dirty, savedAsDraft, base, onDisk])
+  }, [selection, saved, sync, replace])
 
   const select = useCallback(
     (next: MockSelection): void => {
@@ -87,9 +79,7 @@ export function useMockEditor(mocks: MocksData) {
       }
 
       if (leaving) {
-        setDraft(null)
-        setBase(null)
-        setOnDisk(false)
+        replace(NO_DRAFT)
       }
 
       if (next?.kind !== 'webhook' || `${next.service}/${next.id}` !== oneOffKey) {
@@ -98,22 +88,35 @@ export function useMockEditor(mocks: MocksData) {
 
       setSelection(next)
     },
-    [dirty, selection?.service, oneOffKey],
+    [dirty, selection?.service, oneOffKey, replace],
   )
 
   const edit = useCallback((change: (s: MockService) => MockService): void => {
-    setDraft((current) => (current === null ? current : change(current)))
+    setSync((current) => (current.draft === null ? current : { ...current, draft: change(current.draft) }))
   }, [])
 
+  const retitle = useCallback(
+    (title: string): void => {
+      if (draft === null) {
+        return
+      }
+
+      const others = services.map((one) => one.name)
+      const { name } = retitleService(draft, title, others)
+
+      edit((s) => retitleService(s, title, others))
+      setSelection((current) => (current === null || current.service === name ? current : { ...current, service: name }))
+    },
+    [draft, services, edit],
+  )
+
   const discard = useCallback((): void => {
-    setDraft(saved)
-    setBase(saved === null ? null : JSON.stringify(saved))
-    setOnDisk(saved !== null)
+    replace(fromDisk(saved))
 
     if (saved === null) {
       setSelection(null)
     }
-  }, [saved])
+  }, [saved, replace])
 
   const saveOneOff = useCallback((): void => {
     if (selection?.kind !== 'webhook' || oneOffBody === null) {
@@ -122,9 +125,9 @@ export function useMockEditor(mocks: MocksData) {
 
     const { id } = selection
 
-    setDraft((current) => (current === null ? current : updateWebhook(current, id, { body: oneOffBody })))
+    edit((s) => updateWebhook(s, id, { body: oneOffBody }))
     setOneOff(null)
-  }, [selection, oneOffBody])
+  }, [selection, oneOffBody, edit])
 
   const create = useCallback(
     (service: MockService): void => {
@@ -132,12 +135,10 @@ export function useMockEditor(mocks: MocksData) {
         return
       }
 
-      setDraft(service)
-      setBase(null)
-      setOnDisk(false)
+      replace({ draft: service, base: null, onDisk: false })
       setSelection({ service: service.name, kind: 'service' })
     },
-    [dirty],
+    [dirty, replace],
   )
 
   const save = useCallback(async (): Promise<string | null> => {
@@ -149,15 +150,17 @@ export function useMockEditor(mocks: MocksData) {
       return 'Give the service a title.'
     }
 
-    const error = await mocks.save(draft)
+    const started = lineage.current
+    const { error, hash, file } = await mocks.save(draft)
 
-    // Rebased on what was just written, so it is clean whatever shape the file
-    // comes back in; the reload then replaces the draft with the real thing.
-    if (error === null) {
-      setBase(JSON.stringify(draft))
+    if (error === null && hash !== null && lineage.current === started) {
+      setSync((current) => afterSave(current, draft, { file, hash }))
+      setSelection((current) =>
+        current === null || current.service === draft.name ? current : { ...current, service: draft.name },
+      )
     }
 
-    return error
+    return withConflictHint(error)
   }, [draft, mocks])
 
   return {
@@ -166,6 +169,7 @@ export function useMockEditor(mocks: MocksData) {
     draft,
     dirty,
     edit,
+    retitle,
     discard,
     save,
     create,

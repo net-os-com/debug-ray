@@ -79,7 +79,7 @@ export function ServiceBar({
             <button className="button" onClick={onDiscard} type="button">
               Discard
             </button>
-            <button className="button button--primary" onClick={onSave} type="button">
+            <button className="button button--primary" disabled={busy} onClick={onSave} type="button">
               Save
             </button>
           </>
@@ -97,6 +97,7 @@ export function ServiceBar({
         <button
           aria-label="Delete service"
           className="mk-icon-button mk-icon-button--danger"
+          disabled={busy}
           onClick={onDelete}
           title="Delete service"
           type="button"

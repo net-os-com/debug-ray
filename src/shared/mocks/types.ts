@@ -48,6 +48,8 @@ export type MockService = {
 
 export type MockProblem = { file: string; error: string }
 
+export type MockSaveResult = { file: string; hash: string | null; error: string | null }
+
 export type MockState = {
   services: MockService[]
   problems: MockProblem[]
