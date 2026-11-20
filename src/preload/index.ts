@@ -23,6 +23,14 @@ import type {
   MintedToken,
   SavedRequest,
 } from '../shared/api'
+import type {
+  MockChoices,
+  MockHit,
+  MockService,
+  MockState,
+  WebhookFire,
+  WebhookOutcome,
+} from '../shared/mocks/types'
 import type { ImportedFile } from '../shared/import/documents'
 import type { PauseState } from '../shared/pause-state'
 import type { WindowIntent } from '../shared/window-intent'
@@ -290,6 +298,71 @@ const api = {
     operationId: string,
   ): Promise<{ file: string; operations: number; error: string | null }> {
     return ipcRenderer.invoke('api:collection:forget', containerId, workingDir, name, operationId)
+  },
+
+  mocksLoad(containerId: string, workingDir: string, containerName: string): Promise<MockState> {
+    return ipcRenderer.invoke('mocks:load', containerId, workingDir, containerName)
+  },
+
+  mocksState(): Promise<MockState> {
+    return ipcRenderer.invoke('mocks:state')
+  },
+
+  mocksSave(
+    containerId: string,
+    workingDir: string,
+    service: MockService,
+  ): Promise<{ file: string; hash: string | null; error: string | null }> {
+    return ipcRenderer.invoke('mocks:save', containerId, workingDir, service)
+  },
+
+  mocksForget(
+    containerId: string,
+    workingDir: string,
+    name: string,
+    hash: string,
+  ): Promise<{ error: string | null }> {
+    return ipcRenderer.invoke('mocks:forget', containerId, workingDir, name, hash)
+  },
+
+  mocksChoices(): MockChoices {
+    return ipcRenderer.sendSync('mocks:choices') as MockChoices
+  },
+
+  mocksChoose(key: string, responseId: string): Promise<MockChoices> {
+    return ipcRenderer.invoke('mocks:choose', key, responseId)
+  },
+
+  mocksHits(): Promise<MockHit[]> {
+    return ipcRenderer.invoke('mocks:hits')
+  },
+
+  mocksClearHits(): void {
+    ipcRenderer.send('mocks:hits:clear')
+  },
+
+  mocksFire(fire: WebhookFire): Promise<WebhookOutcome> {
+    return ipcRenderer.invoke('mocks:fire', fire)
+  },
+
+  onMocksState(listener: (state: MockState) => void): () => void {
+    const handler = (_: unknown, state: MockState): void => listener(state)
+
+    ipcRenderer.on('mocks:state', handler)
+
+    return () => {
+      ipcRenderer.off('mocks:state', handler)
+    }
+  },
+
+  onMockHit(listener: (hit: MockHit) => void): () => void {
+    const handler = (_: unknown, hit: MockHit): void => listener(hit)
+
+    ipcRenderer.on('mocks:hit', handler)
+
+    return () => {
+      ipcRenderer.off('mocks:hit', handler)
+    }
   },
 
   searchApiUsers(

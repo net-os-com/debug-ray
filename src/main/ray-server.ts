@@ -5,6 +5,7 @@ import type { EventLog } from './event-log'
 import type { McpPresence } from './mcp-status'
 import { availabilityCheck } from './routes/availability-check'
 import { locks } from './routes/locks'
+import { mockRoute, type MockRouteDeps } from './mocks/mock-route'
 import { payloads } from './routes/payloads'
 import { respondJson } from './respond-json'
 import { theme } from './routes/theme'
@@ -15,6 +16,7 @@ export type RayServerOptions = {
   port: number
   log: EventLog
   presence: McpPresence
+  mocks: MockRouteDeps
   onRequest: (request: RayRequest, address: string) => void
 }
 
@@ -22,7 +24,7 @@ export type RayServerOptions = {
  * Speaks the handful of endpoints spatie/ray's PHP client expects. See
  * vendor/spatie/ray/src/Client.php for the calls it makes.
  */
-export function createRayServer({ host, port, log, presence, onRequest }: RayServerOptions): Server {
+export function createRayServer({ host, port, log, presence, mocks, onRequest }: RayServerOptions): Server {
   const server = createServer((req, res) => {
     const path = (req.url ?? '/').split('?')[0]
 
@@ -34,6 +36,16 @@ export function createRayServer({ host, port, log, presence, onRequest }: RaySer
 
     if (path.startsWith('/locks/')) {
       locks(res)
+
+      return
+    }
+
+    if (path.startsWith('/mock/')) {
+      void mockRoute(req, res, mocks).catch(() => {
+        if (!res.headersSent) {
+          respondJson(res, 500, { message: 'The mock server failed.' })
+        }
+      })
 
       return
     }

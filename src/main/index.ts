@@ -22,6 +22,10 @@ import { readSettings } from './settings'
 import { createRayServer } from './ray-server'
 import { Snippets } from './snippets'
 import { Environments } from './api/environments'
+import { MockChoicesStore } from './mocks/choices-store'
+import { MockHitLog } from './mocks/hit-log'
+import { registerMockIpc } from './mocks/mock-ipc'
+import { MockRegistry } from './mocks/mock-registry'
 import { send } from './api/send'
 import { broadcast } from './realtime/broadcast'
 import { readCredentials } from './realtime/credentials'
@@ -99,6 +103,7 @@ const presence = new McpPresence()
 let preferences: Preferences
 let snippets: Snippets
 let environments: Environments
+let mockChoices: MockChoicesStore
 // Installing quits through "Close to background", which would otherwise keep
 // the hidden window open and the update waiting forever.
 const updater = new Updater(
@@ -349,6 +354,7 @@ app.whenReady().then(() => {
   preferences = new Preferences()
   snippets = new Snippets()
   environments = new Environments()
+  mockChoices = new MockChoicesStore()
 
   app.setAboutPanelOptions({
     applicationName: app.getName(),
@@ -676,11 +682,35 @@ app.whenReady().then(() => {
     notifier.notify(title, body)
   })
 
+  const mockRegistry = new MockRegistry((state) => sendToWindow(mainWindow, 'mocks:state', state))
+  const mockHits = new MockHitLog(200, (hit) => sendToWindow(mainWindow, 'mocks:hit', hit))
+
+  registerMockIpc({
+    registry: mockRegistry,
+    choices: mockChoices,
+    log: mockHits,
+    fire: async (fire) => ({
+      webhookId: fire.webhook.id,
+      at: Date.now(),
+      sent: false,
+      result: null,
+      error: 'Not yet',
+      edited: false,
+    }),
+  })
+
   const server = createRayServer({
     host: HOST,
     port: PORT,
     log,
     presence,
+    mocks: {
+      state: () => mockRegistry.state(),
+      choices: () => mockChoices.all(),
+      log: mockHits,
+      now: () => Date.now(),
+      wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    },
     onRequest: (request, address) => {
       clients.record(request, address)
 
@@ -750,6 +780,7 @@ app.on('before-quit', () => {
   preferences?.flush()
   snippets?.flush()
   environments?.flush()
+  mockChoices?.flush()
   streams.stopAll()
   notifier.stop()
   menuBar?.stop()
