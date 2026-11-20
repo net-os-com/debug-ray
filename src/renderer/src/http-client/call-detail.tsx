@@ -22,7 +22,12 @@ const ORIGIN_LABELS: Record<OutgoingCall['context']['kind'], string> = {
   unknown: 'elsewhere',
 }
 
-export function CallDetail({ http }: { http: HttpClientState }) {
+type CallDetailProps = {
+  http: HttpClientState
+  onSaveAsMock: (call: OutgoingCall) => void
+}
+
+export function CallDetail({ http, onSaveAsMock }: CallDetailProps) {
   const call = http.selected
 
   if (call === null) {
@@ -72,7 +77,7 @@ export function CallDetail({ http }: { http: HttpClientState }) {
           <span className="hc-mono hc-dim">{new Date(call.startedAt).toLocaleTimeString()}</span>
         </div>
 
-        <Actions call={call} />
+        <Actions call={call} onSaveAsMock={onSaveAsMock} />
       </div>
 
       <div className="hc-detail__tabs">
@@ -136,7 +141,7 @@ export function CallDetail({ http }: { http: HttpClientState }) {
   )
 }
 
-function Actions({ call }: { call: OutgoingCall }) {
+function Actions({ call, onSaveAsMock }: { call: OutgoingCall; onSaveAsMock: (call: OutgoingCall) => void }) {
   const [copied, setCopied] = useState(false)
 
   const copy = async (): Promise<void> => {
@@ -149,6 +154,9 @@ function Actions({ call }: { call: OutgoingCall }) {
     <div className="hc-actions">
       <button className="button" onClick={() => void copy()} type="button">
         {copied ? 'Copied' : 'Copy as cURL'}
+      </button>
+      <button className="button" onClick={() => onSaveAsMock(call)} type="button">
+        Save as mock
       </button>
     </div>
   )

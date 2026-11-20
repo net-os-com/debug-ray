@@ -430,7 +430,7 @@ export function App() {
             {view === 'requests' ? (
               <RequestsView requests={requests} />
             ) : view === 'http' ? (
-              <HttpView http={httpClient} />
+              <HttpView http={httpClient} mocks={mocks} />
             ) : view === 'realtime' ? (
               <RealtimeView realtime={realtime} />
             ) : view === 'tinker' ? (

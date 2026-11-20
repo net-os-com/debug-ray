@@ -11135,3 +11135,240 @@ select:focus {
   align-self: flex-start;
   margin: 4px 0 0;
 }
+
+.sm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(var(--color-gray-950) / 0.45);
+}
+
+.sm {
+  width: 100%;
+  max-width: 720px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: var(--app-surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.sm__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 12px;
+}
+
+.sm__heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm__heading .mk-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm__title {
+  margin: 0;
+  font-weight: var(--fw-medium);
+  font-size: 17px;
+  color: var(--t1);
+}
+
+.sm__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 20px 16px;
+}
+
+.sm__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sm__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sm__label,
+.sm__section {
+  font-weight: var(--fw-medium);
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.sm__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--radius-xl);
+  background: var(--app-surface);
+  cursor: pointer;
+}
+
+.sm__option--on {
+  border-color: rgb(var(--color-brand-primary-200));
+  background: var(--app-sel);
+}
+
+.sm__option input {
+  margin: 3px 0 0;
+  accent-color: var(--brand-primary);
+}
+
+.sm__option-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sm__option-name {
+  font-weight: var(--fw-medium);
+  color: var(--t1);
+}
+
+.sm__match {
+  height: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-weight: var(--fw-medium);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sm__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-fg);
+}
+
+.sm__warn svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.sm__warn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.sm__warn-title {
+  font-weight: 600;
+}
+
+.sm__box {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.sm__box-head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+}
+
+.sm__editor {
+  height: 228px;
+  display: flex;
+  background: var(--app-surface);
+}
+
+.sm__truncated {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: var(--err-fg);
+  background: var(--err-bg);
+}
+
+.sm__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.sm__chips-gap {
+  margin-left: 8px;
+}
+
+.sm__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--app-surface-3);
+  color: var(--t2);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sm__chip--out {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border-soft);
+  color: var(--t3);
+  text-decoration: line-through;
+}
+
+.sm__error {
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--err-bg);
+  color: var(--err-fg);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+
+.sm__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--app-border-soft);
+  background: var(--app-surface-2);
+}
+
+.sm__foot-note {
+  flex: 1;
+}
