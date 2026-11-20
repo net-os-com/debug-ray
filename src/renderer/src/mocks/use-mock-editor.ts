@@ -14,6 +14,8 @@ export type MockSelection =
  * it differs from the loaded one, and a reload from disk replaces it only when
  * it is not.
  */
+export type MockEditor = ReturnType<typeof useMockEditor>
+
 export function useMockEditor(mocks: MocksData) {
   const [selection, setSelection] = useState<MockSelection>(null)
   const [draft, setDraft] = useState<MockService | null>(null)

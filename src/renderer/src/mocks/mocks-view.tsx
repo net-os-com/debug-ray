@@ -4,16 +4,19 @@ import type { TinkerContainer } from '../../../shared/tinker'
 import { addEndpoint, addWebhook, newService } from './edit-service'
 import { ServiceBar } from './service-bar'
 import { ServiceList } from './service-list'
-import { useMockEditor } from './use-mock-editor'
+import type { MockEditor } from './use-mock-editor'
 import type { MocksData } from './use-mocks'
+
+const DEFAULT_PORT = 23517
 
 type MocksViewProps = {
   mocks: MocksData
+  editor: MockEditor
   container: TinkerContainer | null
+  port: number | null
 }
 
-export function MocksView({ mocks, container }: MocksViewProps) {
-  const editor = useMockEditor(mocks)
+export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
   const [error, setError] = useState<string | null>(null)
   const { services, problems } = mocks.state
   const { selection, draft } = editor
@@ -70,6 +73,7 @@ export function MocksView({ mocks, container }: MocksViewProps) {
           busy={mocks.busy}
           container={mocks.state.container || container?.name || ''}
           loadedAt={mocks.state.loadedAt}
+          port={port ?? DEFAULT_PORT}
           onDelete={() => void remove()}
           onReload={() => void mocks.load()}
           onTitle={(title) => editor.edit((s) => ({ ...s, title }))}
