@@ -22,6 +22,9 @@ type ServiceBarProps = {
   loadedAt: number | null
   busy: boolean
   port: number
+  dirty: boolean
+  onSave: () => void
+  onDiscard: () => void
   onTitle: (title: string) => void
   onReload: () => void
   onDelete: () => void
@@ -33,6 +36,9 @@ export function ServiceBar({
   loadedAt,
   busy,
   port,
+  dirty,
+  onSave,
+  onDiscard,
   onTitle,
   onReload,
   onDelete,
@@ -68,6 +74,17 @@ export function ServiceBar({
             </>
           )}
         </span>
+        {dirty ? (
+          <>
+            <span className="mk-bar__hint">Unsaved changes</span>
+            <button className="button" onClick={onDiscard} type="button">
+              Discard
+            </button>
+            <button className="button button--primary" onClick={onSave} type="button">
+              Save
+            </button>
+          </>
+        ) : null}
         <button
           aria-label="Reload fixtures"
           className="mk-icon-button"

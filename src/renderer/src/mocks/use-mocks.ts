@@ -103,7 +103,7 @@ export function useMocks(container: TinkerContainer | null) {
   const forget = useCallback(
     async (service: MockService): Promise<string | null> => {
       if (service.hash === null) {
-        return 'This service was never saved, so there is no file to delete.'
+        return null
       }
 
       if (containerId === null || workingDir === null) {

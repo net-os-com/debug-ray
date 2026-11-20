@@ -21,6 +21,10 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
   const { services, problems } = mocks.state
   const { selection, draft } = editor
 
+  const selectionKey = JSON.stringify(selection)
+
+  useEffect(() => setError(null), [selectionKey])
+
   useEffect(() => {
     if (selection === null && services.length > 0) {
       editor.select({ service: services[0].name, kind: 'service' })
@@ -54,7 +58,11 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
     }
 
     if (draft.hash === null) {
-      editor.discard()
+      const empty = draft.endpoints.length === 0 && draft.webhooks.length === 0
+
+      if (empty || window.confirm(`Discard ${draft.title}? It was never saved.`)) {
+        editor.discard()
+      }
 
       return
     }
@@ -75,7 +83,10 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
           loadedAt={mocks.state.loadedAt}
           port={port ?? DEFAULT_PORT}
           onDelete={() => void remove()}
+          dirty={editor.dirty}
+          onDiscard={editor.discard}
           onReload={() => void mocks.load()}
+          onSave={() => void editor.save().then(setError)}
           onTitle={(title) => editor.edit((s) => ({ ...s, title }))}
           service={draft}
         />

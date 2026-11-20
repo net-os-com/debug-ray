@@ -84,6 +84,7 @@ export function ServiceList({
           return (
             <div key={service.name}>
               <button
+                aria-expanded={open}
                 className={
                   current && selection?.kind === 'service'
                     ? 'mk-side__service mk-side__row--on'

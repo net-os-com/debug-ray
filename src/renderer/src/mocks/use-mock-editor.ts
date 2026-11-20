@@ -27,6 +27,7 @@ export function useMockEditor(mocks: MocksData) {
   )
 
   const [base, setBase] = useState<string | null>(null)
+  const [onDisk, setOnDisk] = useState(false)
 
   const snapshot = JSON.stringify(saved)
   const dirty = draft !== null && JSON.stringify(draft) !== base
@@ -41,6 +42,17 @@ export function useMockEditor(mocks: MocksData) {
     if (selection === null) {
       setDraft(null)
       setBase(null)
+      setOnDisk(false)
+
+      return
+    }
+
+    // It was read from disk and the file is gone: deleted here or by hand.
+    if (saved === null && onDisk && !dirty) {
+      setDraft(null)
+      setBase(null)
+      setOnDisk(false)
+      setSelection(null)
 
       return
     }
@@ -49,8 +61,9 @@ export function useMockEditor(mocks: MocksData) {
     if (saved !== null && (!dirty || savedAsDraft) && base !== snapshot) {
       setDraft(saved)
       setBase(snapshot)
+      setOnDisk(true)
     }
-  }, [selection, saved, snapshot, dirty, savedAsDraft, base])
+  }, [selection, saved, snapshot, dirty, savedAsDraft, base, onDisk])
 
   const select = useCallback(
     (next: MockSelection): void => {
@@ -63,6 +76,7 @@ export function useMockEditor(mocks: MocksData) {
       if (leaving) {
         setDraft(null)
         setBase(null)
+        setOnDisk(false)
       }
 
       setSelection(next)
@@ -77,6 +91,7 @@ export function useMockEditor(mocks: MocksData) {
   const discard = useCallback((): void => {
     setDraft(saved)
     setBase(saved === null ? null : JSON.stringify(saved))
+    setOnDisk(saved !== null)
 
     if (saved === null) {
       setSelection(null)
@@ -91,6 +106,7 @@ export function useMockEditor(mocks: MocksData) {
 
       setDraft(service)
       setBase(null)
+      setOnDisk(false)
       setSelection({ service: service.name, kind: 'service' })
     },
     [dirty],
@@ -101,7 +117,19 @@ export function useMockEditor(mocks: MocksData) {
       return null
     }
 
-    return mocks.save(draft)
+    if (draft.title.trim() === '') {
+      return 'Give the service a title.'
+    }
+
+    const error = await mocks.save(draft)
+
+    // Rebased on what was just written, so it is clean whatever shape the file
+    // comes back in; the reload then replaces the draft with the real thing.
+    if (error === null) {
+      setBase(JSON.stringify(draft))
+    }
+
+    return error
   }, [draft, mocks])
 
   return { selection, select, draft, dirty, edit, discard, save, create }
