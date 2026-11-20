@@ -682,8 +682,8 @@ app.whenReady().then(() => {
     notifier.notify(title, body)
   })
 
-  const mockRegistry = new MockRegistry((state) => sendToWindow(mainWindow, 'mocks:state', state))
-  const mockHits = new MockHitLog(200, (hit) => sendToWindow(mainWindow, 'mocks:hit', hit))
+  const mockRegistry = new MockRegistry((state) => sendToWindows(streamWindows(), 'mocks:state', state))
+  const mockHits = new MockHitLog(200, (hit) => sendToWindows(streamWindows(), 'mocks:hit', hit))
 
   registerMockIpc({
     registry: mockRegistry,

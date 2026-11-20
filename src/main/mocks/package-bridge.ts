@@ -4,7 +4,6 @@ import { runDocker } from '../exec/run-docker'
 
 const MOCKS_TIMEOUT_MS = 30_000
 
-/** Talks to the Laravel package, which owns the fixture files. */
 async function run(
   containerId: string,
   workingDir: string,
@@ -34,10 +33,10 @@ async function run(
     .find((candidate) => candidate.startsWith('{'))
 
   if (line === undefined) {
+    const detail = firstLine(result.stderr)
+
     return {
-      error:
-        firstLine(result.stderr) ||
-        'The mocks command answered nothing. Mocks need net-os/laravel-netos-debug v0.3 or newer.',
+      error: `The mocks command answered nothing. Mocks need net-os/laravel-netos-debug v0.3 or newer.${detail === '' ? '' : ` (${detail})`}`,
     }
   }
 
