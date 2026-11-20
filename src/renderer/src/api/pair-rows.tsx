@@ -7,6 +7,8 @@ type PairRowsProps = {
   valuePlaceholder: string
   /** Path parameters come from the route, so their names are not yours to edit. */
   lockKeys?: boolean
+  /** Off for lists where a row is either there or not, like a mock's headers. */
+  toggles?: boolean
   empty: string
 }
 
@@ -22,6 +24,7 @@ export function PairRows({
   keyPlaceholder,
   valuePlaceholder,
   lockKeys = false,
+  toggles = true,
   empty,
 }: PairRowsProps) {
   if (lockKeys && pairs.length === 0) {
@@ -41,7 +44,7 @@ export function PairRows({
     <div className="api-pairs">
       {rows.map((pair, index) => (
         <div className="api-pairs__row" key={index}>
-          {lockKeys ? null : (
+          {lockKeys || !toggles ? null : (
             <input
               checked={pair.enabled}
               className="api-pairs__check"

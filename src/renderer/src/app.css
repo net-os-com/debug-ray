@@ -10829,6 +10829,12 @@ select:focus {
   border-color: var(--border-form-field-active);
 }
 
+.mk-number--invalid,
+.mk-number--invalid:focus {
+  border-color: var(--err-fg);
+  color: var(--err-fg);
+}
+
 .mk-resp-editor__tabs {
   display: flex;
   gap: 4px;
@@ -10965,4 +10971,8 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.mk__right > .mk__placeholder {
+  padding: 16px 20px;
 }

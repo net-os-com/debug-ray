@@ -23,10 +23,11 @@ export function EndpointPane({ service, endpoint, choices, onEdit, onChoose, onD
   const resetKey = `${service.name}/${endpoint.id}`
 
   const add = (): void => {
-    const made = addResponse(service, endpoint.id, 'New response')
+    // The id comes from the same call the updater makes, on the same draft.
+    const { responseId } = addResponse(service, endpoint.id, 'New response')
 
-    onEdit(() => made.service)
-    setEditingId(made.responseId)
+    onEdit((s) => addResponse(s, endpoint.id, 'New response').service)
+    setEditingId(responseId)
   }
 
   return (

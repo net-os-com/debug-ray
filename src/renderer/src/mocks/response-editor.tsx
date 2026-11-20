@@ -5,6 +5,7 @@ import { StrokeIcon } from '../chrome/module-icons'
 import { CodeEditor } from '../ui/code-editor'
 import { TRASH_PATH } from './icon-paths'
 import { tokenizeJson } from './json-tokens'
+import { NumberField } from './number-field'
 import { usePairRows } from './use-pair-rows'
 
 type ResponseEditorProps = {
@@ -34,23 +35,11 @@ export function ResponseEditor({ response, resetKey, canDelete, onChange, onDele
         />
         <label className="mk-hint mk-resp-editor__field">
           Status
-          <input
-            aria-label="Status"
-            className="mk-number"
-            inputMode="numeric"
-            onChange={(event) => onChange({ status: parseInt(event.target.value, 10) || 0 })}
-            value={response.status}
-          />
+          <NumberField label="Status" max={599} min={100} onCommit={(status) => onChange({ status })} value={response.status} />
         </label>
         <label className="mk-hint mk-resp-editor__field">
           Delay
-          <input
-            aria-label="Delay in ms"
-            className="mk-number"
-            inputMode="numeric"
-            onChange={(event) => onChange({ delayMs: parseInt(event.target.value, 10) || 0 })}
-            value={response.delayMs}
-          />
+          <NumberField label="Delay in ms" max={60000} min={0} onCommit={(delayMs) => onChange({ delayMs })} value={response.delayMs} />
           ms
         </label>
         <button
@@ -94,6 +83,7 @@ export function ResponseEditor({ response, resetKey, canDelete, onChange, onDele
             keyPlaceholder="Header"
             onChange={setRows}
             pairs={rows}
+          toggles={false}
             valuePlaceholder="Value"
           />
         </div>

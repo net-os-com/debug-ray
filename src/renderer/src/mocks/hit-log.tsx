@@ -13,7 +13,7 @@ function responseName(service: MockService, hit: MockHit): string | null {
   const endpoint = service.endpoints.find((one) => one.id === hit.endpointId)
   const response = endpoint?.responses.find((one) => one.id === hit.responseId)
 
-  return response?.name ?? hit.responseId ?? 'Unknown response'
+  return response?.name ?? 'Deleted response'
 }
 
 type HitLogProps = {
@@ -41,8 +41,9 @@ export function HitLog({ service, hits, endpointId, onAddEndpoint, onClear }: Hi
         <span className="mk-section__title">Calls</span>
 
         {endpointId === null ? null : (
-          <div className="mk-calls__toggle" role="group">
+          <div aria-label="Calls shown" className="mk-calls__toggle" role="group">
             <button
+              aria-pressed={effective === 'endpoint'}
               className={effective === 'endpoint' ? 'mk-calls__scope mk-calls__scope--on' : 'mk-calls__scope'}
               onClick={() => setScope('endpoint')}
               type="button"
@@ -50,6 +51,7 @@ export function HitLog({ service, hits, endpointId, onAddEndpoint, onClear }: Hi
               This endpoint
             </button>
             <button
+              aria-pressed={effective === 'service'}
               className={effective === 'service' ? 'mk-calls__scope mk-calls__scope--on' : 'mk-calls__scope'}
               onClick={() => setScope('service')}
               type="button"
@@ -60,7 +62,7 @@ export function HitLog({ service, hits, endpointId, onAddEndpoint, onClear }: Hi
         )}
 
         <button className="mk-ghost-button" disabled={hits.length === 0} onClick={onClear} type="button">
-          Clear
+          Clear all
         </button>
       </div>
 

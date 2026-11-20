@@ -78,6 +78,7 @@ export function EndpointEditor({ endpoint, serviceName, onChange, onDelete }: En
           keyPlaceholder="Key"
           onChange={setRows}
           pairs={rows}
+          toggles={false}
           valuePlaceholder="Value"
         />
       </div>
