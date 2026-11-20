@@ -3,9 +3,8 @@ import type { MockProblem, MockService } from '../../../shared/mocks/types'
 import { Caret } from '../api/caret'
 import { methodColor } from '../api/method-color'
 import { StrokeIcon } from '../chrome/module-icons'
+import { GRIP_PATH, PLUS_PATH } from './icon-paths'
 import type { MockSelection } from './use-mock-editor'
-
-const PLUS_PATH = 'M12 4.5v15m7.5-7.5h-15'
 
 type ServiceListProps = {
   services: MockService[]
@@ -15,6 +14,7 @@ type ServiceListProps = {
   onSelect: (next: MockSelection) => void
   onAddEndpoint: () => void
   onAddWebhook: () => void
+  onMoveEndpoint: (from: number, to: number) => void
   onNewService: () => void
 }
 
@@ -26,11 +26,14 @@ export function ServiceList({
   onSelect,
   onAddEndpoint,
   onAddWebhook,
+  onMoveEndpoint,
   onNewService,
 }: ServiceListProps) {
   const [shut, setShut] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const needle = query.trim().toLowerCase()
+  const [dragging, setDragging] = useState<number | null>(null)
+  const [over, setOver] = useState<number | null>(null)
 
   const toggle = (name: string): void =>
     setShut((current) => {
@@ -112,33 +115,90 @@ export function ServiceList({
               </button>
 
               {open
-                ? endpoints.map((endpoint) => (
-                    <button
-                      className={
-                        current && selection?.kind === 'endpoint' && selection.id === endpoint.id
-                          ? 'mk-side__row mk-side__row--on'
-                          : 'mk-side__row'
-                      }
-                      key={endpoint.id}
-                      onClick={() =>
-                        onSelect({ service: service.name, kind: 'endpoint', id: endpoint.id })
-                      }
-                      type="button"
-                    >
-                      <span className="mk-side__method" style={{ color: methodColor(endpoint.method) }}>
-                        {endpoint.method}
-                      </span>
-                      <span className="mk-side__what">
-                        <span className="mk-side__endpoint">{endpoint.name}</span>
-                        <span className="mk-side__path">
-                          {endpoint.path}
-                          {Object.keys(endpoint.query).length > 0
-                            ? ` · ${Object.keys(endpoint.query).join(', ')}`
-                            : ''}
-                        </span>
-                      </span>
-                    </button>
-                  ))
+                ? endpoints.map((endpoint) => {
+                    const index = service.endpoints.indexOf(endpoint)
+                    const marker =
+                      over === index && dragging !== null && dragging !== index
+                        ? dragging < index
+                          ? ' mk-side__item--after'
+                          : ' mk-side__item--before'
+                        : ''
+
+                    return (
+                      <div
+                        className={`mk-side__item${marker}`}
+                        key={endpoint.id}
+                        onDragLeave={() => setOver((held) => (held === index ? null : held))}
+                        onDragOver={(event) => {
+                          if (dragging !== null) {
+                            event.preventDefault()
+                            setOver(index)
+                          }
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault()
+
+                          if (dragging !== null) {
+                            onMoveEndpoint(dragging, index)
+                          }
+
+                          setDragging(null)
+                          setOver(null)
+                        }}
+                      >
+                        {current ? (
+                          <span
+                            aria-label={`Drag ${endpoint.name} to reorder`}
+                            className="mk-side__grip"
+                            draggable
+                            onDragEnd={() => {
+                              setDragging(null)
+                              setOver(null)
+                            }}
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = 'move'
+                              event.dataTransfer.setData('text/plain', endpoint.id)
+
+                              const row = event.currentTarget.parentElement
+
+                              if (row !== null) {
+                                event.dataTransfer.setDragImage(row, 0, 0)
+                              }
+
+                              setDragging(index)
+                            }}
+                            title="Drag to reorder"
+                          >
+                            <StrokeIcon path={GRIP_PATH} size={14} />
+                          </span>
+                        ) : null}
+                        <button
+                          className={
+                            current && selection?.kind === 'endpoint' && selection.id === endpoint.id
+                              ? 'mk-side__row mk-side__row--on'
+                              : 'mk-side__row'
+                          }
+                          onClick={() =>
+                            onSelect({ service: service.name, kind: 'endpoint', id: endpoint.id })
+                          }
+                          type="button"
+                        >
+                          <span className="mk-side__method" style={{ color: methodColor(endpoint.method) }}>
+                            {endpoint.method}
+                          </span>
+                          <span className="mk-side__what">
+                            <span className="mk-side__endpoint">{endpoint.name}</span>
+                            <span className="mk-side__path">
+                              {endpoint.path}
+                              {Object.keys(endpoint.query).length > 0
+                                ? ` · ${Object.keys(endpoint.query).join(', ')}`
+                                : ''}
+                            </span>
+                          </span>
+                        </button>
+                      </div>
+                    )
+                  })
                 : null}
 
               {open && (service.webhooks.length > 0 || current) ? (

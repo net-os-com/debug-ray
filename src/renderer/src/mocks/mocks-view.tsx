@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { MockService } from '../../../shared/mocks/types'
+import type { MockHit, MockService } from '../../../shared/mocks/types'
 import type { TinkerContainer } from '../../../shared/tinker'
-import { addEndpoint, addWebhook, newService } from './edit-service'
+import { addEndpoint, addWebhook, decodeQuery, moveEndpoint, newService, removeEndpoint, updateEndpoint } from './edit-service'
+import { EndpointPane } from './endpoint-pane'
+import { HitLog } from './hit-log'
 import { ServiceBar } from './service-bar'
 import { ServiceList } from './service-list'
 import type { MockEditor } from './use-mock-editor'
@@ -50,6 +52,32 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
 
     editor.edit(() => made.service)
     editor.select({ service: draft.name, kind: made.kind, id: made.select })
+  }
+
+  const endpoint =
+    draft !== null && selection?.kind === 'endpoint'
+      ? (draft.endpoints.find((one) => one.id === selection.id) ?? null)
+      : null
+
+  const deleteEndpoint = (): void => {
+    if (draft === null || endpoint === null || !window.confirm(`Delete ${endpoint.name}?`)) {
+      return
+    }
+
+    editor.edit((s) => removeEndpoint(s, endpoint.id))
+    editor.select({ service: draft.name, kind: 'service' })
+  }
+
+  const addFromHit = (hit: MockHit): void => {
+    if (draft === null) {
+      return
+    }
+
+    const made = addEndpoint(draft, hit.method, hit.path, `${hit.method} ${hit.path}`)
+    const next = updateEndpoint(made.service, made.endpointId, { query: decodeQuery(hit.query) })
+
+    editor.edit(() => next)
+    editor.select({ service: draft.name, kind: 'endpoint', id: made.endpointId })
   }
 
   const remove = async (): Promise<void> => {
@@ -109,6 +137,7 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
               return { service: made.service, select: made.webhookId, kind: 'webhook' }
             })
           }
+          onMoveEndpoint={(from, to) => editor.edit((s) => moveEndpoint(s, from, to))}
           onNewService={() => editor.create(newService('New service', services))}
           onSelect={editor.select}
           problems={problems}
@@ -118,11 +147,33 @@ export function MocksView({ mocks, editor, container, port }: MocksViewProps) {
 
         <section aria-label="Endpoint" className="mk__middle">
           {error !== null ? <p className="mk__error">{error}</p> : null}
-          <p className="mk__placeholder">Pick an endpoint or a webhook to edit it.</p>
+          {draft !== null && endpoint !== null ? (
+            <EndpointPane
+              choices={mocks.choices}
+              endpoint={endpoint}
+              key={`${draft.name}/${endpoint.id}`}
+              onChoose={(responseId) => mocks.choose(draft.name, endpoint.id, responseId)}
+              onDelete={deleteEndpoint}
+              onEdit={editor.edit}
+              service={draft}
+            />
+          ) : (
+            <p className="mk__placeholder">Pick an endpoint or a webhook to edit it.</p>
+          )}
         </section>
 
         <section aria-label="Activity" className="mk__right">
-          <p className="mk__placeholder">Calls to this service will show here.</p>
+          {draft !== null ? (
+            <HitLog
+              endpointId={endpoint?.id ?? null}
+              hits={mocks.hits}
+              onAddEndpoint={addFromHit}
+              onClear={mocks.clearHits}
+              service={draft}
+            />
+          ) : (
+            <p className="mk__placeholder">Calls to this service will show here.</p>
+          )}
         </section>
       </div>
     </div>

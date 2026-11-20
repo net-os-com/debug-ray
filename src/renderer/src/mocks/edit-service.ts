@@ -83,6 +83,19 @@ export function updateEndpoint(
   return mapEndpoint(s, endpointId, (one) => ({ ...one, ...patch }))
 }
 
+/** A raw query string as match conditions: each key with its first value. */
+export function decodeQuery(query: string): Record<string, string> {
+  const found: Record<string, string> = {}
+
+  for (const [key, value] of new URLSearchParams(query)) {
+    if (!(key in found)) {
+      found[key] = value
+    }
+  }
+
+  return found
+}
+
 export function removeEndpoint(s: MockService, endpointId: string): MockService {
   return { ...s, endpoints: s.endpoints.filter((one) => one.id !== endpointId) }
 }
