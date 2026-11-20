@@ -10699,6 +10699,8 @@ select:focus {
 }
 
 .mk-ghost-button {
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 4px;
